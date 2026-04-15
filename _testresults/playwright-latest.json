@@ -1,6 +1,6 @@
 {
-  "runStart": "2026-04-15 14:33:20",
-  "lastUpdate": "2026-04-15 14:33:33",
+  "runStart": "2026-04-15 14:36:36",
+  "lastUpdate": "2026-04-15 14:36:49",
   "elapsed": "13s",
   "passed": 25,
   "failed": 0,
@@ -12,175 +12,175 @@
       "result": "Pass",
       "error": null,
       "durationMs": 0.1,
-      "timestamp": "14:33:20"
+      "timestamp": "14:36:36"
     },
     {
       "name": "WasmRTCTests.Loopback_MultipleDataChannels",
       "result": "Pass",
       "error": null,
-      "durationMs": 551,
-      "timestamp": "14:33:21"
+      "durationMs": 584.9,
+      "timestamp": "14:36:37"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_LargeMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 150.5,
-      "timestamp": "14:33:21"
+      "durationMs": 163.8,
+      "timestamp": "14:36:37"
     },
     {
       "name": "WasmRTCTests.Loopback_ConnectionStateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 151.5,
-      "timestamp": "14:33:21"
+      "durationMs": 154.1,
+      "timestamp": "14:36:37"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_RapidMessages",
       "result": "Pass",
       "error": null,
-      "durationMs": 153.4,
-      "timestamp": "14:33:22"
+      "durationMs": 156.8,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.TestInfrastructure_Working",
       "result": "Pass",
       "error": null,
-      "durationMs": 30.4,
-      "timestamp": "14:33:22"
+      "durationMs": 31.8,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 57.3,
-      "timestamp": "14:33:22"
+      "durationMs": 57.4,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanCreateOffer",
       "result": "Pass",
       "error": null,
-      "durationMs": 155.3,
-      "timestamp": "14:33:22"
+      "durationMs": 159.2,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.DataChannel_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 36.8,
-      "timestamp": "14:33:22"
+      "durationMs": 30.7,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_StringMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 158.3,
-      "timestamp": "14:33:22"
+      "durationMs": 155.8,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_BinaryMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 140.8,
-      "timestamp": "14:33:22"
+      "durationMs": 152.9,
+      "timestamp": "14:36:38"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_Bidirectional",
       "result": "Pass",
       "error": null,
-      "durationMs": 134.4,
-      "timestamp": "14:33:23"
+      "durationMs": 157.6,
+      "timestamp": "14:36:39"
     },
     {
       "name": "Build SpawnDev.RTC.DemoConsole",
       "result": "Pass",
       "error": null,
       "durationMs": 0,
-      "timestamp": "14:33:23"
+      "timestamp": "14:36:39"
     },
     {
       "name": "DesktopRTCTests.Loopback_MultipleDataChannels",
       "result": "Pass",
       "error": null,
-      "durationMs": 744.5,
-      "timestamp": "14:33:23"
+      "durationMs": 743.4,
+      "timestamp": "14:36:39"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_LargeMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 1142.9,
-      "timestamp": "14:33:25"
+      "durationMs": 1145.8,
+      "timestamp": "14:36:41"
     },
     {
       "name": "DesktopRTCTests.Loopback_ConnectionStateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 573.6,
-      "timestamp": "14:33:25"
+      "durationMs": 573.7,
+      "timestamp": "14:36:41"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_RapidMessages",
       "result": "Pass",
       "error": null,
-      "durationMs": 1984.2,
-      "timestamp": "14:33:27"
+      "durationMs": 1928,
+      "timestamp": "14:36:43"
     },
     {
       "name": "DesktopRTCTests.TestInfrastructure_Working",
       "result": "Pass",
       "error": null,
-      "durationMs": 134.5,
-      "timestamp": "14:33:27"
+      "durationMs": 130.7,
+      "timestamp": "14:36:43"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 287.7,
-      "timestamp": "14:33:28"
+      "durationMs": 286.3,
+      "timestamp": "14:36:44"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanCreateOffer",
       "result": "Pass",
       "error": null,
-      "durationMs": 329.1,
-      "timestamp": "14:33:28"
+      "durationMs": 327.2,
+      "timestamp": "14:36:44"
     },
     {
       "name": "DesktopRTCTests.DataChannel_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 293.4,
-      "timestamp": "14:33:28"
+      "durationMs": 291.6,
+      "timestamp": "14:36:44"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_StringMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 727.6,
-      "timestamp": "14:33:29"
+      "durationMs": 702.6,
+      "timestamp": "14:36:45"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_BinaryMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 735.2,
-      "timestamp": "14:33:30"
+      "durationMs": 729.2,
+      "timestamp": "14:36:46"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_Bidirectional",
       "result": "Pass",
       "error": null,
-      "durationMs": 754.8,
-      "timestamp": "14:33:31"
+      "durationMs": 757.1,
+      "timestamp": "14:36:47"
     },
     {
       "name": "CrossPlatform.Desktop_Browser_DataChannel",
       "result": "Pass",
       "error": null,
-      "durationMs": 2470.7,
-      "timestamp": "14:33:33"
+      "durationMs": 2476.4,
+      "timestamp": "14:36:49"
     }
   ]
 }

@@ -13,16 +13,26 @@ namespace SpawnDev.RTC
         string IceConnectionState { get; }
         string IceGatheringState { get; }
         string SignalingState { get; }
+        bool? CanTrickleIceCandidates { get; }
+
+        // --- SDP descriptions ---
         RTCSessionDescriptionInit? LocalDescription { get; }
         RTCSessionDescriptionInit? RemoteDescription { get; }
+        RTCSessionDescriptionInit? CurrentLocalDescription { get; }
+        RTCSessionDescriptionInit? CurrentRemoteDescription { get; }
+        RTCSessionDescriptionInit? PendingLocalDescription { get; }
+        RTCSessionDescriptionInit? PendingRemoteDescription { get; }
 
         // --- Data channels ---
         IRTCDataChannel CreateDataChannel(string label, RTCDataChannelConfig? options = null);
 
         // --- SDP negotiation ---
         Task<RTCSessionDescriptionInit> CreateOffer();
+        Task<RTCSessionDescriptionInit> CreateOffer(RTCOfferOptions options);
         Task<RTCSessionDescriptionInit> CreateAnswer();
+        Task<RTCSessionDescriptionInit> CreateAnswer(RTCAnswerOptions options);
         Task SetLocalDescription(RTCSessionDescriptionInit description);
+        Task SetLocalDescription();
         Task SetRemoteDescription(RTCSessionDescriptionInit description);
 
         // --- ICE ---
@@ -30,26 +40,15 @@ namespace SpawnDev.RTC
         void RestartIce();
 
         // --- Media tracks ---
-
-        /// <summary>
-        /// Adds a media track to the connection. Returns the sender used to control it.
-        /// </summary>
         IRTCRtpSender AddTrack(IRTCMediaStreamTrack track, params IRTCMediaStream[] streams);
-
-        /// <summary>
-        /// Removes a track sender from the connection.
-        /// </summary>
         void RemoveTrack(IRTCRtpSender sender);
-
-        /// <summary>
-        /// Returns all RTP senders associated with this connection.
-        /// </summary>
         IRTCRtpSender[] GetSenders();
-
-        /// <summary>
-        /// Returns all RTP receivers associated with this connection.
-        /// </summary>
         IRTCRtpReceiver[] GetReceivers();
+
+        // --- Transceivers ---
+        IRTCRtpTransceiver[] GetTransceivers();
+        IRTCRtpTransceiver AddTransceiver(string kind);
+        IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track);
 
         // --- Lifecycle ---
         void Close();
@@ -60,6 +59,11 @@ namespace SpawnDev.RTC
         /// Fired when a new ICE candidate is available for signaling.
         /// </summary>
         event Action<RTCIceCandidateInit>? OnIceCandidate;
+
+        /// <summary>
+        /// Fired when an ICE candidate error occurs.
+        /// </summary>
+        event Action<RTCIceCandidateError>? OnIceCandidateError;
 
         /// <summary>
         /// Fired when a remote peer creates a data channel.
@@ -77,6 +81,11 @@ namespace SpawnDev.RTC
         event Action<string>? OnConnectionStateChange;
 
         /// <summary>
+        /// Fired when the signaling state changes.
+        /// </summary>
+        event Action<string>? OnSignalingStateChange;
+
+        /// <summary>
         /// Fired when the ICE connection state changes.
         /// </summary>
         event Action<string>? OnIceConnectionStateChange;
@@ -87,7 +96,7 @@ namespace SpawnDev.RTC
         event Action<string>? OnIceGatheringStateChange;
 
         /// <summary>
-        /// Fired when renegotiation is needed (e.g., after adding/removing tracks).
+        /// Fired when renegotiation is needed.
         /// </summary>
         event Action? OnNegotiationNeeded;
     }
@@ -100,6 +109,34 @@ namespace SpawnDev.RTC
         public IRTCRtpReceiver Receiver { get; set; } = default!;
         public IRTCMediaStreamTrack Track { get; set; } = default!;
         public IRTCMediaStream[] Streams { get; set; } = System.Array.Empty<IRTCMediaStream>();
+        public IRTCRtpTransceiver? Transceiver { get; set; }
+    }
+
+    /// <summary>
+    /// ICE candidate error information.
+    /// </summary>
+    public class RTCIceCandidateError
+    {
+        public string? Address { get; set; }
+        public uint? Port { get; set; }
+        public uint ErrorCode { get; set; }
+        public string ErrorText { get; set; } = "";
+        public string Url { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Options for CreateOffer.
+    /// </summary>
+    public class RTCOfferOptions
+    {
+        public bool? IceRestart { get; set; }
+    }
+
+    /// <summary>
+    /// Options for CreateAnswer.
+    /// </summary>
+    public class RTCAnswerOptions
+    {
     }
 
     /// <summary>

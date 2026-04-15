@@ -24,29 +24,24 @@ namespace SpawnDev.RTC.Browser
         public string IceConnectionState => NativeConnection.IceConnectionState;
         public string IceGatheringState => NativeConnection.IceGatheringState;
         public string SignalingState => NativeConnection.SignalingState;
+        public bool? CanTrickleIceCandidates => NativeConnection.CanTrickleIceCandidates;
 
-        public RTCSessionDescriptionInit? LocalDescription
-        {
-            get
-            {
-                var desc = NativeConnection.LocalDescription;
-                return desc == null ? null : new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
-            }
-        }
+        public RTCSessionDescriptionInit? LocalDescription => MapDesc(NativeConnection.LocalDescription);
+        public RTCSessionDescriptionInit? RemoteDescription => MapDesc(NativeConnection.RemoteDescription);
+        public RTCSessionDescriptionInit? CurrentLocalDescription => MapDesc(NativeConnection.CurrentLocalDescription);
+        public RTCSessionDescriptionInit? CurrentRemoteDescription => MapDesc(NativeConnection.CurrentRemoteDescription);
+        public RTCSessionDescriptionInit? PendingLocalDescription => MapDesc(NativeConnection.PendingLocalDescription);
+        public RTCSessionDescriptionInit? PendingRemoteDescription => MapDesc(NativeConnection.PendingRemoteDescription);
 
-        public RTCSessionDescriptionInit? RemoteDescription
-        {
-            get
-            {
-                var desc = NativeConnection.RemoteDescription;
-                return desc == null ? null : new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
-            }
-        }
+        private static RTCSessionDescriptionInit? MapDesc(RTCSessionDescription? desc)
+            => desc == null ? null : new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
 
         public event Action<RTCIceCandidateInit>? OnIceCandidate;
+        public event Action<RTCIceCandidateError>? OnIceCandidateError;
         public event Action<IRTCDataChannel>? OnDataChannel;
         public event Action<RTCTrackEventInit>? OnTrack;
         public event Action<string>? OnConnectionStateChange;
+        public event Action<string>? OnSignalingStateChange;
         public event Action<string>? OnIceConnectionStateChange;
         public event Action<string>? OnIceGatheringStateChange;
         public event Action? OnNegotiationNeeded;
@@ -71,9 +66,11 @@ namespace SpawnDev.RTC.Browser
                 NativeConnection = new RTCPeerConnection();
             }
             NativeConnection.OnIceCandidate += HandleIceCandidate;
+            NativeConnection.OnIceCandidateError += HandleIceCandidateError;
             NativeConnection.OnDataChannel += HandleDataChannel;
             NativeConnection.OnTrack += HandleTrack;
             NativeConnection.OnConnectionStateChange += HandleConnectionStateChange;
+            NativeConnection.OnSignalingStateChange += HandleSignalingStateChange;
             NativeConnection.OnIceConnectionStateChange += HandleIceConnectionStateChange;
             NativeConnection.OnIceGatheringStateChange += HandleIceGatheringStateChange;
             NativeConnection.OnNegotiationNeeded += HandleNegotiationNeeded;
@@ -104,8 +101,22 @@ namespace SpawnDev.RTC.Browser
             return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
         }
 
+        public async Task<RTCSessionDescriptionInit> CreateOffer(RTCOfferOptions options)
+        {
+            var jsOptions = new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCOfferOptions { IceRestart = options.IceRestart };
+            var desc = await NativeConnection.CreateOffer(jsOptions);
+            return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
+        }
+
         public async Task<RTCSessionDescriptionInit> CreateAnswer()
         {
+            var desc = await NativeConnection.CreateAnswer();
+            return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
+        }
+
+        public async Task<RTCSessionDescriptionInit> CreateAnswer(RTCAnswerOptions options)
+        {
+            // Browser CreateAnswer doesn't have meaningful options yet
             var desc = await NativeConnection.CreateAnswer();
             return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
         }
@@ -135,7 +146,29 @@ namespace SpawnDev.RTC.Browser
             jsCandidate.Dispose();
         }
 
+        public async Task SetLocalDescription()
+        {
+            await NativeConnection.SetLocalDescription();
+        }
+
         public void RestartIce() => NativeConnection.RestartIce();
+
+        public IRTCRtpTransceiver[] GetTransceivers()
+        {
+            return NativeConnection.GetTransceivers().Select(t => (IRTCRtpTransceiver)new BrowserRTCRtpTransceiver(t)).ToArray();
+        }
+
+        public IRTCRtpTransceiver AddTransceiver(string kind)
+        {
+            return new BrowserRTCRtpTransceiver(NativeConnection.AddTransceiver(kind));
+        }
+
+        public IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track)
+        {
+            if (track is BrowserRTCMediaStreamTrack browserTrack)
+                return new BrowserRTCRtpTransceiver(NativeConnection.AddTransceiver(browserTrack.NativeTrack));
+            throw new ArgumentException("Track must be a BrowserRTCMediaStreamTrack in WASM.");
+        }
 
         public IRTCRtpSender AddTrack(IRTCMediaStreamTrack track, params IRTCMediaStream[] streams)
         {
@@ -215,6 +248,23 @@ namespace SpawnDev.RTC.Browser
             });
         }
 
+        private void HandleSignalingStateChange(Event e)
+        {
+            OnSignalingStateChange?.Invoke(SignalingState);
+        }
+
+        private void HandleIceCandidateError(RTCPeerConnectionIceErrorEvent e)
+        {
+            OnIceCandidateError?.Invoke(new RTCIceCandidateError
+            {
+                Address = e.Address,
+                Port = e.Port,
+                ErrorCode = e.ErrorCode,
+                ErrorText = e.ErrorText,
+                Url = e.Url,
+            });
+        }
+
         private void HandleNegotiationNeeded(Event e)
         {
             OnNegotiationNeeded?.Invoke();
@@ -225,9 +275,11 @@ namespace SpawnDev.RTC.Browser
             if (_disposed) return;
             _disposed = true;
             NativeConnection.OnIceCandidate -= HandleIceCandidate;
+            NativeConnection.OnIceCandidateError -= HandleIceCandidateError;
             NativeConnection.OnDataChannel -= HandleDataChannel;
             NativeConnection.OnTrack -= HandleTrack;
             NativeConnection.OnConnectionStateChange -= HandleConnectionStateChange;
+            NativeConnection.OnSignalingStateChange -= HandleSignalingStateChange;
             NativeConnection.OnIceConnectionStateChange -= HandleIceConnectionStateChange;
             NativeConnection.OnIceGatheringStateChange -= HandleIceGatheringStateChange;
             NativeConnection.OnNegotiationNeeded -= HandleNegotiationNeeded;

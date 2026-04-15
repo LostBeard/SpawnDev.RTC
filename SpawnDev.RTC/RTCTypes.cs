@@ -10,6 +10,41 @@ namespace SpawnDev.RTC
         [JsonPropertyName("iceServers")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public RTCIceServerConfig[]? IceServers { get; set; }
+
+        /// <summary>
+        /// "balanced", "max-compat", or "max-bundle".
+        /// </summary>
+        [JsonPropertyName("bundlePolicy")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BundlePolicy { get; set; }
+
+        /// <summary>
+        /// "all" or "relay". When "relay", only TURN candidates are used.
+        /// </summary>
+        [JsonPropertyName("iceTransportPolicy")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? IceTransportPolicy { get; set; }
+
+        /// <summary>
+        /// Number of ICE candidates to pre-gather.
+        /// </summary>
+        [JsonPropertyName("iceCandidatePoolSize")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public ushort? IceCandidatePoolSize { get; set; }
+
+        /// <summary>
+        /// Target peer identity for authentication.
+        /// </summary>
+        [JsonPropertyName("peerIdentity")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? PeerIdentity { get; set; }
+
+        /// <summary>
+        /// "negotiate" or "require".
+        /// </summary>
+        [JsonPropertyName("rtcpMuxPolicy")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? RtcpMuxPolicy { get; set; }
     }
 
     /// <summary>

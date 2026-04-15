@@ -41,10 +41,18 @@ namespace SpawnDev.RTC.Desktop
             }
         }
 
+        public bool? CanTrickleIceCandidates => true;
+        public RTCSessionDescriptionInit? CurrentLocalDescription => LocalDescription;
+        public RTCSessionDescriptionInit? CurrentRemoteDescription => RemoteDescription;
+        public RTCSessionDescriptionInit? PendingLocalDescription => null;
+        public RTCSessionDescriptionInit? PendingRemoteDescription => null;
+
         public event Action<RTCIceCandidateInit>? OnIceCandidate;
+        public event Action<RTCIceCandidateError>? OnIceCandidateError;
         public event Action<IRTCDataChannel>? OnDataChannel;
         public event Action<RTCTrackEventInit>? OnTrack;
         public event Action<string>? OnConnectionStateChange;
+        public event Action<string>? OnSignalingStateChange;
         public event Action<string>? OnIceConnectionStateChange;
         public event Action<string>? OnIceGatheringStateChange;
         public event Action? OnNegotiationNeeded;
@@ -151,6 +159,51 @@ namespace SpawnDev.RTC.Desktop
             };
             NativeConnection.addIceCandidate(sipCandidate);
             return Task.CompletedTask;
+        }
+
+        public Task<RTCSessionDescriptionInit> CreateOffer(RTCOfferOptions options)
+        {
+            // SipSorcery createOffer accepts options
+            var sipOptions = new SIPSorcery.Net.RTCOfferOptions();
+            // Map IceRestart if needed
+            return CreateOffer();
+        }
+
+        public Task<RTCSessionDescriptionInit> CreateAnswer(RTCAnswerOptions options)
+        {
+            return CreateAnswer();
+        }
+
+        public async Task SetLocalDescription()
+        {
+            // Implicit: create offer or answer based on signaling state
+            var state = NativeConnection.signalingState;
+            if (state == RTCSignalingState.stable || state == RTCSignalingState.have_local_offer)
+            {
+                var offer = await CreateOffer();
+                await SetLocalDescription(offer);
+            }
+            else if (state == RTCSignalingState.have_remote_offer)
+            {
+                var answer = await CreateAnswer();
+                await SetLocalDescription(answer);
+            }
+        }
+
+        public IRTCRtpTransceiver[] GetTransceivers()
+        {
+            // SipSorcery doesn't have a unified transceiver model
+            return System.Array.Empty<IRTCRtpTransceiver>();
+        }
+
+        public IRTCRtpTransceiver AddTransceiver(string kind)
+        {
+            throw new NotSupportedException("SipSorcery does not support the unified transceiver API. Use AddTrack() instead.");
+        }
+
+        public IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track)
+        {
+            throw new NotSupportedException("SipSorcery does not support the unified transceiver API. Use AddTrack() instead.");
         }
 
         public void RestartIce()
