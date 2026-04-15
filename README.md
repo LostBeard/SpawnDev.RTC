@@ -149,15 +149,28 @@ if (pc is DesktopRTCPeerConnection desktopPc)
 ## Architecture
 
 ```
-SpawnDev.RTC (cross-platform abstraction)
+SpawnDev.RTC (cross-platform WebRTC)
+    |
+    +-- IRTCPeerConnection     (SDP, ICE, tracks, transceivers, stats)
+    +-- IRTCDataChannel        (string, binary, JS types, flow control)
+    +-- IRTCMediaStream        (audio/video tracks, clone, events)
+    +-- IRTCMediaStreamTrack   (settings, constraints, enable/disable)
+    +-- IRTCRtpTransceiver     (direction, sender, receiver, stop)
+    +-- IRTCStatsReport        (connection quality metrics)
+    +-- IRTCDTMFSender         (telephone dial tones)
+    +-- IRTCDtlsTransport      (DTLS state, ICE transport)
+    +-- IRTCSctpTransport      (SCTP for data channels)
+    +-- RTCSignalClient        (drop-in signaling + peer management)
     |
     +-- Browser (Blazor WASM)
-    |       Uses native RTCPeerConnection via SpawnDev.BlazorJS
+    |       Native RTCPeerConnection via SpawnDev.BlazorJS
+    |       Zero-copy JS types (ArrayBuffer, TypedArray, Blob, DataView)
+    |       getUserMedia, getDisplayMedia via navigator.mediaDevices
     |
     +-- Desktop (.NET)
-            Uses SipSorcery fork (Src/sipsorcery/)
-            Portable.BouncyCastle DTLS - proven browser interop
-            Full ICE/SCTP/DataChannel stack
+            SipSorcery fork (Src/sipsorcery/) with SRTP browser fix
+            BouncyCastle DTLS - verified Chrome/Firefox/Edge interop
+            Full ICE/SCTP/DataChannel/RTP stack
 ```
 
 ## Solution Structure
@@ -165,16 +178,51 @@ SpawnDev.RTC (cross-platform abstraction)
 | Project | Purpose |
 |---------|---------|
 | SpawnDev.RTC | Core library - cross-platform WebRTC abstraction (NuGet package) |
-| SpawnDev.RTC.Demo | Blazor WASM test app for browser-side testing |
-| SpawnDev.RTC.Demo.Shared | Shared test base - tests run on both browser and desktop |
-| SpawnDev.RTC.DemoConsole | Desktop test runner |
-| PlaywrightMultiTest | Automated browser + desktop test runner |
+| SpawnDev.RTC.Demo | Blazor WASM app - ChatRoom (video/audio/text) + unit tests |
+| SpawnDev.RTC.Demo.Shared | 34 shared test methods - run on both browser and desktop |
+| SpawnDev.RTC.DemoConsole | Desktop test runner + text chat mode (`dotnet run -- chat`) |
+| SpawnDev.RTC.WpfDemo | WPF desktop chat room - peer list, text chat, mute controls |
+| SpawnDev.RTC.SignalServer | Standalone WebSocket signal server for WebRTC |
+| PlaywrightMultiTest | Automated test runner - 71 tests across browser + desktop + cross-platform |
 
 ## Dependencies
 
 - [SpawnDev.BlazorJS](https://github.com/LostBeard/SpawnDev.BlazorJS) - Browser WebRTC wrappers
 - [SipSorcery](https://github.com/sipsorcery-org/sipsorcery) (bundled fork) - Desktop WebRTC stack
 - [Portable.BouncyCastle](https://www.nuget.org/packages/Portable.BouncyCastle/) - DTLS cryptography
+
+## Demos
+
+### Browser ChatRoom (`/chat`)
+
+Video/audio/text conference room with swarm-style signaling. Enter any room name - it's hashed to a BitTorrent-compatible infohash. Peers discover each other through the signal server (like a WebTorrent tracker). Multi-peer video grid, text chat, mute mic/cam.
+
+### Desktop WPF ChatRoom
+
+Same features as the browser demo - join by room name, text chat, peer list with per-peer disconnect. Uses the same infohash system, so browser and desktop users can be in the same room.
+
+```bash
+# Run the WPF demo
+dotnet run --project SpawnDev.RTC.WpfDemo
+
+# Or the console text chat
+dotnet run --project SpawnDev.RTC.DemoConsole -- chat
+```
+
+### Signal Server
+
+WebSocket signaling server for peer discovery. Room-based, exchanges SDP offers/answers and ICE candidates.
+
+```bash
+# Standalone
+dotnet run --project SpawnDev.RTC.SignalServer
+
+# Also embedded in PlaywrightMultiTest for cross-platform tests
+```
+
+## Test Results
+
+71/71 tests passing across browser (Chrome) and desktop (.NET), including a verified cross-platform test where a desktop SipSorcery peer connects to a browser Chrome peer and exchanges data channel messages.
 
 ## Why a SipSorcery Fork?
 
