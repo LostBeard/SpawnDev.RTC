@@ -11,19 +11,25 @@ namespace SpawnDev.RTC.Browser
     /// </summary>
     public class BrowserRTCPeerConnection : IRTCPeerConnection
     {
-        private readonly RTCPeerConnection _pc;
+        /// <summary>
+        /// Direct access to the underlying BlazorJS RTCPeerConnection JSObject.
+        /// Use this for advanced JS interop (media streams, tracks, stats, etc.)
+        /// without going through the abstraction.
+        /// </summary>
+        public RTCPeerConnection NativeConnection { get; }
+
         private bool _disposed;
 
-        public string ConnectionState => _pc.ConnectionState;
-        public string IceConnectionState => _pc.IceConnectionState;
-        public string IceGatheringState => _pc.IceGatheringState;
-        public string SignalingState => _pc.SignalingState;
+        public string ConnectionState => NativeConnection.ConnectionState;
+        public string IceConnectionState => NativeConnection.IceConnectionState;
+        public string IceGatheringState => NativeConnection.IceGatheringState;
+        public string SignalingState => NativeConnection.SignalingState;
 
         public RTCSessionDescriptionInit? LocalDescription
         {
             get
             {
-                var desc = _pc.LocalDescription;
+                var desc = NativeConnection.LocalDescription;
                 return desc == null ? null : new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
             }
         }
@@ -32,7 +38,7 @@ namespace SpawnDev.RTC.Browser
         {
             get
             {
-                var desc = _pc.RemoteDescription;
+                var desc = NativeConnection.RemoteDescription;
                 return desc == null ? null : new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
             }
         }
@@ -56,17 +62,17 @@ namespace SpawnDev.RTC.Browser
                         Credential = s.Credential,
                     }).ToArray()
                 };
-                _pc = new RTCPeerConnection(jsConfig);
+                NativeConnection = new RTCPeerConnection(jsConfig);
             }
             else
             {
-                _pc = new RTCPeerConnection();
+                NativeConnection = new RTCPeerConnection();
             }
-            _pc.OnIceCandidate += HandleIceCandidate;
-            _pc.OnDataChannel += HandleDataChannel;
-            _pc.OnConnectionStateChange += HandleConnectionStateChange;
-            _pc.OnIceConnectionStateChange += HandleIceConnectionStateChange;
-            _pc.OnIceGatheringStateChange += HandleIceGatheringStateChange;
+            NativeConnection.OnIceCandidate += HandleIceCandidate;
+            NativeConnection.OnDataChannel += HandleDataChannel;
+            NativeConnection.OnConnectionStateChange += HandleConnectionStateChange;
+            NativeConnection.OnIceConnectionStateChange += HandleIceConnectionStateChange;
+            NativeConnection.OnIceGatheringStateChange += HandleIceGatheringStateChange;
         }
 
         public IRTCDataChannel CreateDataChannel(string label, RTCDataChannelConfig? options = null)
@@ -84,40 +90,40 @@ namespace SpawnDev.RTC.Browser
                     Id = options.Id,
                 };
             }
-            var channel = _pc.CreateDataChannel(label, jsOptions);
+            var channel = NativeConnection.CreateDataChannel(label, jsOptions);
             return new BrowserRTCDataChannel(channel);
         }
 
         public async Task<RTCSessionDescriptionInit> CreateOffer()
         {
-            var desc = await _pc.CreateOffer();
+            var desc = await NativeConnection.CreateOffer();
             return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
         }
 
         public async Task<RTCSessionDescriptionInit> CreateAnswer()
         {
-            var desc = await _pc.CreateAnswer();
+            var desc = await NativeConnection.CreateAnswer();
             return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
         }
 
         public async Task SetLocalDescription(RTCSessionDescriptionInit description)
         {
             var jsDesc = new RTCSessionDescription { Type = description.Type, Sdp = description.Sdp };
-            await _pc.SetLocalDescription(jsDesc);
+            await NativeConnection.SetLocalDescription(jsDesc);
         }
 
         public async Task SetRemoteDescription(RTCSessionDescriptionInit description)
         {
             var jsDesc = new RTCSessionDescription { Type = description.Type, Sdp = description.Sdp };
-            await _pc.SetRemoteDescription(jsDesc);
+            await NativeConnection.SetRemoteDescription(jsDesc);
         }
 
         public async Task AddIceCandidate(RTCIceCandidateInit candidate)
         {
-            await _pc.AddIceCandidate(candidate.Candidate);
+            await NativeConnection.AddIceCandidate(candidate.Candidate);
         }
 
-        public void Close() => _pc.Close();
+        public void Close() => NativeConnection.Close();
 
         private void HandleIceCandidate(RTCPeerConnectionEvent e)
         {
@@ -157,13 +163,13 @@ namespace SpawnDev.RTC.Browser
         {
             if (_disposed) return;
             _disposed = true;
-            _pc.OnIceCandidate -= HandleIceCandidate;
-            _pc.OnDataChannel -= HandleDataChannel;
-            _pc.OnConnectionStateChange -= HandleConnectionStateChange;
-            _pc.OnIceConnectionStateChange -= HandleIceConnectionStateChange;
-            _pc.OnIceGatheringStateChange -= HandleIceGatheringStateChange;
-            _pc.Close();
-            _pc.Dispose();
+            NativeConnection.OnIceCandidate -= HandleIceCandidate;
+            NativeConnection.OnDataChannel -= HandleDataChannel;
+            NativeConnection.OnConnectionStateChange -= HandleConnectionStateChange;
+            NativeConnection.OnIceConnectionStateChange -= HandleIceConnectionStateChange;
+            NativeConnection.OnIceGatheringStateChange -= HandleIceGatheringStateChange;
+            NativeConnection.Close();
+            NativeConnection.Dispose();
         }
     }
 }

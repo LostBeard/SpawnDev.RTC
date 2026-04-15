@@ -1,48 +1,59 @@
 using SpawnDev.BlazorJS;
 using SpawnDev.BlazorJS.JSObjects;
 using SpawnDev.BlazorJS.JSObjects.WebRTC;
-using System.Text;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCDataChannel.
     /// Wraps the native browser RTCDataChannel via SpawnDev.BlazorJS.
+    /// Supports zero-copy JS types (ArrayBuffer, TypedArray, Blob).
     /// </summary>
     public class BrowserRTCDataChannel : IRTCDataChannel
     {
-        private readonly RTCDataChannel _channel;
+        /// <summary>
+        /// Direct access to the underlying BlazorJS RTCDataChannel JSObject.
+        /// Use this for advanced JS interop without going through the abstraction.
+        /// </summary>
+        public RTCDataChannel NativeChannel { get; }
+
         private bool _disposed;
 
-        public string Label => _channel.Label;
-        public string ReadyState => _channel.ReadyState;
-        public ushort? Id => _channel.Id;
-        public bool Ordered => _channel.Ordered;
-        public string Protocol => _channel.Protocol;
-        public bool Negotiated => _channel.Negotiated;
-        public long BufferedAmount => _channel.BufferedAmount;
+        public string Label => NativeChannel.Label;
+        public string ReadyState => NativeChannel.ReadyState;
+        public ushort? Id => NativeChannel.Id;
+        public bool Ordered => NativeChannel.Ordered;
+        public string Protocol => NativeChannel.Protocol;
+        public bool Negotiated => NativeChannel.Negotiated;
+        public long BufferedAmount => NativeChannel.BufferedAmount;
 
         public event Action? OnOpen;
         public event Action? OnClose;
         public event Action<string>? OnStringMessage;
         public event Action<byte[]>? OnBinaryMessage;
+        public event Action<ArrayBuffer>? OnArrayBufferMessage;
         public event Action<string>? OnError;
 
         public BrowserRTCDataChannel(RTCDataChannel channel)
         {
-            _channel = channel;
-            _channel.BinaryType = "arraybuffer";
-            _channel.OnOpen += HandleOpen;
-            _channel.OnClose += HandleClose;
-            _channel.OnMessage += HandleMessage;
-            _channel.OnError += HandleError;
+            NativeChannel = channel;
+            NativeChannel.BinaryType = "arraybuffer";
+            NativeChannel.OnOpen += HandleOpen;
+            NativeChannel.OnClose += HandleClose;
+            NativeChannel.OnMessage += HandleMessage;
+            NativeChannel.OnError += HandleError;
         }
 
-        public void Send(string data) => _channel.Send(data);
+        // --- Send: universal ---
+        public void Send(string data) => NativeChannel.Send(data);
+        public void Send(byte[] data) => NativeChannel.Send(data);
 
-        public void Send(byte[] data) => _channel.Send(data);
+        // --- Send: JS types (zero-copy in WASM) ---
+        public void Send(ArrayBuffer data) => NativeChannel.Send(data);
+        public void Send(TypedArray data) => NativeChannel.Send(data);
+        public void Send(Blob data) => NativeChannel.Send(data);
 
-        public void Close() => _channel.Close();
+        public void Close() => NativeChannel.Close();
 
         private void HandleOpen(RTCDataChannelEvent e)
         {
@@ -64,10 +75,27 @@ namespace SpawnDev.RTC.Browser
             }
             else
             {
-                // ArrayBuffer - convert to byte[]
-                using var arrayBuffer = e.JSRef!.Get<ArrayBuffer>("data");
-                var bytes = (byte[])arrayBuffer;
-                OnBinaryMessage?.Invoke(bytes);
+                // ArrayBuffer path - zero-copy first, then byte[] for convenience
+                var arrayBuffer = e.JSRef!.Get<ArrayBuffer>("data");
+
+                // Fire zero-copy event first (caller takes ownership)
+                if (OnArrayBufferMessage != null)
+                {
+                    OnArrayBufferMessage.Invoke(arrayBuffer);
+                }
+
+                // Fire byte[] event if subscribed (copies data to .NET)
+                if (OnBinaryMessage != null)
+                {
+                    var bytes = (byte[])arrayBuffer;
+                    OnBinaryMessage.Invoke(bytes);
+                }
+
+                // Only dispose if nobody took ownership via OnArrayBufferMessage
+                if (OnArrayBufferMessage == null)
+                {
+                    arrayBuffer.Dispose();
+                }
             }
         }
 
@@ -81,11 +109,11 @@ namespace SpawnDev.RTC.Browser
         {
             if (_disposed) return;
             _disposed = true;
-            _channel.OnOpen -= HandleOpen;
-            _channel.OnClose -= HandleClose;
-            _channel.OnMessage -= HandleMessage;
-            _channel.OnError -= HandleError;
-            _channel.Dispose();
+            NativeChannel.OnOpen -= HandleOpen;
+            NativeChannel.OnClose -= HandleClose;
+            NativeChannel.OnMessage -= HandleMessage;
+            NativeChannel.OnError -= HandleError;
+            NativeChannel.Dispose();
         }
     }
 }

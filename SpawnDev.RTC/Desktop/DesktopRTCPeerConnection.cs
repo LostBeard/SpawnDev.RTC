@@ -8,19 +8,24 @@ namespace SpawnDev.RTC.Desktop
     /// </summary>
     public class DesktopRTCPeerConnection : IRTCPeerConnection
     {
-        private readonly RTCPeerConnection _pc;
+        /// <summary>
+        /// Direct access to the underlying SipSorcery RTCPeerConnection.
+        /// Use this for advanced SipSorcery features not exposed through the abstraction.
+        /// </summary>
+        public RTCPeerConnection NativeConnection { get; }
+
         private bool _disposed;
 
-        public string ConnectionState => _pc.connectionState.ToString();
-        public string IceConnectionState => _pc.iceConnectionState.ToString();
-        public string IceGatheringState => _pc.iceGatheringState.ToString();
-        public string SignalingState => _pc.signalingState.ToString();
+        public string ConnectionState => NativeConnection.connectionState.ToString();
+        public string IceConnectionState => NativeConnection.iceConnectionState.ToString();
+        public string IceGatheringState => NativeConnection.iceGatheringState.ToString();
+        public string SignalingState => NativeConnection.signalingState.ToString();
 
         public RTCSessionDescriptionInit? LocalDescription
         {
             get
             {
-                var desc = _pc.localDescription;
+                var desc = NativeConnection.localDescription;
                 if (desc == null) return null;
                 return new RTCSessionDescriptionInit { Type = desc.type.ToString(), Sdp = desc.sdp?.ToString() ?? "" };
             }
@@ -30,7 +35,7 @@ namespace SpawnDev.RTC.Desktop
         {
             get
             {
-                var desc = _pc.remoteDescription;
+                var desc = NativeConnection.remoteDescription;
                 if (desc == null) return null;
                 return new RTCSessionDescriptionInit { Type = desc.type.ToString(), Sdp = desc.sdp?.ToString() ?? "" };
             }
@@ -58,12 +63,12 @@ namespace SpawnDev.RTC.Desktop
                     });
                 }
             }
-            _pc = new RTCPeerConnection(sipConfig);
-            _pc.onicecandidate += HandleIceCandidate;
-            _pc.ondatachannel += HandleDataChannel;
-            _pc.onconnectionstatechange += HandleConnectionStateChange;
-            _pc.oniceconnectionstatechange += HandleIceConnectionStateChange;
-            _pc.onicegatheringstatechange += HandleIceGatheringStateChange;
+            NativeConnection = new RTCPeerConnection(sipConfig);
+            NativeConnection.onicecandidate += HandleIceCandidate;
+            NativeConnection.ondatachannel += HandleDataChannel;
+            NativeConnection.onconnectionstatechange += HandleConnectionStateChange;
+            NativeConnection.oniceconnectionstatechange += HandleIceConnectionStateChange;
+            NativeConnection.onicegatheringstatechange += HandleIceGatheringStateChange;
         }
 
         public IRTCDataChannel CreateDataChannel(string label, RTCDataChannelConfig? options = null)
@@ -84,7 +89,7 @@ namespace SpawnDev.RTC.Desktop
             // createDataChannel is async in SipSorcery but we need sync creation
             // for the interface. The channel is returned immediately in pending state
             // when the connection isn't established yet.
-            var task = _pc.createDataChannel(label, sipInit);
+            var task = NativeConnection.createDataChannel(label, sipInit);
             // If the connection is not yet established, the task completes synchronously
             // with a pending channel. If connected, it waits for DCEP ACK.
             var channel = task.GetAwaiter().GetResult();
@@ -93,7 +98,7 @@ namespace SpawnDev.RTC.Desktop
 
         public Task<RTCSessionDescriptionInit> CreateOffer()
         {
-            var offer = _pc.createOffer();
+            var offer = NativeConnection.createOffer();
             return Task.FromResult(new RTCSessionDescriptionInit
             {
                 Type = offer.type.ToString(),
@@ -103,7 +108,7 @@ namespace SpawnDev.RTC.Desktop
 
         public Task<RTCSessionDescriptionInit> CreateAnswer()
         {
-            var answer = _pc.createAnswer();
+            var answer = NativeConnection.createAnswer();
             return Task.FromResult(new RTCSessionDescriptionInit
             {
                 Type = answer.type.ToString(),
@@ -115,14 +120,14 @@ namespace SpawnDev.RTC.Desktop
         {
             var sdpType = Enum.Parse<RTCSdpType>(description.Type, true);
             var init = new SIPSorcery.Net.RTCSessionDescriptionInit { type = sdpType, sdp = description.Sdp };
-            await _pc.setLocalDescription(init);
+            await NativeConnection.setLocalDescription(init);
         }
 
         public Task SetRemoteDescription(RTCSessionDescriptionInit description)
         {
             var sdpType = Enum.Parse<RTCSdpType>(description.Type, true);
             var init = new SIPSorcery.Net.RTCSessionDescriptionInit { type = sdpType, sdp = description.Sdp };
-            var result = _pc.setRemoteDescription(init);
+            var result = NativeConnection.setRemoteDescription(init);
             if (result != SetDescriptionResultEnum.OK)
             {
                 throw new InvalidOperationException($"setRemoteDescription failed: {result}");
@@ -139,11 +144,11 @@ namespace SpawnDev.RTC.Desktop
                 sdpMLineIndex = (ushort)(candidate.SdpMLineIndex ?? 0),
                 usernameFragment = candidate.UsernameFragment,
             };
-            _pc.addIceCandidate(sipCandidate);
+            NativeConnection.addIceCandidate(sipCandidate);
             return Task.CompletedTask;
         }
 
-        public void Close() => _pc.close();
+        public void Close() => NativeConnection.close();
 
         private void HandleIceCandidate(RTCIceCandidate candidate)
         {
@@ -180,13 +185,13 @@ namespace SpawnDev.RTC.Desktop
         {
             if (_disposed) return;
             _disposed = true;
-            _pc.onicecandidate -= HandleIceCandidate;
-            _pc.ondatachannel -= HandleDataChannel;
-            _pc.onconnectionstatechange -= HandleConnectionStateChange;
-            _pc.oniceconnectionstatechange -= HandleIceConnectionStateChange;
-            _pc.onicegatheringstatechange -= HandleIceGatheringStateChange;
-            _pc.close();
-            _pc.Dispose();
+            NativeConnection.onicecandidate -= HandleIceCandidate;
+            NativeConnection.ondatachannel -= HandleDataChannel;
+            NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;
+            NativeConnection.oniceconnectionstatechange -= HandleIceConnectionStateChange;
+            NativeConnection.onicegatheringstatechange -= HandleIceGatheringStateChange;
+            NativeConnection.close();
+            NativeConnection.Dispose();
         }
     }
 }
