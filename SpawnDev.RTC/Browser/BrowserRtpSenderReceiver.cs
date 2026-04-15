@@ -18,6 +18,15 @@ namespace SpawnDev.RTC.Browser
             }
         }
 
+        public IRTCDTMFSender? DTMF
+        {
+            get
+            {
+                var dtmf = NativeSender.DTMF;
+                return dtmf == null ? null : new BrowserRTCDTMFSender(dtmf);
+            }
+        }
+
         public BrowserRtpSender(RTCRtpSender sender)
         {
             NativeSender = sender;
@@ -37,6 +46,15 @@ namespace SpawnDev.RTC.Browser
             {
                 throw new ArgumentException("Track must be a BrowserRTCMediaStreamTrack in WASM.");
             }
+        }
+
+        public void SetStreams(params IRTCMediaStream[] streams)
+        {
+            var jsStreams = streams.Cast<BrowserRTCMediaStream>().Select(s => s.NativeStream).ToArray();
+            if (jsStreams.Length > 0)
+                NativeSender.SetStreams(jsStreams);
+            else
+                NativeSender.SetStreams();
         }
     }
 

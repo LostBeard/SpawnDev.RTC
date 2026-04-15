@@ -69,6 +69,7 @@ namespace SpawnDev.RTC.Desktop
     public class DesktopRtpSender : IRTCRtpSender
     {
         public IRTCMediaStreamTrack? Track { get; private set; }
+        public IRTCDTMFSender? DTMF => null; // SipSorcery DTMF is handled via RTP events, not per-sender
         private readonly SIPSorcery.Net.RTCPeerConnection? _pc;
 
         public DesktopRtpSender(IRTCMediaStreamTrack? track, SIPSorcery.Net.RTCPeerConnection? pc = null)
@@ -79,10 +80,14 @@ namespace SpawnDev.RTC.Desktop
 
         public Task ReplaceTrack(IRTCMediaStreamTrack? track)
         {
-            // SipSorcery doesn't have direct track replacement on senders.
-            // We can remove old track and add new one through the peer connection.
             Track = track;
             return Task.CompletedTask;
+        }
+
+        public void SetStreams(params IRTCMediaStream[] streams)
+        {
+            // SipSorcery doesn't have per-sender stream association
+            // Streams are managed at the track/session level
         }
     }
 

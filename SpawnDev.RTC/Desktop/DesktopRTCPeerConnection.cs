@@ -68,12 +68,17 @@ namespace SpawnDev.RTC.Desktop
                     sipConfig.iceServers = new List<RTCIceServer>();
                     foreach (var server in config.IceServers)
                     {
-                        sipConfig.iceServers.Add(new RTCIceServer
+                        // SipSorcery takes a single URL string per entry
+                        // Expand multiple URLs into separate entries
+                        foreach (var url in server.Urls)
                         {
-                            urls = server.Urls,
-                            username = server.Username,
-                            credential = server.Credential,
-                        });
+                            sipConfig.iceServers.Add(new RTCIceServer
+                            {
+                                urls = url,
+                                username = server.Username,
+                                credential = server.Credential,
+                            });
+                        }
                     }
                 }
                 // Map additional config properties

@@ -54,7 +54,7 @@ namespace SpawnDev.RTC.Browser
                 {
                     IceServers = config.IceServers?.Select(s => new RTCIceServer
                     {
-                        Urls = s.Urls,
+                        Urls = s.Urls.Length == 1 ? (SpawnDev.BlazorJS.Union<string, string[]>)s.Urls[0] : (SpawnDev.BlazorJS.Union<string, string[]>)s.Urls,
                         Username = s.Username,
                         Credential = s.Credential,
                     }).ToArray(),

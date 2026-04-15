@@ -282,7 +282,7 @@
             var infoHash = ComputeInfoHash(_roomInput);
             var config = new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
             _signal = new RTCSignalClient($"wss://localhost:5570/signal/{infoHash}", config);

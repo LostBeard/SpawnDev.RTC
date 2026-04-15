@@ -31,7 +31,7 @@ namespace SpawnDev.RTC.DemoConsole
 
             var config = new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
             var signalUrl = $"{signalServerBase}/signal/{infoHash}";

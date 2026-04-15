@@ -52,8 +52,11 @@ namespace SpawnDev.RTC
     /// </summary>
     public class RTCIceServerConfig
     {
+        /// <summary>
+        /// URLs for this ICE server. Supports single or multiple URLs.
+        /// </summary>
         [JsonPropertyName("urls")]
-        public string Urls { get; set; } = "";
+        public string[] Urls { get; set; } = System.Array.Empty<string>();
 
         [JsonPropertyName("username")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -62,6 +65,21 @@ namespace SpawnDev.RTC
         [JsonPropertyName("credential")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Credential { get; set; }
+
+        /// <summary>
+        /// Convenience constructor for a single URL.
+        /// </summary>
+        public RTCIceServerConfig() { }
+
+        /// <summary>
+        /// Convenience: create from a single URL string.
+        /// </summary>
+        public RTCIceServerConfig(string url) { Urls = new[] { url }; }
+
+        /// <summary>
+        /// Convenience: create from multiple URLs.
+        /// </summary>
+        public RTCIceServerConfig(string[] urls) { Urls = urls; }
     }
 
     /// <summary>

@@ -67,7 +67,7 @@ namespace SpawnDev.RTC
             _signalUrl = signalUrl;
             _config = config ?? new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
         }
 

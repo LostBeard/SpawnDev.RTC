@@ -550,7 +550,7 @@ namespace PlaywrightMultiTest
         {
             using var pc = SpawnDev.RTC.RTCPeerConnectionFactory.Create(new SpawnDev.RTC.RTCPeerConnectionConfig
             {
-                IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             });
 
             using var ws = new System.Net.WebSockets.ClientWebSocket();

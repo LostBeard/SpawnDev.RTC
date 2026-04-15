@@ -13,7 +13,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         {
             var config = new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
             using var pc1 = RTCPeerConnectionFactory.Create(config);
@@ -111,7 +111,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         {
             var config = new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
             using var pc1 = RTCPeerConnectionFactory.Create(config);
@@ -182,7 +182,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         {
             var config = new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
             using var pc1 = RTCPeerConnectionFactory.Create(config);
@@ -238,7 +238,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         {
             var config = new RTCPeerConnectionConfig
             {
-                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
             using var pc1 = RTCPeerConnectionFactory.Create(config);
