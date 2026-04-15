@@ -121,6 +121,87 @@ namespace PlaywrightMultiTest
                     }
                 });
 
+                // WebTorrent tracker protocol endpoint (for RTCTrackerClient tests)
+                app.Map("/announce", async (HttpContext context) =>
+                {
+                    if (!context.WebSockets.IsWebSocketRequest) { context.Response.StatusCode = 400; return; }
+                    var ws = await context.WebSockets.AcceptWebSocketAsync();
+                    var buffer = new byte[64 * 1024];
+                    string? peerId = null;
+                    try
+                    {
+                        while (ws.State == WebSocketState.Open)
+                        {
+                            var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
+                            if (result.MessageType == WebSocketMessageType.Close) break;
+                            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                            var msg = JsonSerializer.Deserialize<JsonElement>(json);
+                            if (!msg.TryGetProperty("action", out var actionEl) || actionEl.GetString() != "announce") continue;
+
+                            var infoHash = msg.GetProperty("info_hash").GetString()!;
+                            peerId = msg.GetProperty("peer_id").GetString()!;
+
+                            // Handle offers: store them and relay to other peers in the swarm
+                            if (msg.TryGetProperty("offers", out var offersEl) && offersEl.ValueKind == JsonValueKind.Array)
+                            {
+                                var swarm = TrackerSwarms.GetOrAdd(infoHash, _ => new TrackerSwarm());
+                                swarm.AddPeer(peerId, ws);
+
+                                // Relay each offer to a different existing peer
+                                var otherPeers = swarm.GetOtherPeers(peerId);
+                                int peerIdx = 0;
+                                foreach (var offerItem in offersEl.EnumerateArray())
+                                {
+                                    if (peerIdx >= otherPeers.Length) break;
+                                    var targetPeer = otherPeers[peerIdx++];
+                                    var relay = JsonSerializer.Serialize(new
+                                    {
+                                        action = "announce",
+                                        info_hash = infoHash,
+                                        peer_id = peerId,
+                                        offer = offerItem.GetProperty("offer"),
+                                        offer_id = offerItem.GetProperty("offer_id").GetString(),
+                                    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                                    try { await targetPeer.Socket.SendAsync(Encoding.UTF8.GetBytes(relay), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
+                                }
+                            }
+                            // Handle answer: relay to the target peer
+                            else if (msg.TryGetProperty("answer", out var answerEl) && msg.TryGetProperty("to_peer_id", out var toPeerEl))
+                            {
+                                var swarm = TrackerSwarms.GetOrAdd(infoHash, _ => new TrackerSwarm());
+                                var targetPeerId = toPeerEl.GetString()!;
+                                var targetPeer = swarm.GetPeer(targetPeerId);
+                                if (targetPeer != null)
+                                {
+                                    var relay = JsonSerializer.Serialize(new
+                                    {
+                                        action = "announce",
+                                        info_hash = infoHash,
+                                        peer_id = peerId,
+                                        answer = answerEl,
+                                        offer_id = msg.TryGetProperty("offer_id", out var oid) ? oid.GetString() : null,
+                                    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                                    try { await targetPeer.Socket.SendAsync(Encoding.UTF8.GetBytes(relay), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
+                                }
+                            }
+
+                            // Send announce response
+                            var response = JsonSerializer.Serialize(new { action = "announce", info_hash = infoHash, interval = 120, complete = 0, incomplete = 1 },
+                                new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                            await ws.SendAsync(Encoding.UTF8.GetBytes(response), WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+                    }
+                    catch (WebSocketException) { }
+                    finally
+                    {
+                        if (peerId != null)
+                        {
+                            foreach (var swarm in TrackerSwarms.Values)
+                                swarm.RemovePeer(peerId);
+                        }
+                    }
+                });
+
                 // (optional) add headers that enables: window.crossOriginIsolated == true
                 app.Use(async (context, next) =>
                 {
@@ -237,6 +318,8 @@ namespace PlaywrightMultiTest
 
         // --- Signal server types for WebRTC cross-platform tests ---
         private static readonly ConcurrentDictionary<string, SignalRoom> SignalRooms = new();
+        // --- Tracker protocol types ---
+        private static readonly ConcurrentDictionary<string, TrackerSwarm> TrackerSwarms = new();
     }
 
     internal class SignalPeer
@@ -253,6 +336,22 @@ namespace PlaywrightMultiTest
             try { await Socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); }
             finally { _lock.Release(); }
         }
+    }
+
+    internal class TrackerSwarm
+    {
+        private readonly ConcurrentDictionary<string, TrackerPeer> _peers = new();
+        public void AddPeer(string peerId, WebSocket ws) => _peers[peerId] = new TrackerPeer(peerId, ws);
+        public void RemovePeer(string peerId) => _peers.TryRemove(peerId, out _);
+        public TrackerPeer? GetPeer(string peerId) => _peers.TryGetValue(peerId, out var p) ? p : null;
+        public TrackerPeer[] GetOtherPeers(string excludeId) => _peers.Values.Where(p => p.PeerId != excludeId).ToArray();
+    }
+
+    internal class TrackerPeer
+    {
+        public string PeerId { get; }
+        public WebSocket Socket { get; }
+        public TrackerPeer(string peerId, WebSocket socket) { PeerId = peerId; Socket = socket; }
     }
 
     internal class SignalRoom
