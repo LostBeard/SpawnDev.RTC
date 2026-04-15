@@ -6,6 +6,7 @@
 @using SpawnDev.BlazorJS.JSObjects
 @using SpawnDev.BlazorJS.JSObjects.WebRTC
 @implements IDisposable
+@inject BlazorJSRuntime JS
 
 <PageTitle>SpawnDev.RTC - Chat Room</PageTitle>
 
@@ -62,14 +63,14 @@
                 <div class="video-grid" id="video-grid">
                     <!-- Local video -->
                     <div class="video-tile">
-                        <video id="local-video" autoplay muted playsinline></video>
+                        <video @ref="_localVideoRef" autoplay muted playsinline></video>
                         <div class="video-label">You</div>
                     </div>
                     <!-- Remote videos -->
                     @foreach (var peer in _peers.Values)
                     {
                         <div class="video-tile">
-                            <video id="video-@peer.PeerId" autoplay playsinline></video>
+                            <video @ref="peer.VideoRef" autoplay playsinline></video>
                             <div class="video-label">@peer.PeerId[..6]</div>
                         </div>
                     }
@@ -77,7 +78,7 @@
 
                 <!-- Chat panel -->
                 <div class="chat-panel">
-                    <div class="chat-messages" id="chat-messages">
+                    <div class="chat-messages" @ref="_chatMessagesRef">
                         @foreach (var msg in _messages)
                         {
                             <div class="chat-msg @(msg.IsLocal ? "chat-msg-local" : "")">
@@ -233,6 +234,8 @@
 @code {
     [Parameter] public string? RoomName { get; set; }
 
+    private ElementReference _localVideoRef;
+    private ElementReference _chatMessagesRef;
     private string _roomInput = "";
     private string _chatInput = "";
     private string _trackerUrl = "wss://tracker.openwebtorrent.com";
@@ -274,16 +277,14 @@
         try
         {
             // Get local media
-            var JS = BlazorJSRuntime.JS;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
             _localStream = await mediaDevices.GetUserMedia(new { audio = true, video = true });
 
-            // Attach local video
+            // Attach local camera to video element
             await Task.Delay(100); // Let Blazor render the video element
-            var localVideo = JS.Call<HTMLVideoElement>("document.getElementById", "local-video");
+            using var localVideo = new HTMLVideoElement(_localVideoRef);
             localVideo.SrcObject = _localStream;
-            localVideo.Dispose();
 
             // Connect to tracker (WebTorrent protocol - serverless signaling)
             var config = new RTCPeerConnectionConfig
@@ -318,22 +319,20 @@
 
                 if (pc is BrowserRTCPeerConnection browserPc)
                 {
-                    browserPc.NativeConnection.OnTrack += async trackEvent =>
+                    browserPc.NativeConnection.OnTrack += trackEvent =>
                     {
-                        if (trackEvent.Track.Kind == "video")
+                        if (trackEvent.Track.Kind == "video" && _peers.TryGetValue(peerId, out var state))
                         {
-                            await InvokeAsync(async () =>
+                            state.VideoTrack = trackEvent.Track;
+                            // Attach after Blazor renders the video element
+                            InvokeAsync(async () =>
                             {
                                 StateHasChanged();
                                 await Task.Delay(100);
-                                var JS2 = BlazorJSRuntime.JS;
-                                using var remoteVideo = JS2.Call<HTMLVideoElement>("document.getElementById", $"video-{peerId}");
-                                if (remoteVideo != null)
-                                {
-                                    using var stream = new MediaStream();
-                                    stream.AddTrack(trackEvent.Track);
-                                    remoteVideo.SrcObject = stream;
-                                }
+                                using var remoteVideo = new HTMLVideoElement(state.VideoRef);
+                                using var stream = new MediaStream();
+                                stream.AddTrack(trackEvent.Track);
+                                remoteVideo.SrcObject = stream;
                             });
                         }
                     };
@@ -463,9 +462,8 @@
         _ = InvokeAsync(async () =>
         {
             await Task.Delay(50);
-            var JS = BlazorJSRuntime.JS;
-            using var el = JS.Call<HTMLElement?>("document.getElementById", "chat-messages");
-            el?.JSRef?.CallVoid("scrollTo", 0, 999999);
+            using var el = new HTMLElement(_chatMessagesRef);
+            el.JSRef?.CallVoid("scrollTo", 0, 999999);
         });
     }
 
@@ -495,6 +493,8 @@
         public string PeerId { get; set; } = "";
         public IRTCPeerConnection? Connection { get; set; }
         public IRTCDataChannel? ChatChannel { get; set; }
+        public ElementReference VideoRef { get; set; }
+        public MediaStreamTrack? VideoTrack { get; set; }
     }
 
     private class ChatMessage
