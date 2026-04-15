@@ -78,9 +78,9 @@ namespace SpawnDev.RTC.Desktop
             NativeConnection.ondatachannel += HandleDataChannel;
             NativeConnection.onconnectionstatechange += HandleConnectionStateChange;
             NativeConnection.onnegotiationneeded += HandleNegotiationNeeded;
+            NativeConnection.onsignalingstatechange += HandleSignalingStateChange;
             NativeConnection.oniceconnectionstatechange += HandleIceConnectionStateChange;
             NativeConnection.onicegatheringstatechange += HandleIceGatheringStateChange;
-            // SipSorcery doesn't have ontrack - detect remote tracks when remote description changes
             NativeConnection.OnRemoteDescriptionChanged += HandleRemoteDescriptionChanged;
         }
 
@@ -282,6 +282,11 @@ namespace SpawnDev.RTC.Desktop
             OnIceGatheringStateChange?.Invoke(state.ToString());
         }
 
+        private void HandleSignalingStateChange()
+        {
+            OnSignalingStateChange?.Invoke(NativeConnection.signalingState.ToString().Replace("_", "-"));
+        }
+
         private void HandleNegotiationNeeded()
         {
             OnNegotiationNeeded?.Invoke();
@@ -322,6 +327,7 @@ namespace SpawnDev.RTC.Desktop
             NativeConnection.onicecandidate -= HandleIceCandidate;
             NativeConnection.ondatachannel -= HandleDataChannel;
             NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;
+            NativeConnection.onsignalingstatechange -= HandleSignalingStateChange;
             NativeConnection.onnegotiationneeded -= HandleNegotiationNeeded;
             NativeConnection.OnRemoteDescriptionChanged -= HandleRemoteDescriptionChanged;
             NativeConnection.oniceconnectionstatechange -= HandleIceConnectionStateChange;

@@ -1,186 +1,256 @@
 {
-  "runStart": "2026-04-15 14:40:50",
-  "lastUpdate": "2026-04-15 14:41:03",
-  "elapsed": "13s",
-  "passed": 25,
-  "failed": 0,
+  "runStart": "2026-04-15 14:42:40",
+  "lastUpdate": "2026-04-15 14:42:56",
+  "elapsed": "15s",
+  "passed": 34,
+  "failed": 1,
   "skipped": 0,
-  "total": 25,
+  "total": 35,
   "tests": [
     {
       "name": "Build SpawnDev.RTC.Demo",
       "result": "Pass",
       "error": null,
       "durationMs": 0.1,
-      "timestamp": "14:40:50"
+      "timestamp": "14:42:40"
     },
     {
       "name": "WasmRTCTests.Loopback_MultipleDataChannels",
       "result": "Pass",
       "error": null,
-      "durationMs": 523,
-      "timestamp": "14:40:51"
+      "durationMs": 559.3,
+      "timestamp": "14:42:41"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_LargeMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 151.5,
-      "timestamp": "14:40:51"
+      "durationMs": 142.5,
+      "timestamp": "14:42:41"
     },
     {
       "name": "WasmRTCTests.Loopback_ConnectionStateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 155,
-      "timestamp": "14:40:51"
+      "durationMs": 152.9,
+      "timestamp": "14:42:41"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_RapidMessages",
       "result": "Pass",
       "error": null,
-      "durationMs": 141.1,
-      "timestamp": "14:40:51"
+      "durationMs": 139.9,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.TestInfrastructure_Working",
       "result": "Pass",
       "error": null,
-      "durationMs": 24.7,
-      "timestamp": "14:40:52"
+      "durationMs": 28.4,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 58.7,
-      "timestamp": "14:40:52"
+      "durationMs": 55.2,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanCreateOffer",
       "result": "Pass",
       "error": null,
-      "durationMs": 149.4,
-      "timestamp": "14:40:52"
+      "durationMs": 147.9,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.DataChannel_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 30.1,
-      "timestamp": "14:40:52"
+      "durationMs": 35.3,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_StringMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 156.4,
-      "timestamp": "14:40:52"
+      "durationMs": 146.1,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_BinaryMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 155.9,
-      "timestamp": "14:40:52"
+      "durationMs": 159.1,
+      "timestamp": "14:42:42"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_Bidirectional",
       "result": "Pass",
       "error": null,
-      "durationMs": 151,
-      "timestamp": "14:40:52"
+      "durationMs": 137.6,
+      "timestamp": "14:42:43"
+    },
+    {
+      "name": "WasmRTCTests.SignalingState_Transitions",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 142.8,
+      "timestamp": "14:42:43"
+    },
+    {
+      "name": "WasmRTCTests.DescriptionProperties_AfterNegotiation",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 152.9,
+      "timestamp": "14:42:43"
+    },
+    {
+      "name": "WasmRTCTests.DataChannel_ConfiguredProperties",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 53.2,
+      "timestamp": "14:42:43"
+    },
+    {
+      "name": "WasmRTCTests.CreateOffer_WithIceRestart",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 133.7,
+      "timestamp": "14:42:43"
+    },
+    {
+      "name": "WasmRTCTests.PeerConnection_CanTrickleIceCandidates",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 33.7,
+      "timestamp": "14:42:43"
     },
     {
       "name": "Build SpawnDev.RTC.DemoConsole",
       "result": "Pass",
       "error": null,
       "durationMs": 0,
-      "timestamp": "14:40:52"
+      "timestamp": "14:42:43"
     },
     {
       "name": "DesktopRTCTests.Loopback_MultipleDataChannels",
       "result": "Pass",
       "error": null,
-      "durationMs": 717.6,
-      "timestamp": "14:40:53"
+      "durationMs": 740.6,
+      "timestamp": "14:42:44"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_LargeMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 1158.2,
-      "timestamp": "14:40:54"
+      "durationMs": 1151.1,
+      "timestamp": "14:42:45"
     },
     {
       "name": "DesktopRTCTests.Loopback_ConnectionStateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 561.6,
-      "timestamp": "14:40:55"
+      "durationMs": 570.8,
+      "timestamp": "14:42:46"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_RapidMessages",
       "result": "Pass",
       "error": null,
-      "durationMs": 2045.3,
-      "timestamp": "14:40:57"
+      "durationMs": 1789.4,
+      "timestamp": "14:42:48"
     },
     {
       "name": "DesktopRTCTests.TestInfrastructure_Working",
       "result": "Pass",
       "error": null,
-      "durationMs": 129.2,
-      "timestamp": "14:40:57"
+      "durationMs": 130.9,
+      "timestamp": "14:42:48"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 292,
-      "timestamp": "14:40:58"
+      "durationMs": 289.1,
+      "timestamp": "14:42:48"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanCreateOffer",
       "result": "Pass",
       "error": null,
-      "durationMs": 325.2,
-      "timestamp": "14:40:58"
+      "durationMs": 326.8,
+      "timestamp": "14:42:48"
     },
     {
       "name": "DesktopRTCTests.DataChannel_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 294.8,
-      "timestamp": "14:40:58"
+      "durationMs": 292,
+      "timestamp": "14:42:49"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_StringMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 721.4,
-      "timestamp": "14:40:59"
+      "durationMs": 727.5,
+      "timestamp": "14:42:50"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_BinaryMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 727.3,
-      "timestamp": "14:41:00"
+      "durationMs": 726.2,
+      "timestamp": "14:42:50"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_Bidirectional",
       "result": "Pass",
       "error": null,
-      "durationMs": 755.1,
-      "timestamp": "14:41:01"
+      "durationMs": 755.4,
+      "timestamp": "14:42:51"
+    },
+    {
+      "name": "DesktopRTCTests.SignalingState_Transitions",
+      "result": "Fail",
+      "error": "System.Exception: pc1 should have \u0027have-local-offer\u0027, got: []\r\n   at SpawnDev.RTC.Demo.Shared.UnitTests.RTCTestBase.SignalingState_Transitions() in D:\\users\\tj\\Projects\\SpawnDev.RTC\\SpawnDev.RTC\\SpawnDev.RTC.Demo.Shared\\UnitTests\\RTCTestBase.Tier2Tests.cs:line 32\r\n   at SpawnDev.UnitTesting.UnitTestRunner.RunTest(UnitTest test) in D:\\users\\tj\\Projects\\SpawnDev.UnitTesting\\SpawnDev.UnitTesting\\SpawnDev.UnitTesting\\UnitTestRunner.cs:line 298",
+      "durationMs": 364.8,
+      "timestamp": "14:42:52"
+    },
+    {
+      "name": "DesktopRTCTests.DescriptionProperties_AfterNegotiation",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 359.9,
+      "timestamp": "14:42:52"
+    },
+    {
+      "name": "DesktopRTCTests.DataChannel_ConfiguredProperties",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 292,
+      "timestamp": "14:42:52"
+    },
+    {
+      "name": "DesktopRTCTests.CreateOffer_WithIceRestart",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 326.4,
+      "timestamp": "14:42:53"
+    },
+    {
+      "name": "DesktopRTCTests.PeerConnection_CanTrickleIceCandidates",
+      "result": "Pass",
+      "error": null,
+      "durationMs": 289.8,
+      "timestamp": "14:42:53"
     },
     {
       "name": "CrossPlatform.Desktop_Browser_DataChannel",
       "result": "Pass",
       "error": null,
-      "durationMs": 2470.6,
-      "timestamp": "14:41:03"
+      "durationMs": 2469.2,
+      "timestamp": "14:42:56"
     }
   ]
 }

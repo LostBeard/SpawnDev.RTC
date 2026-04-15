@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using SpawnDev.BlazorJS;
+using SpawnDev.BlazorJS.Cryptography;
 using SpawnDev.RTC.Demo;
 using SpawnDev.RTC.Demo.UnitTests;
 
