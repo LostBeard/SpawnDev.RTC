@@ -27,37 +27,42 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 
 ### Blazor WebAssembly
 
+SpawnDev.RTC uses [SpawnDev.BlazorJS](https://github.com/LostBeard/SpawnDev.BlazorJS) for browser WebRTC. You must register BlazorJSRuntime and use `BlazorJSRunAsync()` in your `Program.cs`:
+
 ```csharp
 // Program.cs
+using SpawnDev.BlazorJS;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+// Required: register BlazorJSRuntime (enables static BlazorJSRuntime.JS access)
 builder.Services.AddBlazorJSRuntime();
-builder.Services.AddRTC(); // registers cross-platform RTC services
+
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
+
+// Required: use BlazorJSRunAsync instead of RunAsync
 await builder.Build().BlazorJSRunAsync();
 ```
 
 ### Desktop (.NET)
 
-```csharp
-// Program.cs
-var services = new ServiceCollection();
-services.AddRTC(); // registers desktop RTC services
-var sp = services.BuildServiceProvider();
-```
+No special setup required for desktop - SipSorcery is bundled and used automatically.
 
 ### Creating a Peer Connection
 
 ```csharp
 // Same code works on both browser and desktop
-var rtc = sp.GetRequiredService<IRTCPeerConnectionFactory>();
-var config = new RTCConfiguration
+var config = new RTCPeerConnectionConfig
 {
-    IceServers = new[] { new RTCIceServer { Urls = "stun:stun.l.google.com:19302" } }
+    IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
 };
-var pc = rtc.CreatePeerConnection(config);
+using var pc = RTCPeerConnectionFactory.Create(config);
 
 // Create a data channel
 var channel = pc.CreateDataChannel("myChannel");
 channel.OnOpen += () => channel.Send("Hello from .NET!");
-channel.OnMessage += (data) => Console.WriteLine($"Received: {data}");
+channel.OnStringMessage += (data) => Console.WriteLine($"Received: {data}");
 
 // Create and send offer
 var offer = await pc.CreateOffer();
