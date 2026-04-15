@@ -196,11 +196,11 @@ namespace SpawnDev.RTC
             for (int i = 0; i < _numwant; i++)
             {
                 var pc = RTCPeerConnectionFactory.Create(_config);
+                // Create a data channel so the offer includes an application media line
+                pc.CreateDataChannel("data");
+
                 if (OnPeerConnectionCreated != null)
                     await OnPeerConnectionCreated(pc, "");
-
-                // Create a data channel so the offer has a data channel media line
-                pc.CreateDataChannel("data");
 
                 var offer = await pc.CreateOffer();
                 await pc.SetLocalDescription(offer);
