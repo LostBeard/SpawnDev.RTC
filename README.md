@@ -209,9 +209,13 @@ dotnet run --project SpawnDev.RTC.WpfDemo
 dotnet run --project SpawnDev.RTC.DemoConsole -- chat
 ```
 
-### Signal Server
+### Serverless Signaling (WebTorrent Tracker)
 
-WebSocket signaling server for peer discovery. Room-based, exchanges SDP offers/answers and ICE candidates.
+All demos use the public `wss://tracker.openwebtorrent.com` for signaling - no server deployment needed. Room names are hashed to BitTorrent-compatible infohashes. Works on GitHub Pages.
+
+### Signal Server (Optional)
+
+Included for custom deployments and testing. Room-based WebSocket signaling.
 
 ```bash
 # Standalone
@@ -222,7 +226,13 @@ dotnet run --project SpawnDev.RTC.SignalServer
 
 ## Test Results
 
-71/71 tests passing across browser (Chrome) and desktop (.NET), including a verified cross-platform test where a desktop SipSorcery peer connects to a browser Chrome peer and exchanges data channel messages.
+100+ tests passing across browser (Chrome) and desktop (.NET):
+
+- **Data integrity:** SHA-256 verified payloads, 50-chunk ordered delivery with per-byte verification, 256KB max payload, simultaneous bidirectional messaging
+- **Media pipeline:** video loopback with frame decode verification, audio loopback, simultaneous audio+video, dynamic track add/remove mid-call
+- **Stress:** 5 simultaneous peer pairs, 100-message rapid burst, 20 channels rapid create/close
+- **Cross-platform:** desktop SipSorcery peer connects to browser Chrome peer
+- **Tracker signaling:** peers connect via embedded tracker AND live openwebtorrent.com
 
 ## Why a SipSorcery Fork?
 
