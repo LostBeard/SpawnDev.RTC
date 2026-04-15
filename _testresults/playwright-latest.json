@@ -1,6 +1,6 @@
 {
-  "runStart": "2026-04-15 15:22:11",
-  "lastUpdate": "2026-04-15 15:22:46",
+  "runStart": "2026-04-15 15:26:11",
+  "lastUpdate": "2026-04-15 15:26:46",
   "elapsed": "35s",
   "passed": 71,
   "failed": 0,
@@ -12,497 +12,497 @@
       "result": "Pass",
       "error": null,
       "durationMs": 0.1,
-      "timestamp": "15:22:11"
+      "timestamp": "15:26:11"
     },
     {
       "name": "WasmRTCTests.Loopback_MultipleDataChannels",
       "result": "Pass",
       "error": null,
-      "durationMs": 544.4,
-      "timestamp": "15:22:11"
+      "durationMs": 606.1,
+      "timestamp": "15:26:12"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_LargeMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 149.4,
-      "timestamp": "15:22:12"
+      "durationMs": 149.8,
+      "timestamp": "15:26:12"
     },
     {
       "name": "WasmRTCTests.Loopback_ConnectionStateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 153.7,
-      "timestamp": "15:22:12"
+      "durationMs": 152.5,
+      "timestamp": "15:26:12"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_RapidMessages",
       "result": "Pass",
       "error": null,
-      "durationMs": 138.9,
-      "timestamp": "15:22:12"
+      "durationMs": 138.6,
+      "timestamp": "15:26:12"
     },
     {
       "name": "WasmRTCTests.TestInfrastructure_Working",
       "result": "Pass",
       "error": null,
-      "durationMs": 41.5,
-      "timestamp": "15:22:12"
+      "durationMs": 44,
+      "timestamp": "15:26:12"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 41.2,
-      "timestamp": "15:22:12"
+      "durationMs": 60.6,
+      "timestamp": "15:26:12"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanCreateOffer",
       "result": "Pass",
       "error": null,
-      "durationMs": 146.6,
-      "timestamp": "15:22:12"
+      "durationMs": 140.3,
+      "timestamp": "15:26:13"
     },
     {
       "name": "WasmRTCTests.DataChannel_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 42.7,
-      "timestamp": "15:22:12"
+      "durationMs": 33.6,
+      "timestamp": "15:26:13"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_StringMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 154.3,
-      "timestamp": "15:22:12"
+      "durationMs": 153.8,
+      "timestamp": "15:26:13"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_BinaryMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 155,
-      "timestamp": "15:22:13"
+      "durationMs": 157.2,
+      "timestamp": "15:26:13"
     },
     {
       "name": "WasmRTCTests.Loopback_DataChannel_Bidirectional",
       "result": "Pass",
       "error": null,
-      "durationMs": 154.9,
-      "timestamp": "15:22:13"
+      "durationMs": 139.9,
+      "timestamp": "15:26:13"
     },
     {
       "name": "WasmRTCTests.PeerConnection_GetStats",
       "result": "Pass",
       "error": null,
-      "durationMs": 139.3,
-      "timestamp": "15:22:13"
+      "durationMs": 157.5,
+      "timestamp": "15:26:13"
     },
     {
       "name": "WasmRTCTests.MediaStream_AddRemoveTrack_Events",
       "result": "Pass",
       "error": null,
-      "durationMs": 2127.9,
-      "timestamp": "15:22:15"
+      "durationMs": 2132.2,
+      "timestamp": "15:26:16"
     },
     {
       "name": "WasmRTCTests.PeerConnection_Close_StateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 40,
-      "timestamp": "15:22:15"
+      "durationMs": 33.9,
+      "timestamp": "15:26:16"
     },
     {
       "name": "WasmRTCTests.PeerConnection_ImplicitSetLocalDescription",
       "result": "Pass",
       "error": null,
-      "durationMs": 154.8,
-      "timestamp": "15:22:15"
+      "durationMs": 165.5,
+      "timestamp": "15:26:16"
     },
     {
       "name": "WasmRTCTests.DataChannel_Negotiated",
       "result": "Pass",
       "error": null,
-      "durationMs": 46.7,
-      "timestamp": "15:22:16"
+      "durationMs": 48.6,
+      "timestamp": "15:26:16"
     },
     {
       "name": "WasmRTCTests.Factory_CreatesPlatformCorrectType",
       "result": "Pass",
       "error": null,
-      "durationMs": 29.3,
-      "timestamp": "15:22:16"
+      "durationMs": 41.7,
+      "timestamp": "15:26:16"
     },
     {
       "name": "WasmRTCTests.GetUserMedia_AudioOnly",
       "result": "Pass",
       "error": null,
-      "durationMs": 2139.1,
-      "timestamp": "15:22:18"
+      "durationMs": 2137.8,
+      "timestamp": "15:26:18"
     },
     {
       "name": "WasmRTCTests.PeerConnection_Config_IceTransportRelay",
       "result": "Pass",
       "error": null,
-      "durationMs": 44.9,
-      "timestamp": "15:22:18"
+      "durationMs": 43.2,
+      "timestamp": "15:26:18"
     },
     {
       "name": "WasmRTCTests.GetUserMedia_AudioVideo",
       "result": "Pass",
       "error": null,
-      "durationMs": 2245.5,
-      "timestamp": "15:22:20"
+      "durationMs": 2249.2,
+      "timestamp": "15:26:21"
     },
     {
       "name": "WasmRTCTests.PeerConnection_AddTrack_GetSenders",
       "result": "Pass",
       "error": null,
-      "durationMs": 2122.3,
-      "timestamp": "15:22:22"
+      "durationMs": 2114.7,
+      "timestamp": "15:26:23"
     },
     {
       "name": "WasmRTCTests.MediaStream_Clone",
       "result": "Pass",
       "error": null,
-      "durationMs": 2105.7,
-      "timestamp": "15:22:24"
+      "durationMs": 2119.3,
+      "timestamp": "15:26:25"
     },
     {
       "name": "WasmRTCTests.MediaStreamTrack_Clone",
       "result": "Pass",
       "error": null,
-      "durationMs": 2103.1,
-      "timestamp": "15:22:27"
+      "durationMs": 2130.9,
+      "timestamp": "15:26:27"
     },
     {
       "name": "WasmRTCTests.DataChannel_FlowControl_Properties",
       "result": "Pass",
       "error": null,
-      "durationMs": 31.8,
-      "timestamp": "15:22:27"
+      "durationMs": 27.4,
+      "timestamp": "15:26:27"
     },
     {
       "name": "WasmRTCTests.SignalingState_Transitions",
       "result": "Pass",
       "error": null,
-      "durationMs": 151.3,
-      "timestamp": "15:22:27"
+      "durationMs": 160.3,
+      "timestamp": "15:26:27"
     },
     {
       "name": "WasmRTCTests.DescriptionProperties_AfterNegotiation",
       "result": "Pass",
       "error": null,
-      "durationMs": 139.3,
-      "timestamp": "15:22:27"
+      "durationMs": 140.3,
+      "timestamp": "15:26:27"
     },
     {
       "name": "WasmRTCTests.DataChannel_ConfiguredProperties",
       "result": "Pass",
       "error": null,
-      "durationMs": 41.4,
-      "timestamp": "15:22:27"
+      "durationMs": 37.3,
+      "timestamp": "15:26:27"
     },
     {
       "name": "WasmRTCTests.CreateOffer_WithIceRestart",
       "result": "Pass",
       "error": null,
-      "durationMs": 155.3,
-      "timestamp": "15:22:27"
+      "durationMs": 162.4,
+      "timestamp": "15:26:28"
     },
     {
       "name": "WasmRTCTests.PeerConnection_CanTrickleIceCandidates",
       "result": "Pass",
       "error": null,
-      "durationMs": 36.4,
-      "timestamp": "15:22:27"
+      "durationMs": 32.9,
+      "timestamp": "15:26:28"
     },
     {
       "name": "WasmRTCTests.Transceiver_AddAudio",
       "result": "Pass",
       "error": null,
-      "durationMs": 56.1,
-      "timestamp": "15:22:27"
+      "durationMs": 51.9,
+      "timestamp": "15:26:28"
     },
     {
       "name": "WasmRTCTests.Transceiver_AddVideo",
       "result": "Pass",
       "error": null,
-      "durationMs": 146.3,
-      "timestamp": "15:22:28"
+      "durationMs": 155,
+      "timestamp": "15:26:28"
     },
     {
       "name": "WasmRTCTests.Transceiver_DirectionChange",
       "result": "Pass",
       "error": null,
-      "durationMs": 36.2,
-      "timestamp": "15:22:28"
+      "durationMs": 41.8,
+      "timestamp": "15:26:28"
     },
     {
       "name": "WasmRTCTests.Transceiver_Stop",
       "result": "Pass",
       "error": null,
-      "durationMs": 40.8,
-      "timestamp": "15:22:28"
+      "durationMs": 45.6,
+      "timestamp": "15:26:28"
     },
     {
       "name": "WasmRTCTests.Transceiver_Multiple",
       "result": "Pass",
       "error": null,
-      "durationMs": 153.7,
-      "timestamp": "15:22:28"
+      "durationMs": 157.7,
+      "timestamp": "15:26:28"
     },
     {
       "name": "Build SpawnDev.RTC.DemoConsole",
       "result": "Pass",
       "error": null,
       "durationMs": 0,
-      "timestamp": "15:22:28"
+      "timestamp": "15:26:28"
     },
     {
       "name": "DesktopRTCTests.Loopback_MultipleDataChannels",
       "result": "Pass",
       "error": null,
-      "durationMs": 741.6,
-      "timestamp": "15:22:29"
+      "durationMs": 749.2,
+      "timestamp": "15:26:29"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_LargeMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 1139.7,
-      "timestamp": "15:22:30"
+      "durationMs": 1140.5,
+      "timestamp": "15:26:30"
     },
     {
       "name": "DesktopRTCTests.Loopback_ConnectionStateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 558.1,
-      "timestamp": "15:22:31"
+      "durationMs": 572.9,
+      "timestamp": "15:26:31"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_RapidMessages",
       "result": "Pass",
       "error": null,
-      "durationMs": 1920.3,
-      "timestamp": "15:22:33"
+      "durationMs": 1789,
+      "timestamp": "15:26:33"
     },
     {
       "name": "DesktopRTCTests.TestInfrastructure_Working",
       "result": "Pass",
       "error": null,
-      "durationMs": 130.6,
-      "timestamp": "15:22:33"
+      "durationMs": 129.7,
+      "timestamp": "15:26:33"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 289,
-      "timestamp": "15:22:33"
+      "durationMs": 287,
+      "timestamp": "15:26:33"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanCreateOffer",
       "result": "Pass",
       "error": null,
-      "durationMs": 337.4,
-      "timestamp": "15:22:33"
+      "durationMs": 324,
+      "timestamp": "15:26:34"
     },
     {
       "name": "DesktopRTCTests.DataChannel_CanCreate",
       "result": "Pass",
       "error": null,
-      "durationMs": 300.3,
-      "timestamp": "15:22:34"
+      "durationMs": 291.4,
+      "timestamp": "15:26:34"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_StringMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 732.6,
-      "timestamp": "15:22:34"
+      "durationMs": 728.1,
+      "timestamp": "15:26:35"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_BinaryMessage",
       "result": "Pass",
       "error": null,
-      "durationMs": 721.3,
-      "timestamp": "15:22:35"
+      "durationMs": 727.9,
+      "timestamp": "15:26:35"
     },
     {
       "name": "DesktopRTCTests.Loopback_DataChannel_Bidirectional",
       "result": "Pass",
       "error": null,
-      "durationMs": 723.6,
-      "timestamp": "15:22:36"
+      "durationMs": 756,
+      "timestamp": "15:26:36"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_GetStats",
       "result": "Pass",
       "error": null,
-      "durationMs": 560.4,
-      "timestamp": "15:22:37"
+      "durationMs": 559.6,
+      "timestamp": "15:26:37"
     },
     {
       "name": "DesktopRTCTests.MediaStream_AddRemoveTrack_Events",
       "result": "Pass",
       "error": null,
-      "durationMs": 142.7,
-      "timestamp": "15:22:37"
+      "durationMs": 142.3,
+      "timestamp": "15:26:37"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_Close_StateChanges",
       "result": "Pass",
       "error": null,
-      "durationMs": 304,
-      "timestamp": "15:22:37"
+      "durationMs": 299.3,
+      "timestamp": "15:26:37"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_ImplicitSetLocalDescription",
       "result": "Pass",
       "error": null,
-      "durationMs": 366,
-      "timestamp": "15:22:37"
+      "durationMs": 363.3,
+      "timestamp": "15:26:38"
     },
     {
       "name": "DesktopRTCTests.DataChannel_Negotiated",
       "result": "Pass",
       "error": null,
-      "durationMs": 336.1,
-      "timestamp": "15:22:38"
+      "durationMs": 332,
+      "timestamp": "15:26:38"
     },
     {
       "name": "DesktopRTCTests.Factory_CreatesPlatformCorrectType",
       "result": "Pass",
       "error": null,
-      "durationMs": 294.4,
-      "timestamp": "15:22:38"
+      "durationMs": 288.7,
+      "timestamp": "15:26:38"
     },
     {
       "name": "DesktopRTCTests.GetUserMedia_AudioOnly",
       "result": "Pass",
       "error": null,
-      "durationMs": 144.2,
-      "timestamp": "15:22:38"
+      "durationMs": 141.1,
+      "timestamp": "15:26:39"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_Config_IceTransportRelay",
       "result": "Pass",
       "error": null,
-      "durationMs": 293.1,
-      "timestamp": "15:22:39"
+      "durationMs": 286.2,
+      "timestamp": "15:26:39"
     },
     {
       "name": "DesktopRTCTests.GetUserMedia_AudioVideo",
       "result": "Pass",
       "error": null,
-      "durationMs": 141.9,
-      "timestamp": "15:22:39"
+      "durationMs": 140.1,
+      "timestamp": "15:26:39"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_AddTrack_GetSenders",
       "result": "Pass",
       "error": null,
-      "durationMs": 294.4,
-      "timestamp": "15:22:39"
+      "durationMs": 296.4,
+      "timestamp": "15:26:39"
     },
     {
       "name": "DesktopRTCTests.MediaStream_Clone",
       "result": "Pass",
       "error": null,
-      "durationMs": 140.9,
-      "timestamp": "15:22:39"
+      "durationMs": 143,
+      "timestamp": "15:26:40"
     },
     {
       "name": "DesktopRTCTests.MediaStreamTrack_Clone",
       "result": "Pass",
       "error": null,
-      "durationMs": 141.1,
-      "timestamp": "15:22:40"
+      "durationMs": 141,
+      "timestamp": "15:26:40"
     },
     {
       "name": "DesktopRTCTests.DataChannel_FlowControl_Properties",
       "result": "Pass",
       "error": null,
-      "durationMs": 292.7,
-      "timestamp": "15:22:40"
+      "durationMs": 293.3,
+      "timestamp": "15:26:40"
     },
     {
       "name": "DesktopRTCTests.SignalingState_Transitions",
       "result": "Pass",
       "error": null,
-      "durationMs": 367.8,
-      "timestamp": "15:22:40"
+      "durationMs": 366.9,
+      "timestamp": "15:26:41"
     },
     {
       "name": "DesktopRTCTests.DescriptionProperties_AfterNegotiation",
       "result": "Pass",
       "error": null,
-      "durationMs": 367.4,
-      "timestamp": "15:22:41"
+      "durationMs": 365.3,
+      "timestamp": "15:26:41"
     },
     {
       "name": "DesktopRTCTests.DataChannel_ConfiguredProperties",
       "result": "Pass",
       "error": null,
-      "durationMs": 293.8,
-      "timestamp": "15:22:41"
+      "durationMs": 291.4,
+      "timestamp": "15:26:41"
     },
     {
       "name": "DesktopRTCTests.CreateOffer_WithIceRestart",
       "result": "Pass",
       "error": null,
-      "durationMs": 331.2,
-      "timestamp": "15:22:41"
+      "durationMs": 332,
+      "timestamp": "15:26:42"
     },
     {
       "name": "DesktopRTCTests.PeerConnection_CanTrickleIceCandidates",
       "result": "Pass",
       "error": null,
-      "durationMs": 290.7,
-      "timestamp": "15:22:42"
+      "durationMs": 290.8,
+      "timestamp": "15:26:42"
     },
     {
       "name": "DesktopRTCTests.Transceiver_AddAudio",
       "result": "Pass",
       "error": null,
-      "durationMs": 296.9,
-      "timestamp": "15:22:42"
+      "durationMs": 294.2,
+      "timestamp": "15:26:42"
     },
     {
       "name": "DesktopRTCTests.Transceiver_AddVideo",
       "result": "Pass",
       "error": null,
-      "durationMs": 331.3,
-      "timestamp": "15:22:42"
+      "durationMs": 326.1,
+      "timestamp": "15:26:43"
     },
     {
       "name": "DesktopRTCTests.Transceiver_DirectionChange",
       "result": "Pass",
       "error": null,
-      "durationMs": 298.4,
-      "timestamp": "15:22:43"
+      "durationMs": 294.7,
+      "timestamp": "15:26:43"
     },
     {
       "name": "DesktopRTCTests.Transceiver_Stop",
       "result": "Pass",
       "error": null,
-      "durationMs": 296,
-      "timestamp": "15:22:43"
+      "durationMs": 296.4,
+      "timestamp": "15:26:43"
     },
     {
       "name": "DesktopRTCTests.Transceiver_Multiple",
       "result": "Pass",
       "error": null,
-      "durationMs": 328.7,
-      "timestamp": "15:22:43"
+      "durationMs": 324.2,
+      "timestamp": "15:26:44"
     },
     {
       "name": "CrossPlatform.Desktop_Browser_DataChannel",
       "result": "Pass",
       "error": null,
-      "durationMs": 2446.7,
-      "timestamp": "15:22:46"
+      "durationMs": 2477.3,
+      "timestamp": "15:26:46"
     }
   ]
 }

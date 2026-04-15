@@ -1,0 +1,141 @@
+<Window x:Class="SpawnDev.RTC.WpfDemo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SpawnDev.RTC - Chat Room" Height="720" Width="1100"
+        Background="#111" Foreground="#eee" WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <!-- Join Panel (shown before joining) -->
+        <Grid x:Name="JoinPanel" Visibility="Visible">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="450">
+                <Border Background="#1e1e2e" CornerRadius="12" Padding="30">
+                    <StackPanel>
+                        <TextBlock Text="Join a Room" FontSize="24" FontWeight="Bold" Foreground="#e0e0e0" Margin="0,0,0,8"/>
+                        <TextBlock Text="Enter any room name to create or join a chat room. The name is hashed to create a unique swarm ID."
+                                   TextWrapping="Wrap" Foreground="#888" Margin="0,0,0,16"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Content="Join" Style="{StaticResource DarkButton}"
+                                    Background="#2563eb" Click="JoinRoom_Click" Padding="20,8" FontSize="15"/>
+                            <TextBox x:Name="RoomNameInput" FontSize="16" Padding="8" Margin="0,0,8,0"
+                                     Background="#222" Foreground="#eee" BorderBrush="#444"
+                                     KeyDown="RoomNameInput_KeyDown"/>
+                        </DockPanel>
+                        <TextBlock x:Name="SwarmIdPreview" Foreground="#666" FontSize="11"/>
+
+                        <DockPanel Margin="0,12,0,0">
+                            <TextBlock Text="Signal Server:" Foreground="#888" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox x:Name="SignalServerInput" Text="wss://localhost:5570" FontSize="12" Padding="4"
+                                     Background="#222" Foreground="#eee" BorderBrush="#444"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- Room Panel (shown after joining) -->
+        <Grid x:Name="RoomPanel" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="#1e1e2e" BorderBrush="#333" BorderThickness="0,0,0,1" Padding="12,8">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button x:Name="MicButton" Content="Mic On" Style="{StaticResource DarkButton}" Click="ToggleMic_Click" Margin="0,0,4,0"/>
+                        <Button x:Name="CamButton" Content="Cam On" Style="{StaticResource DarkButton}" Click="ToggleCam_Click" Margin="0,0,4,0"/>
+                        <Button Content="Leave" Style="{StaticResource DangerButton}" Click="LeaveRoom_Click"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock x:Name="RoomTitle" FontSize="16" FontWeight="Bold" Foreground="#e0e0e0"/>
+                        <TextBlock x:Name="RoomSubtitle" FontSize="11" Foreground="#888"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Body: Video + Peers + Chat -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="300"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Video Area -->
+                <Border Grid.Column="0" Background="#0a0a0a" Padding="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Video" Foreground="#666" FontSize="12" Margin="4,0,0,4"/>
+                        <Border Grid.Row="1" Background="#1a1a1a" CornerRadius="8">
+                            <TextBlock Text="Video feeds will appear here when camera capture is available.&#x0a;&#x0a;Desktop video requires SIPSorceryMedia.Windows or FFmpeg.&#x0a;Text chat and data channels work now."
+                                       Foreground="#555" TextWrapping="Wrap" TextAlignment="Center"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" Padding="20"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Peer List -->
+                <Border Grid.Column="1" Background="#1a1a2a" BorderBrush="#333" BorderThickness="1,0,1,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Background="#1e1e2e" Padding="8,6" BorderBrush="#333" BorderThickness="0,0,0,1">
+                            <TextBlock Text="Peers in Room" FontWeight="Bold" Foreground="#aaa" FontSize="12"/>
+                        </Border>
+                        <ListBox Grid.Row="1" x:Name="PeerList" Background="Transparent" BorderThickness="0" Foreground="#ccc">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="4,2">
+                                        <Button DockPanel.Dock="Right" Content="X" FontSize="10" Padding="4,1"
+                                                Style="{StaticResource DangerButton}" Tag="{Binding PeerId}"
+                                                Click="DisconnectPeer_Click" ToolTip="Disconnect this peer"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DisplayName}" Foreground="#7aa2f7" FontWeight="Bold" FontSize="12"/>
+                                            <TextBlock Text="{Binding Status}" Foreground="#666" FontSize="10"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <!-- Chat Panel -->
+                <Grid Grid.Column="2" Background="#1a1a2a">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#1e1e2e" Padding="8,6" BorderBrush="#333" BorderThickness="0,0,0,1">
+                        <TextBlock Text="Chat" FontWeight="Bold" Foreground="#aaa" FontSize="12"/>
+                    </Border>
+                    <ListBox Grid.Row="1" x:Name="ChatMessages" Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock TextWrapping="Wrap" Margin="4,1">
+                                    <Run Text="{Binding Sender}" FontWeight="Bold" Foreground="{Binding SenderColor}"/>
+                                    <Run Text=" "/>
+                                    <Run Text="{Binding Text}" Foreground="#c0caf5"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <DockPanel Grid.Row="2" Margin="4" LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Content="Send" Style="{StaticResource DarkButton}"
+                                Background="#2563eb" Click="SendChat_Click" Padding="12,6" Margin="4,0,0,0"/>
+                        <TextBox x:Name="ChatInput" FontSize="13" Padding="6" Background="#222"
+                                 Foreground="#eee" BorderBrush="#444" KeyDown="ChatInput_KeyDown"/>
+                    </DockPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
