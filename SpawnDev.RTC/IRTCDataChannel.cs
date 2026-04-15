@@ -29,6 +29,7 @@ namespace SpawnDev.RTC
         void Send(ArrayBuffer data);
         void Send(TypedArray data);
         void Send(Blob data);
+        void Send(DataView data);
 
         void Close();
 

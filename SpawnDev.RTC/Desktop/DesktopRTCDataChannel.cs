@@ -71,6 +71,9 @@ namespace SpawnDev.RTC.Desktop
         public void Send(Blob data) =>
             throw new PlatformNotSupportedException("Blob is only available in Blazor WASM. Use Send(byte[]) on desktop.");
 
+        public void Send(DataView data) =>
+            throw new PlatformNotSupportedException("DataView is only available in Blazor WASM. Use Send(byte[]) on desktop.");
+
         public void Close() => NativeChannel.close();
 
         private void HandleOpen()

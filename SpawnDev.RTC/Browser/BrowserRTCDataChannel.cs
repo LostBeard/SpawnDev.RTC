@@ -69,6 +69,7 @@ namespace SpawnDev.RTC.Browser
         public void Send(ArrayBuffer data) => NativeChannel.Send(data);
         public void Send(TypedArray data) => NativeChannel.Send(data);
         public void Send(Blob data) => NativeChannel.Send(data);
+        public void Send(DataView data) => NativeChannel.Send(data);
 
         public void Close() => NativeChannel.Close();
 
