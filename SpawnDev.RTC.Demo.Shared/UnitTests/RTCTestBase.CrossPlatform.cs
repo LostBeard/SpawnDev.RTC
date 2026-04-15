@@ -18,7 +18,10 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         [TestMethod]
         public async Task Signal_DataChannel_CrossPlatform()
         {
-            var signalUrl = "wss://localhost:5571/signal/rtc-test";
+            // Use HTTP for WASM (avoids self-signed cert issues), HTTPS for desktop
+            var signalUrl = OperatingSystem.IsBrowser()
+                ? "ws://localhost:5572/signal/rtc-test"
+                : "wss://localhost:5571/signal/rtc-test";
             var config = new RTCPeerConnectionConfig
             {
                 IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
@@ -28,7 +31,12 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
 
             // Connect to signal server
             using var ws = new ClientWebSocket();
-            ws.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+            // Skip cert validation on desktop (self-signed dev cert)
+            // Browser WASM doesn't support this property
+            if (!OperatingSystem.IsBrowser())
+            {
+                ws.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+            }
             try
             {
                 await ws.ConnectAsync(new Uri(signalUrl), CancellationToken.None);
