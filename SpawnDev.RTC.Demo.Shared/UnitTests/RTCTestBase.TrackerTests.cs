@@ -56,14 +56,23 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
                 channel.OnOpen += () => channel.Send("hello from B");
             };
 
-            // Join - A first, then B after a moment
-            await trackerA.JoinAsync();
-            await Task.Delay(500);
-            await trackerB.JoinAsync();
+            trackerA.OnConnected += () => Console.WriteLine("[TrackerTest] A: connected to tracker");
+            trackerA.OnPeerConnection += (pc, id) => Console.WriteLine($"[TrackerTest] A: peer connection with {id[..8]}");
+            trackerB.OnConnected += () => Console.WriteLine("[TrackerTest] B: connected to tracker");
+            trackerB.OnPeerConnection += (pc, id) => Console.WriteLine($"[TrackerTest] B: peer connection with {id[..8]}");
 
-            // Wait for data channel messages
-            var resultA = await Task.WhenAny(dcAReceived.Task, Task.Delay(30000));
-            var resultB = await Task.WhenAny(dcBReceived.Task, Task.Delay(30000));
+            // Join - A first, then B after a moment
+            Console.WriteLine("[TrackerTest] A joining...");
+            await trackerA.JoinAsync();
+            Console.WriteLine("[TrackerTest] A joined, waiting 1s...");
+            await Task.Delay(1000);
+            Console.WriteLine("[TrackerTest] B joining...");
+            await trackerB.JoinAsync();
+            Console.WriteLine("[TrackerTest] B joined, waiting for messages...");
+
+            // Wait for data channel messages (20s - must fit in test runner's 30s limit)
+            var resultA = await Task.WhenAny(dcAReceived.Task, Task.Delay(20000));
+            var resultB = await Task.WhenAny(dcBReceived.Task, Task.Delay(20000));
 
             if (resultA != dcAReceived.Task) throw new Exception("Peer A did not receive message from B");
             if (resultB != dcBReceived.Task) throw new Exception("Peer B did not receive message from A");
