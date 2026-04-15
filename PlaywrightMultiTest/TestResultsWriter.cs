@@ -21,9 +21,9 @@ public static class TestResultsWriter
 
     static TestResultsWriter()
     {
-        // Write to _mldump/ relative to the solution root
+        // Write test results relative to the solution root
         var solutionDir = FindSolutionRoot();
-        OutputDir = Path.Combine(solutionDir, "_ilgpudump");
+        OutputDir = Path.Combine(solutionDir, "_testresults");
         Directory.CreateDirectory(OutputDir);
 
         LatestPath = Path.Combine(OutputDir, "playwright-latest.json");

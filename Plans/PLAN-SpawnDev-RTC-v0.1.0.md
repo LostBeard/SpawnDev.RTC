@@ -1,89 +1,135 @@
 # Plan: SpawnDev.RTC v0.1.0 - Cross-Platform WebRTC
 
-**Goal:** Ship a working cross-platform WebRTC library that connects browser and desktop peers via data channels.
+**Goal:** Ship a complete cross-platform WebRTC library - data channels, audio, video, media streams - that connects browser and desktop peers from a single API.
 
-**Success criteria:** A desktop .NET peer creates a data channel, connects to a browser Blazor WASM peer, and exchanges messages bidirectionally. Verified by PlaywrightMultiTest.
+**Success criteria:** Desktop .NET and browser Blazor WASM peers connect and exchange data channel messages, audio tracks, and video tracks bidirectionally. Verified by PlaywrightMultiTest. API mirrors the W3C WebRTC specification.
 
 ---
 
-## Phase 1: SipSorcery Fork Setup
+## Phase 1: SipSorcery Fork Setup - DONE
 
-- [ ] TJ forks `sipsorcery-org/sipsorcery` on GitHub under LostBeard
-- [ ] Add fork as git submodule at `Src/sipsorcery/`
-- [ ] Verify SipSorcery.csproj builds within our solution
-- [ ] Strip unused projects from build (SIP apps, RTSP, media codecs) - only build the core WebRTC stack
+- [x] Fork `sipsorcery-org/sipsorcery` on GitHub under LostBeard
+- [x] Add fork as git submodule at `Src/sipsorcery/`
+- [x] SipSorcery.csproj builds within our solution
+- [x] Trim target frameworks to net48/net8.0/net9.0/net10.0
 - [ ] Apply DTLS/SRTP fixes on our fork branch:
   - [ ] Restrict SRTP profiles to browser-compatible set
   - [ ] Verify NotifySecureRenegotiation override exists
   - [ ] Disable MKI negotiation
   - [ ] Test DTLS handshake with browser peers
 
-## Phase 2: Cross-Platform Abstraction Layer
+## Phase 2: Data Channel Abstraction - DONE
 
-Design the platform-agnostic interfaces in SpawnDev.RTC:
+- [x] `IRTCPeerConnection` - Create offer/answer, SDP exchange, ICE, data channels
+- [x] `IRTCDataChannel` - Send/receive string and binary, open/close/error events
+- [x] `RTCPeerConnectionFactory.Create()` - Auto-detects platform
+- [x] DTOs: `RTCPeerConnectionConfig`, `RTCSessionDescriptionInit`, `RTCIceCandidateInit`, `RTCDataChannelConfig`
+- [x] Browser implementation: `BrowserRTCPeerConnection`, `BrowserRTCDataChannel`
+- [x] Desktop implementation: `DesktopRTCPeerConnection`, `DesktopRTCDataChannel`
+- [x] Zero-copy JS types: `Send(ArrayBuffer)`, `Send(TypedArray)`, `Send(Blob)`
+- [x] `OnArrayBufferMessage` for zero-copy receive in WASM
+- [x] `NativeConnection`/`NativeChannel` for platform-specific access
 
-- [ ] `IRTCPeerConnection` - Create offer/answer, set local/remote description, add ICE candidates, data channels
-- [ ] `IRTCDataChannel` - Send/receive string and binary data, open/close/error events
-- [ ] `IRTCPeerConnectionFactory` - Creates peer connections with RTCConfiguration
-- [ ] `RTCConfiguration` - ICE servers, certificates
-- [ ] `RTCSessionDescription` - SDP type + sdp string
-- [ ] `RTCIceCandidate` - ICE candidate wrapper
-- [ ] DI registration: `services.AddRTC()` auto-detects platform and registers correct implementation
+## Phase 3: Data Channel Tests - DONE
 
-## Phase 3: Browser Implementation (BlazorJS)
+- [x] `TestInfrastructure_Working` - sanity check
+- [x] `PeerConnection_CanCreate` - factory works on both platforms
+- [x] `PeerConnection_CanCreateOffer` - SDP offer with data channel
+- [x] `DataChannel_CanCreate` - channel creation and label
+- [x] `Loopback_DataChannel_StringMessage` - two local peers exchange string
+- [x] `Loopback_DataChannel_BinaryMessage` - two local peers exchange binary
+- [x] `Loopback_DataChannel_Bidirectional` - ping/pong both directions
+- [x] **Result: 16/16 pass (browser + desktop)** in 7 seconds
 
-- [ ] `BrowserRTCPeerConnection` - Wraps SpawnDev.BlazorJS `RTCPeerConnection` JSObject
-- [ ] `BrowserRTCDataChannel` - Wraps SpawnDev.BlazorJS `RTCDataChannel` JSObject
-- [ ] `BrowserRTCPeerConnectionFactory` - Creates browser peer connections
-- [ ] Verify existing SpawnDev.BlazorJS RTCPeerConnection/RTCDataChannel wrappers are complete
-- [ ] Register browser implementation in `AddRTC()` when running in WASM
+## Phase 4: Media Streams and Tracks
 
-## Phase 4: Desktop Implementation (SipSorcery)
+Add full audio/video/media stream support to the abstraction:
 
-- [ ] `SipSorceryRTCPeerConnection` - Wraps SipSorcery `RTCPeerConnection`
-- [ ] `SipSorceryRTCDataChannel` - Wraps SipSorcery `RTCDataChannel`
-- [ ] `SipSorceryRTCPeerConnectionFactory` - Creates SipSorcery peer connections
-- [ ] Map SipSorcery events (onicecandidate, ondatachannel, onconnectionstatechange) to our interface events
-- [ ] Map SDP format between our abstraction and SipSorcery's types
-- [ ] Register desktop implementation in `AddRTC()` when running on desktop
+- [ ] `IRTCMediaStream` - Represents a media stream (audio + video tracks)
+- [ ] `IRTCMediaStreamTrack` - Individual audio or video track
+- [ ] `AddTrack(IRTCMediaStreamTrack track)` on `IRTCPeerConnection`
+- [ ] `RemoveTrack(IRTCRtpSender sender)` on `IRTCPeerConnection`
+- [ ] `OnTrack` event on `IRTCPeerConnection` - fires when remote peer adds a track
+- [ ] `GetSenders()` / `GetReceivers()` on `IRTCPeerConnection`
+- [ ] Browser implementation: wraps BlazorJS `MediaStream`, `MediaStreamTrack`
+- [ ] Desktop implementation: wraps SipSorcery media tracks
 
-## Phase 5: Unit Tests
+### Media Capture
 
-- [ ] **Loopback test (desktop):** Two SipSorcery peer connections connect locally, exchange data channel messages
-- [ ] **Loopback test (browser):** Two browser peer connections connect locally, exchange data channel messages
-- [ ] **Cross-platform test:** Desktop peer connects to browser peer, exchanges data channel messages
-- [ ] **ICE test:** Verify ICE candidate gathering works on both platforms
-- [ ] **Multiple channels test:** Create multiple data channels, verify independent operation
-- [ ] **Binary data test:** Send/receive byte arrays through data channels
-- [ ] **Large message test:** Send messages up to max size (256KB)
+- [ ] `GetUserMedia(constraints)` - Camera/microphone capture (browser native, SipSorcery sources on desktop)
+- [ ] `GetDisplayMedia(constraints)` - Screen capture (browser only, throw on desktop)
+- [ ] Audio track constraints: sampleRate, channelCount, echoCancellation, noiseSuppression
+- [ ] Video track constraints: width, height, frameRate, facingMode
 
-## Phase 6: Integration with SpawnDev.WebTorrent
+### Media Playback
 
-- [ ] Replace `SipSorceryWebRtcTransport` + `WebRtcTransport` with single `SpawnDev.RTC`-based transport
-- [ ] Remove direct SipSorcery NuGet dependency from WebTorrent
-- [ ] Remove direct BlazorJS RTCPeerConnection usage from WebTorrent
-- [ ] Verify all existing WebTorrent tests pass with new transport
+- [ ] Attach incoming tracks to HTML elements in WASM (video/audio elements)
+- [ ] Desktop: route to SipSorcery media endpoints or raw frame callbacks
+
+## Phase 5: RTP/RTCP and Transceivers
+
+- [ ] `IRTCRtpSender` - Sends media tracks
+- [ ] `IRTCRtpReceiver` - Receives media tracks
+- [ ] `IRTCRtpTransceiver` - Unified send/receive with direction control
+- [ ] `AddTransceiver(trackOrKind)` on `IRTCPeerConnection`
+- [ ] Codec negotiation and preference setting
+- [ ] DTMF support via `IRTCDTMFSender`
+
+## Phase 6: Statistics and Diagnostics
+
+- [ ] `GetStats()` on `IRTCPeerConnection` - Connection quality metrics
+- [ ] Bandwidth estimation, packet loss, round-trip time
+- [ ] Per-track and per-candidate-pair stats
+
+## Phase 7: Advanced Features
+
+- [ ] **Renegotiation** - Add/remove tracks on live connection
+- [ ] **ICE restart** - `RestartIce()` for connectivity recovery
+- [ ] **TURN relay** - Full TURN support for NAT traversal
+- [ ] **Trickle ICE** - Progressive candidate exchange
+- [ ] **Perfect negotiation** - Glare-free offer/answer pattern
+- [ ] **Simulcast** - Multiple quality layers for video
+
+## Phase 8: SipSorcery DTLS Browser Interop
+
+Fix the desktop-to-browser WebRTC connection issue:
+
+- [ ] Compare SipSorcery 10.0.3 SDP output vs JS reference from WebTorrent research docs
+- [ ] Test SRTP profile restriction fix
+- [ ] If SharpSRTP DTLS is fundamentally broken, port old v6.0.11 DTLS to new BouncyCastle 2.x API
+- [ ] Verify desktop peer connects to Chrome, Firefox, Edge browser peers
+- [ ] Verify data channel and media stream interop
+
+## Phase 9: Integration with Consumers
+
+- [ ] **SpawnDev.WebTorrent** - Replace dual transport with SpawnDev.RTC
+- [ ] **SpawnDev.ILGPU.P2P** - Use SpawnDev.RTC for distributed GPU compute
+- [ ] **SpawnDev.RTLink** - Migrate from bundled SipSorcery to SpawnDev.RTC
 
 ---
 
-## Key Design Decisions
+## Design Principles
 
-### Interface vs Abstract Class
-Use **interfaces** (`IRTCPeerConnection`, `IRTCDataChannel`) - allows both JSObject-based browser wrappers and SipSorcery-based desktop implementations without inheritance conflicts.
+### Mirror the Browser API
+The API follows the W3C WebRTC specification naming and patterns. Web developers who know `RTCPeerConnection`, `createDataChannel`, `addTrack`, `ontrack` should feel at home.
 
-### Event Model
-Use C# events (`event Action`, `event Action<T>`) for connection state changes, ICE candidates, data channel messages. Matches both SipSorcery's event model and BlazorJS ActionEvent patterns.
+### Zero-Copy in WASM
+Data stays as JS types (ArrayBuffer, TypedArray, Blob) unless the consumer explicitly requests .NET types. This is critical for performance when WASM code is coordinating JS-side data processing (WebGL, canvas, workers, media elements).
 
-### SDP Exchange
-The library does NOT handle signaling. It provides `CreateOffer()`, `CreateAnswer()`, `SetLocalDescription()`, `SetRemoteDescription()`, `AddIceCandidate()`. The consuming application (WebTorrent, RTLink, etc.) handles the signaling transport (WebSocket tracker, relay server, etc.).
+### Platform-Honest
+JS type overloads (`Send(ArrayBuffer)`, etc.) exist on the interface for WASM ergonomics. Desktop throws `PlatformNotSupportedException`. No pretending the platforms are identical - be honest about what each can do.
 
-### Platform Detection
-`AddRTC()` checks `OperatingSystem.IsBrowser()` to register the correct implementation. No runtime platform switching - the platform is known at DI registration time.
+### Cast Once, Access Everything
+`NativeConnection` / `NativeChannel` properties give direct access to the underlying BlazorJS or SipSorcery objects. Cast once at creation, then use the full platform API without per-call overhead.
+
+### No Signaling Opinions
+SpawnDev.RTC does NOT handle signaling. It provides `CreateOffer()`, `CreateAnswer()`, `SetLocalDescription()`, `SetRemoteDescription()`, `AddIceCandidate()`. The consuming application handles signaling transport (WebSocket, relay server, tracker, etc.).
 
 ---
 
 ## Reference Implementations
 
-- **SpawnDev.RTLink** (`D:\users\tj\Projects\SpawnDev.RTLink`) - Proven SipSorcery WebRTC with browser interop. RPCWebRTCSIPConnection.cs is the working reference.
-- **SpawnDev.WebTorrent** (`D:\users\tj\Projects\SpawnDev.WebTorrent`) - Current consumer with separate browser/desktop WebRTC transports.
-- **SipSorcery research** (`D:\users\tj\Projects\SpawnDev.WebTorrent\SpawnDev.WebTorrent\Research/`) - 9 docs on DTLS/SRTP analysis, SipSorcery old vs new stack comparison.
+- **SpawnDev.RTLink** (`D:\users\tj\Projects\SpawnDev.RTLink`) - Proven SipSorcery WebRTC with browser interop
+- **SpawnDev.WebTorrent** (`D:\users\tj\Projects\SpawnDev.WebTorrent`) - Current consumer with separate browser/desktop transports
+- **SipSorcery research** (`D:\users\tj\Projects\SpawnDev.WebTorrent\SpawnDev.WebTorrent\Research/`) - 9 docs on DTLS/SRTP analysis
+- **W3C WebRTC spec** - https://www.w3.org/TR/webrtc/ - the API reference

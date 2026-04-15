@@ -9,12 +9,16 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 ## Features
 
 - **True cross-platform** - Browser (Blazor WASM) and desktop (.NET 10) from one codebase
+- **Full WebRTC API** - Data channels, audio, video, media streams, and tracks
 - **Browser-proven DTLS/SRTP** - Desktop peers connect to Chrome, Firefox, Edge, and other browser peers
+- **Zero-copy JS interop** - In WASM, send/receive ArrayBuffer, TypedArray, Blob without copying to .NET
+- **Browser-style API** - Mirrors the W3C WebRTC specification so web developers feel at home
 - **Data channels** - Reliable and unreliable data channels with full DCEP support
+- **Media streams** - Audio and video capture, tracks, and stream management
 - **ICE with STUN/TURN** - Full ICE candidate gathering, connectivity checks, and relay fallback
 - **SCTP** - Complete SCTP implementation for data channel transport
 - **No native dependencies** - Pure C# on desktop, native browser APIs in WASM
-- **SpawnDev.BlazorJS integration** - Typed C# wrappers for browser WebRTC APIs
+- **Native access** - Cast once at creation to access platform-specific features (BlazorJS JSObjects in WASM, SipSorcery in desktop)
 
 ## Platform Support
 
@@ -68,6 +72,53 @@ channel.OnStringMessage += (data) => Console.WriteLine($"Received: {data}");
 var offer = await pc.CreateOffer();
 await pc.SetLocalDescription(offer);
 // ... send offer.Sdp to remote peer via your signaling server
+```
+
+### Zero-Copy JS Interop (Blazor WASM)
+
+In WASM, you can send and receive data as JS types without copying to .NET:
+
+```csharp
+// Cast once at creation
+var browserDc = channel as BrowserRTCDataChannel;
+
+// Send JS types directly (zero-copy)
+browserDc.Send(myArrayBuffer);    // ArrayBuffer
+browserDc.Send(myTypedArray);     // Uint8Array, Float32Array, etc.
+browserDc.Send(myBlob);           // Blob
+
+// Receive as JS ArrayBuffer (zero-copy) - pass to WebGL, canvas, workers
+channel.OnArrayBufferMessage += (arrayBuffer) =>
+{
+    // Data stays in JS - no .NET heap copy
+    someJsApi.ProcessData(arrayBuffer);
+    arrayBuffer.Dispose();
+};
+
+// Or receive as byte[] when you need .NET access (copies from JS)
+channel.OnBinaryMessage += (bytes) => ProcessInDotNet(bytes);
+```
+
+### Native Platform Access
+
+Cast once at creation to access the full platform API:
+
+```csharp
+var pc = RTCPeerConnectionFactory.Create(config);
+
+// In WASM: full browser RTCPeerConnection (media tracks, stats, etc.)
+if (pc is BrowserRTCPeerConnection browserPc)
+{
+    var nativePC = browserPc.NativeConnection;
+    // Access any browser WebRTC API via SpawnDev.BlazorJS
+}
+
+// On desktop: full SipSorcery RTCPeerConnection
+if (pc is DesktopRTCPeerConnection desktopPc)
+{
+    var nativePC = desktopPc.NativeConnection;
+    // Access any SipSorcery feature directly
+}
 ```
 
 ## Architecture
