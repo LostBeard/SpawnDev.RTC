@@ -1,0 +1,489 @@
+@page "/chat"
+@page "/chat/{RoomName}"
+@using SpawnDev.RTC
+@using SpawnDev.RTC.Browser
+@using SpawnDev.BlazorJS
+@using SpawnDev.BlazorJS.JSObjects
+@using SpawnDev.BlazorJS.JSObjects.WebRTC
+@implements IDisposable
+
+<PageTitle>SpawnDev.RTC - Chat Room</PageTitle>
+
+<div class="chat-container">
+    @if (!_joined)
+    {
+        <div class="join-panel">
+            <div class="join-card">
+                <h2>Join a Room</h2>
+                <p class="text-muted">Enter any room name to create or join a chat room. The name is hashed to create a unique swarm ID.</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control form-control-lg" placeholder="Room name..."
+                           @bind="_roomInput" @bind:event="oninput" @onkeydown="HandleKeyDown" autofocus />
+                    <button class="btn btn-primary btn-lg" @onclick="JoinRoom" disabled="@string.IsNullOrWhiteSpace(_roomInput)">
+                        Join
+                    </button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_roomInput))
+                {
+                    <small class="text-muted">Swarm ID: @ComputeInfoHash(_roomInput)[..16]...</small>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="room-layout">
+            <!-- Header -->
+            <div class="room-header">
+                <div class="room-info">
+                    <h5 class="mb-0">@_roomInput</h5>
+                    <small class="text-muted">@(_peers.Count + 1) participant@(_peers.Count != 0 ? "s" : "") - @ComputeInfoHash(_roomInput)[..12]...</small>
+                </div>
+                <div class="room-controls">
+                    <button class="btn @(_micMuted ? "btn-danger" : "btn-outline-light") btn-sm me-1" @onclick="ToggleMic" title="@(_micMuted ? "Unmute Mic" : "Mute Mic")">
+                        @(_micMuted ? "Mic Off" : "Mic On")
+                    </button>
+                    <button class="btn @(_camMuted ? "btn-danger" : "btn-outline-light") btn-sm me-1" @onclick="ToggleCam" title="@(_camMuted ? "Enable Camera" : "Disable Camera")">
+                        @(_camMuted ? "Cam Off" : "Cam On")
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="LeaveRoom">Leave</button>
+                </div>
+            </div>
+
+            <!-- Main content: video grid + chat -->
+            <div class="room-body">
+                <!-- Video grid -->
+                <div class="video-grid" id="video-grid">
+                    <!-- Local video -->
+                    <div class="video-tile">
+                        <video id="local-video" autoplay muted playsinline></video>
+                        <div class="video-label">You</div>
+                    </div>
+                    <!-- Remote videos -->
+                    @foreach (var peer in _peers.Values)
+                    {
+                        <div class="video-tile">
+                            <video id="video-@peer.PeerId" autoplay playsinline></video>
+                            <div class="video-label">@peer.PeerId[..6]</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Chat panel -->
+                <div class="chat-panel">
+                    <div class="chat-messages" id="chat-messages">
+                        @foreach (var msg in _messages)
+                        {
+                            <div class="chat-msg @(msg.IsLocal ? "chat-msg-local" : "")">
+                                <span class="chat-sender">@msg.Sender</span>
+                                <span class="chat-text">@msg.Text</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" class="form-control" placeholder="Type a message..."
+                               @bind="_chatInput" @bind:event="oninput" @onkeydown="HandleChatKeyDown" />
+                        <button class="btn btn-primary btn-sm" @onclick="SendChat" disabled="@string.IsNullOrWhiteSpace(_chatInput)">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .chat-container {
+        height: calc(100vh - 60px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .join-panel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+    }
+
+    .join-card {
+        max-width: 500px;
+        width: 100%;
+        padding: 2rem;
+        background: #1e1e2e;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .join-card h2 {
+        color: #e0e0e0;
+        margin-bottom: 0.5rem;
+    }
+
+    .room-layout {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .room-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: #1e1e2e;
+        border-bottom: 1px solid #333;
+    }
+
+    .room-header h5 { color: #e0e0e0; }
+
+    .room-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .video-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 8px;
+        padding: 8px;
+        overflow-y: auto;
+        background: #111;
+    }
+
+    .video-tile {
+        position: relative;
+        background: #222;
+        border-radius: 8px;
+        overflow: hidden;
+        aspect-ratio: 16/9;
+    }
+
+    .video-tile video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .video-label {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .chat-panel {
+        width: 320px;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #333;
+        background: #1a1a2a;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .chat-msg {
+        margin-bottom: 0.3rem;
+        font-size: 0.9rem;
+    }
+
+    .chat-sender {
+        font-weight: bold;
+        color: #7aa2f7;
+        margin-right: 0.3rem;
+    }
+
+    .chat-msg-local .chat-sender {
+        color: #9ece6a;
+    }
+
+    .chat-text {
+        color: #c0caf5;
+    }
+
+    .chat-input {
+        display: flex;
+        padding: 0.5rem;
+        gap: 0.3rem;
+        border-top: 1px solid #333;
+    }
+
+    .chat-input .form-control {
+        background: #222;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+</style>
+
+@code {
+    [Parameter] public string? RoomName { get; set; }
+
+    private string _roomInput = "";
+    private string _chatInput = "";
+    private bool _joined;
+    private bool _micMuted;
+    private bool _camMuted;
+    private RTCSignalClient? _signal;
+    private MediaStream? _localStream;
+    private readonly Dictionary<string, PeerState> _peers = new();
+    private readonly List<ChatMessage> _messages = new();
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(RoomName))
+        {
+            _roomInput = RoomName;
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_roomInput))
+            _ = JoinRoom();
+    }
+
+    private void HandleChatKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_chatInput))
+            SendChat();
+    }
+
+    private async Task JoinRoom()
+    {
+        if (string.IsNullOrWhiteSpace(_roomInput)) return;
+
+        _joined = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get local media
+            var JS = BlazorJSRuntime.JS;
+            using var navigator = JS.Get<Navigator>("navigator");
+            using var mediaDevices = navigator.MediaDevices;
+            _localStream = await mediaDevices.GetUserMedia(new { audio = true, video = true });
+
+            // Attach local video
+            await Task.Delay(100); // Let Blazor render the video element
+            var localVideo = JS.Call<HTMLVideoElement>("document.getElementById", "local-video");
+            localVideo.SrcObject = _localStream;
+            localVideo.Dispose();
+
+            // Connect to signal server
+            var infoHash = ComputeInfoHash(_roomInput);
+            var config = new RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+            };
+
+            _signal = new RTCSignalClient($"wss://localhost:5570/signal/{infoHash}", config);
+
+            _signal.OnPeerConnectionCreated = async (pc, peerId) =>
+            {
+                // Add local tracks to the connection
+                if (_localStream != null && pc is BrowserRTCPeerConnection browserPc)
+                {
+                    foreach (var track in _localStream.GetTracks())
+                    {
+                        browserPc.NativeConnection.AddTrack(track, _localStream);
+                    }
+                }
+
+                // Create data channel for text chat
+                var dc = pc.CreateDataChannel("chat");
+                var peerState = new PeerState { PeerId = peerId, Connection = pc, ChatChannel = dc };
+                _peers[peerId] = peerState;
+
+                dc.OnOpen += () =>
+                {
+                    AddMessage("System", $"{peerId[..6]} connected", false);
+                    InvokeAsync(StateHasChanged);
+                };
+
+                dc.OnStringMessage += msg =>
+                {
+                    AddMessage(peerId[..6], msg, false);
+                    InvokeAsync(StateHasChanged);
+                    ScrollChat();
+                };
+            };
+
+            _signal.OnPeerConnection += (pc, peerId) =>
+            {
+                if (pc is BrowserRTCPeerConnection browserPc)
+                {
+                    // Handle incoming tracks from remote peer
+                    browserPc.NativeConnection.OnTrack += async trackEvent =>
+                    {
+                        if (trackEvent.Track.Kind == "video")
+                        {
+                            await InvokeAsync(async () =>
+                            {
+                                StateHasChanged();
+                                await Task.Delay(100);
+                                var JS2 = BlazorJSRuntime.JS;
+                                var remoteVideo = JS2.Call<HTMLVideoElement>("document.getElementById", $"video-{peerId}");
+                                if (remoteVideo != null)
+                                {
+                                    using var stream = new MediaStream();
+                                    stream.AddTrack(trackEvent.Track);
+                                    remoteVideo.SrcObject = stream;
+                                    remoteVideo.Dispose();
+                                }
+                            });
+                        }
+                    };
+                }
+            };
+
+            _signal.OnDataChannel += (channel, peerId) =>
+            {
+                if (_peers.TryGetValue(peerId, out var peerState))
+                {
+                    peerState.ChatChannel = channel;
+                }
+
+                channel.OnStringMessage += msg =>
+                {
+                    AddMessage(peerId[..6], msg, false);
+                    InvokeAsync(StateHasChanged);
+                    ScrollChat();
+                };
+            };
+
+            _signal.OnPeerDisconnected += peerId =>
+            {
+                _peers.Remove(peerId);
+                AddMessage("System", $"{peerId[..6]} disconnected", false);
+                InvokeAsync(StateHasChanged);
+            };
+
+            await _signal.ConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            AddMessage("Error", ex.Message, false);
+            StateHasChanged();
+        }
+    }
+
+    private void SendChat()
+    {
+        if (string.IsNullOrWhiteSpace(_chatInput)) return;
+
+        AddMessage("You", _chatInput, true);
+
+        foreach (var peer in _peers.Values)
+        {
+            if (peer.ChatChannel?.ReadyState == "open")
+            {
+                peer.ChatChannel.Send(_chatInput);
+            }
+        }
+
+        _chatInput = "";
+        StateHasChanged();
+        ScrollChat();
+    }
+
+    private void ToggleMic()
+    {
+        _micMuted = !_micMuted;
+        if (_localStream != null)
+        {
+            foreach (var track in _localStream.GetAudioTracks())
+            {
+                track.Enabled = !_micMuted;
+            }
+        }
+    }
+
+    private void ToggleCam()
+    {
+        _camMuted = !_camMuted;
+        if (_localStream != null)
+        {
+            foreach (var track in _localStream.GetVideoTracks())
+            {
+                track.Enabled = !_camMuted;
+            }
+        }
+    }
+
+    private async Task LeaveRoom()
+    {
+        if (_signal != null)
+        {
+            await _signal.DisconnectAsync();
+            _signal.Dispose();
+            _signal = null;
+        }
+
+        if (_localStream != null)
+        {
+            foreach (var track in _localStream.GetTracks())
+            {
+                track.Stop();
+                track.Dispose();
+            }
+            _localStream.Dispose();
+            _localStream = null;
+        }
+
+        _peers.Clear();
+        _messages.Clear();
+        _joined = false;
+        StateHasChanged();
+    }
+
+    private void AddMessage(string sender, string text, bool isLocal)
+    {
+        _messages.Add(new ChatMessage { Sender = sender, Text = text, IsLocal = isLocal });
+        if (_messages.Count > 200) _messages.RemoveAt(0);
+    }
+
+    private void ScrollChat()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await Task.Delay(50);
+            var JS = BlazorJSRuntime.JS;
+            JS.CallVoid("eval", "document.getElementById('chat-messages')?.scrollTo(0, 999999)");
+        });
+    }
+
+    private static string ComputeInfoHash(string roomName)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(roomName.Trim().ToLowerInvariant());
+        var hash = System.Security.Cryptography.SHA1.HashData(bytes);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    public void Dispose()
+    {
+        _ = LeaveRoom();
+    }
+
+    private class PeerState
+    {
+        public string PeerId { get; set; } = "";
+        public IRTCPeerConnection? Connection { get; set; }
+        public IRTCDataChannel? ChatChannel { get; set; }
+    }
+
+    private class ChatMessage
+    {
+        public string Sender { get; set; } = "";
+        public string Text { get; set; } = "";
+        public bool IsLocal { get; set; }
+    }
+}
