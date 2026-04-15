@@ -101,19 +101,32 @@ SipSorcery 10.0.3+ ships a completely rewritten DTLS/SRTP stack ("SharpSRTP") th
 
 SpawnDev.RTC maintains a fork that preserves the proven DTLS/SRTP interop while incorporating upstream improvements to ICE, SDP, SCTP, and data channel handling.
 
+## Acknowledgments
+
+SpawnDev.RTC would not be possible without the incredible work of the [SipSorcery](https://github.com/sipsorcery-org/sipsorcery) project by **Aaron Clauson** and its many contributors. SipSorcery is the only pure C# WebRTC implementation for .NET - no native wrappers, no C++ dependencies - and it provides the complete ICE, DTLS, SCTP, and data channel stack that powers SpawnDev.RTC on desktop platforms.
+
+The DTLS/SRTP cryptography is built on [Portable.BouncyCastle](https://www.bouncycastle.org/csharp/) by the Legion of the Bouncy Castle.
+
+SpawnDev.RTC maintains a [fork of SipSorcery](https://github.com/LostBeard/sipsorcery) as a git submodule to apply targeted browser interoperability fixes while tracking upstream development. We are grateful to the SipSorcery team for building and maintaining this foundational library under the BSD 3-Clause license.
+
+### Key SipSorcery Contributors
+
+- **Aaron Clauson** ([@sipsorcery](https://github.com/sipsorcery)) - Creator and maintainer
+- **Christophe Irles** - RTP header extensions, major contributions
+- **Rafael Soares** - Original DTLS/SRTP implementation (ported from OLocation/RestComm)
+- **Lukas Volf** ([@jimm98y](https://github.com/jimm98y)) - SharpSRTP DTLS rewrite and SRTP improvements
+
 ## License
 
 MIT License - see [LICENSE.txt](LICENSE.txt)
 
-SipSorcery components are distributed under the BSD 3-Clause License.
+SipSorcery components are distributed under the BSD 3-Clause License. See [LICENSE.txt](LICENSE.txt) for full details.
 
 ## Credits
 
 Built by Todd Tanner ([@LostBeard](https://github.com/LostBeard)) and the SpawnDev team.
 
 AI development assisted by Claude (Anthropic).
-
-SipSorcery WebRTC stack by Aaron Clauson and contributors - [sipsorcery-org/sipsorcery](https://github.com/sipsorcery-org/sipsorcery).
 
 <a href="https://www.browserstack.com" target="_blank"><img src="https://www.browserstack.com/images/layout/browserstack-logo-600x315.png" width="200" alt="BrowserStack" /></a>
 

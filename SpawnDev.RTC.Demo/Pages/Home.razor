@@ -1,3 +1,61 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>SpawnDev.RTC — WebRTC Everywhere</PageTitle>
+<PageTitle>SpawnDev.RTC - WebRTC Everywhere</PageTitle>
+
+<div class="container mt-4">
+    <h1>SpawnDev.RTC</h1>
+    <p class="lead">Cross-platform WebRTC for .NET - browser and desktop from a single API.</p>
+
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <h4>What is SpawnDev.RTC?</h4>
+            <p>
+                SpawnDev.RTC provides a unified WebRTC interface that works identically in
+                Blazor WebAssembly (using native browser WebRTC) and on desktop .NET
+                (using a bundled <a href="https://github.com/sipsorcery-org/sipsorcery" target="_blank">SipSorcery</a> fork
+                with proven browser-interop DTLS/SRTP).
+            </p>
+            <p>
+                Write your peer connection, data channel, and signaling code once - it runs everywhere.
+            </p>
+
+            <h4 class="mt-4">Features</h4>
+            <ul>
+                <li><strong>True cross-platform</strong> - Browser (Blazor WASM) and desktop (.NET 10)</li>
+                <li><strong>Browser-proven DTLS/SRTP</strong> - Desktop peers connect to Chrome, Firefox, Edge</li>
+                <li><strong>Data channels</strong> - Reliable and unreliable with full DCEP support</li>
+                <li><strong>ICE with STUN/TURN</strong> - Full candidate gathering and relay fallback</li>
+                <li><strong>No native dependencies</strong> - Pure C# on desktop, native browser APIs in WASM</li>
+            </ul>
+
+            <h4 class="mt-4">Built With</h4>
+            <p>
+                The desktop WebRTC stack is powered by
+                <a href="https://github.com/sipsorcery-org/sipsorcery" target="_blank">SipSorcery</a>
+                by <strong>Aaron Clauson</strong> and contributors - the only pure C# WebRTC implementation
+                for .NET. SipSorcery provides the complete ICE, DTLS, SCTP, and data channel stack
+                without any native wrappers or C++ dependencies.
+            </p>
+            <p>
+                Browser interop is powered by
+                <a href="https://github.com/LostBeard/SpawnDev.BlazorJS" target="_blank">SpawnDev.BlazorJS</a>
+                with typed C# wrappers for all browser WebRTC APIs.
+            </p>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="https://github.com/LostBeard/SpawnDev.RTC" target="_blank">GitHub</a></li>
+                        <li><a href="https://www.nuget.org/packages/SpawnDev.RTC" target="_blank">NuGet</a></li>
+                        <li><a href="https://github.com/sipsorcery-org/sipsorcery" target="_blank">SipSorcery (upstream)</a></li>
+                        <li><a href="https://github.com/LostBeard/SpawnDev.BlazorJS" target="_blank">SpawnDev.BlazorJS</a></li>
+                    </ul>
+                    <h5 class="card-title mt-3">Test</h5>
+                    <p><a href="/tests" class="btn btn-primary btn-sm">Run Unit Tests</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

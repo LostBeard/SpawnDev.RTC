@@ -1,4 +1,10 @@
 <Solution>
+  <Folder Name="/Src/" />
+  <Folder Name="/Src/sipsorcery/" />
+  <Folder Name="/Src/sipsorcery/src/">
+    <Project Path="Src/sipsorcery/src/SIPSorcery/SIPSorcery.csproj" />
+    <Project Path="Src/sipsorcery/src/SIPSorceryMedia.Abstractions/SIPSorceryMedia.Abstractions.csproj" />
+  </Folder>
   <Project Path="PlaywrightMultiTest/PlaywrightMultiTest.csproj" Id="a670e3cb-371d-4d07-8907-42611a4962d7" />
   <Project Path="SpawnDev.RTC.Demo.Shared/SpawnDev.RTC.Demo.Shared.csproj" />
   <Project Path="SpawnDev.RTC.Demo/SpawnDev.RTC.Demo.csproj" />

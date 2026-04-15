@@ -1,0 +1,3 @@
+[submodule "Src/sipsorcery"]
+	path = Src/sipsorcery
+	url = https://github.com/LostBeard/sipsorcery.git
