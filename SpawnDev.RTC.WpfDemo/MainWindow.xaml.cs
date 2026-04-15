@@ -9,7 +9,7 @@ namespace SpawnDev.RTC.WpfDemo
 {
     public partial class MainWindow : Window
     {
-        private RTCSignalClient? _signal;
+        private RTCTrackerClient? _signal;
         private string _roomName = "";
         private bool _micMuted;
         private bool _camMuted;
@@ -54,52 +54,33 @@ namespace SpawnDev.RTC.WpfDemo
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            _signal = new RTCSignalClient($"{signalBase}/signal/{infoHash}", config);
-
-            _signal.OnPeerConnectionCreated = async (pc, peerId) =>
-            {
-                var dc = pc.CreateDataChannel("chat");
-                _chatChannels[peerId] = dc;
-
-                dc.OnOpen += () => Dispatcher.Invoke(() =>
-                {
-                    AddMessage("System", $"{peerId[..6]} connected", false);
-                    UpdatePeerStatus(peerId, "connected");
-                });
-
-                dc.OnStringMessage += msg => Dispatcher.Invoke(() =>
-                {
-                    AddMessage(peerId[..6], msg, false);
-                });
-
-                dc.OnClose += () => Dispatcher.Invoke(() =>
-                {
-                    UpdatePeerStatus(peerId, "disconnected");
-                });
-
-                await Task.CompletedTask;
-            };
+            _signal = new RTCTrackerClient(signalBase, _roomName, config);
 
             _signal.OnPeerConnection += (pc, peerId) =>
             {
                 Dispatcher.Invoke(() =>
                 {
-                    _peers.Add(new PeerInfo
-                    {
-                        PeerId = peerId,
-                        DisplayName = peerId[..6],
-                        Status = "connecting...",
-                    });
+                    var name = peerId.Length >= 6 ? peerId[..6] : peerId;
+                    _peers.Add(new PeerInfo { PeerId = peerId, DisplayName = name, Status = "connected" });
+                    AddMessage("System", $"{name} connected", false);
                     UpdateSubtitle();
                 });
+
             };
 
             _signal.OnDataChannel += (channel, peerId) =>
             {
                 _chatChannels[peerId] = channel;
+                var name = peerId.Length >= 6 ? peerId[..6] : peerId;
+
                 channel.OnStringMessage += msg => Dispatcher.Invoke(() =>
                 {
-                    AddMessage(peerId[..6], msg, false);
+                    AddMessage(name, msg, false);
+                });
+
+                channel.OnOpen += () => Dispatcher.Invoke(() =>
+                {
+                    AddMessage("System", $"Chat ready with {name}", false);
                 });
             };
 
@@ -110,15 +91,16 @@ namespace SpawnDev.RTC.WpfDemo
                     _chatChannels.Remove(peerId);
                     var peer = _peers.FirstOrDefault(p => p.PeerId == peerId);
                     if (peer != null) _peers.Remove(peer);
-                    AddMessage("System", $"{peerId[..6]} left", false);
+                    var name = peerId.Length >= 6 ? peerId[..6] : peerId;
+                    AddMessage("System", $"{name} left", false);
                     UpdateSubtitle();
                 });
             };
 
             _signal.OnConnected += () => Dispatcher.Invoke(() =>
             {
-                RoomSubtitle.Text = $"Swarm: {infoHash[..12]}... - Connected";
-                AddMessage("System", "Connected to signal server", false);
+                RoomSubtitle.Text = $"Swarm: {infoHash[..12]}... - Connected to tracker";
+                AddMessage("System", "Connected to tracker. Waiting for peers...", false);
             });
 
             _signal.OnDisconnected += () => Dispatcher.Invoke(() =>
@@ -128,7 +110,7 @@ namespace SpawnDev.RTC.WpfDemo
 
             try
             {
-                await _signal.ConnectAsync();
+                await _signal.JoinAsync();
             }
             catch (Exception ex)
             {
@@ -180,7 +162,7 @@ namespace SpawnDev.RTC.WpfDemo
         {
             if (_signal != null)
             {
-                await _signal.DisconnectAsync();
+                await _signal.LeaveAsync();
                 _signal.Dispose();
                 _signal = null;
             }

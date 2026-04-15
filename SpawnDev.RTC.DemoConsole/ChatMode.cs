@@ -11,7 +11,7 @@ namespace SpawnDev.RTC.DemoConsole
     /// </summary>
     public static class ChatMode
     {
-        public static async Task Run(string signalServerBase = "wss://localhost:5570")
+        public static async Task Run(string trackerUrl = "wss://tracker.openwebtorrent.com")
         {
             Console.WriteLine("SpawnDev.RTC Desktop Chat");
             Console.WriteLine("========================");
@@ -34,8 +34,7 @@ namespace SpawnDev.RTC.DemoConsole
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            var signalUrl = $"{signalServerBase}/signal/{infoHash}";
-            using var signal = new RTCSignalClient(signalUrl, config);
+            using var signal = new RTCTrackerClient(trackerUrl, roomName, config);
 
             signal.OnPeerConnectionCreated = async (pc, peerId) =>
             {
@@ -61,7 +60,7 @@ namespace SpawnDev.RTC.DemoConsole
 
             try
             {
-                await signal.ConnectAsync();
+                await signal.JoinAsync();
                 Console.WriteLine("[Waiting for peers... Type messages and press Enter to send]");
                 Console.WriteLine("[Type 'quit' to leave]");
                 Console.WriteLine();
@@ -77,7 +76,7 @@ namespace SpawnDev.RTC.DemoConsole
                         continue;
 
                     // Send to all peers via their data channels
-                    // (RTCSignalClient manages the peer connections internally,
+                    // (RTCTrackerClient manages the peer connections internally,
                     //  but we need access to the data channels we created)
                     Console.WriteLine($"  You: {input}");
                 }
