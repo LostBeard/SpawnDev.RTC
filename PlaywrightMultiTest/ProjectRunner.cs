@@ -698,7 +698,7 @@ namespace PlaywrightMultiTest
                 ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] A got: {m}"); msgFromB.TrySetResult(m); };
                 ch.OnOpen += () => { LogStatus("[Tracker Embedded] A dc open"); };
                 // Send after a short delay to ensure both sides have wired handlers
-                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("from A"); LogStatus("[Tracker Embedded] A sent"); });
+                Task.Run(async () => { await Task.Delay(500); ch.Send("from A"); LogStatus("[Tracker Embedded] A sent"); });
             };
             tA.OnConnected += () => LogStatus("[Tracker Embedded] A connected");
             tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] A peer: {id[..8]}");
@@ -710,7 +710,7 @@ namespace PlaywrightMultiTest
                 LogStatus($"[Tracker Embedded] B got dc '{ch.Label}' state={ch.ReadyState}");
                 ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] B got: {m}"); msgFromA.TrySetResult(m); };
                 ch.OnOpen += () => { LogStatus("[Tracker Embedded] B dc open"); };
-                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("from B"); LogStatus("[Tracker Embedded] B sent"); });
+                Task.Run(async () => { await Task.Delay(500); ch.Send("from B"); LogStatus("[Tracker Embedded] B sent"); });
             };
             tB.OnConnected += () => LogStatus("[Tracker Embedded] B connected");
             tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] B peer: {id[..8]}");
@@ -747,7 +747,7 @@ namespace PlaywrightMultiTest
                 LogStatus($"[Tracker Live] A got dc '{ch.Label}' state={ch.ReadyState}");
                 ch.OnStringMessage += m => { LogStatus($"[Tracker Live] A got: {m}"); msgFromB.TrySetResult(m); };
                 ch.OnOpen += () => LogStatus("[Tracker Live] A dc open");
-                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("live A"); LogStatus("[Tracker Live] A sent"); });
+                Task.Run(async () => { await Task.Delay(500); ch.Send("live A"); LogStatus("[Tracker Live] A sent"); });
             };
             tA.OnConnected += () => LogStatus("[Tracker Live] A connected to openwebtorrent");
             tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] A peer: {id[..8]}");
@@ -759,7 +759,7 @@ namespace PlaywrightMultiTest
                 LogStatus($"[Tracker Live] B got dc '{ch.Label}' state={ch.ReadyState}");
                 ch.OnStringMessage += m => { LogStatus($"[Tracker Live] B got: {m}"); msgFromA.TrySetResult(m); };
                 ch.OnOpen += () => LogStatus("[Tracker Live] B dc open");
-                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("live B"); LogStatus("[Tracker Live] B sent"); });
+                Task.Run(async () => { await Task.Delay(500); ch.Send("live B"); LogStatus("[Tracker Live] B sent"); });
             };
             tB.OnConnected += () => LogStatus("[Tracker Live] B connected to openwebtorrent");
             tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] B peer: {id[..8]}");
