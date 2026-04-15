@@ -36,6 +36,30 @@ namespace SpawnDev.RTC.Desktop
             NativeTrack = track;
         }
 
+        private string _contentHint = "";
+        private MediaTrackConstraints _constraints = new();
+
+        public string ContentHint { get => _contentHint; set => _contentHint = value; }
+
+        public RTCMediaTrackSettings GetSettings()
+        {
+            var settings = new RTCMediaTrackSettings();
+            if (NativeTrack.Kind == SDPMediaTypesEnum.audio)
+            {
+                settings.SampleRate = 8000;
+                settings.ChannelCount = 1;
+            }
+            return settings;
+        }
+
+        public MediaTrackConstraints GetConstraints() => _constraints;
+
+        public Task ApplyConstraints(MediaTrackConstraints constraints)
+        {
+            _constraints = constraints;
+            return Task.CompletedTask;
+        }
+
         public void Stop()
         {
             if (_stopped) return;

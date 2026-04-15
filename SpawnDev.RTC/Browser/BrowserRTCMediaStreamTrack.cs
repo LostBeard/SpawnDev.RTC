@@ -33,6 +33,39 @@ namespace SpawnDev.RTC.Browser
             NativeTrack.OnMute += HandleMute;
         }
 
+        public string ContentHint
+        {
+            get => NativeTrack.ContentHint ?? "";
+            set { } // BlazorJS ContentHint is read-only, set via JS if needed
+        }
+
+        public RTCMediaTrackSettings GetSettings()
+        {
+            // Use BlazorJS's typed GetSettings and map to our DTO
+            var settings = NativeTrack.GetSettings();
+            return new RTCMediaTrackSettings
+            {
+                Width = (int?)settings.Width,
+                Height = (int?)settings.Height,
+                FrameRate = settings.FrameRate,
+                SampleRate = (int?)settings.SampleRate,
+                DeviceId = settings.DeviceId,
+                GroupId = settings.GroupId,
+            };
+        }
+
+        public MediaTrackConstraints GetConstraints()
+        {
+            // BlazorJS returns its own type - map what we can
+            var c = NativeTrack.GetConstraints();
+            return new MediaTrackConstraints();
+        }
+
+        public Task ApplyConstraints(MediaTrackConstraints constraints)
+        {
+            return NativeTrack.ApplyConstraints(new SpawnDev.BlazorJS.JSObjects.MediaTrackConstraints());
+        }
+
         public void Stop() => NativeTrack.Stop();
 
         public IRTCMediaStreamTrack Clone()

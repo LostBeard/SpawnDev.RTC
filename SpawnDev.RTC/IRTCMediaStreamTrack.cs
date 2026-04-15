@@ -43,6 +43,26 @@ namespace SpawnDev.RTC
         void Stop();
 
         /// <summary>
+        /// Hint about the content type for optimization ("", "speech", "music", "motion", "detail", "text").
+        /// </summary>
+        string ContentHint { get; set; }
+
+        /// <summary>
+        /// Returns the current track settings (resolution, frame rate, sample rate, etc.).
+        /// </summary>
+        RTCMediaTrackSettings GetSettings();
+
+        /// <summary>
+        /// Returns the constraints currently applied to this track.
+        /// </summary>
+        MediaTrackConstraints GetConstraints();
+
+        /// <summary>
+        /// Applies new constraints to this track (e.g., change resolution, frame rate).
+        /// </summary>
+        Task ApplyConstraints(MediaTrackConstraints constraints);
+
+        /// <summary>
         /// Creates a duplicate of this track.
         /// </summary>
         IRTCMediaStreamTrack Clone();
