@@ -72,6 +72,8 @@ namespace SpawnDev.RTC.Desktop
             NativeConnection.onnegotiationneeded += HandleNegotiationNeeded;
             NativeConnection.oniceconnectionstatechange += HandleIceConnectionStateChange;
             NativeConnection.onicegatheringstatechange += HandleIceGatheringStateChange;
+            // SipSorcery doesn't have ontrack - detect remote tracks when remote description changes
+            NativeConnection.OnRemoteDescriptionChanged += HandleRemoteDescriptionChanged;
         }
 
         public IRTCDataChannel CreateDataChannel(string label, RTCDataChannelConfig? options = null)
@@ -232,6 +234,34 @@ namespace SpawnDev.RTC.Desktop
             OnNegotiationNeeded?.Invoke();
         }
 
+        private void HandleRemoteDescriptionChanged(SIPSorcery.Net.SDP sdp)
+        {
+            // Fire OnTrack for any remote tracks that have been set
+            if (NativeConnection.AudioRemoteTrack != null && !_notifiedRemoteTracks.Contains("audio"))
+            {
+                _notifiedRemoteTracks.Add("audio");
+                var track = new DesktopRTCMediaStreamTrack(NativeConnection.AudioRemoteTrack);
+                OnTrack?.Invoke(new RTCTrackEventInit
+                {
+                    Track = track,
+                    Receiver = new DesktopRtpReceiver(track),
+                    Streams = System.Array.Empty<IRTCMediaStream>(),
+                });
+            }
+            if (NativeConnection.VideoRemoteTrack != null && !_notifiedRemoteTracks.Contains("video"))
+            {
+                _notifiedRemoteTracks.Add("video");
+                var track = new DesktopRTCMediaStreamTrack(NativeConnection.VideoRemoteTrack);
+                OnTrack?.Invoke(new RTCTrackEventInit
+                {
+                    Track = track,
+                    Receiver = new DesktopRtpReceiver(track),
+                    Streams = System.Array.Empty<IRTCMediaStream>(),
+                });
+            }
+        }
+        private readonly HashSet<string> _notifiedRemoteTracks = new();
+
         public void Dispose()
         {
             if (_disposed) return;
@@ -240,6 +270,7 @@ namespace SpawnDev.RTC.Desktop
             NativeConnection.ondatachannel -= HandleDataChannel;
             NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;
             NativeConnection.onnegotiationneeded -= HandleNegotiationNeeded;
+            NativeConnection.OnRemoteDescriptionChanged -= HandleRemoteDescriptionChanged;
             NativeConnection.oniceconnectionstatechange -= HandleIceConnectionStateChange;
             NativeConnection.onicegatheringstatechange -= HandleIceGatheringStateChange;
             NativeConnection.close();

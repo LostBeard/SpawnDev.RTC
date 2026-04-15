@@ -26,8 +26,23 @@ namespace SpawnDev.RTC.Desktop
         public bool Negotiated => NativeChannel.negotiated;
         public long BufferedAmount => (long)NativeChannel.bufferedAmount;
 
+        public ushort? MaxPacketLifeTime => NativeChannel.maxPacketLifeTime;
+        public ushort? MaxRetransmits => NativeChannel.maxRetransmits;
+        public long BufferedAmountLowThreshold
+        {
+            get => (long)NativeChannel.bufferedAmountLowThreshold;
+            set => NativeChannel.bufferedAmountLowThreshold = (ulong)value;
+        }
+        public string BinaryType
+        {
+            get => NativeChannel.binaryType ?? "arraybuffer";
+            set => NativeChannel.binaryType = value;
+        }
+
         public event Action? OnOpen;
         public event Action? OnClose;
+        public event Action? OnClosing;  // SipSorcery doesn't have this - never fires
+        public event Action? OnBufferedAmountLow;  // SipSorcery doesn't have this - never fires
         public event Action<string>? OnStringMessage;
         public event Action<byte[]>? OnBinaryMessage;
         public event Action<ArrayBuffer>? OnArrayBufferMessage;  // Never fires on desktop

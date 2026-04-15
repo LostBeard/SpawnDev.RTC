@@ -27,8 +27,23 @@ namespace SpawnDev.RTC.Browser
         public bool Negotiated => NativeChannel.Negotiated;
         public long BufferedAmount => NativeChannel.BufferedAmount;
 
+        public ushort? MaxPacketLifeTime => NativeChannel.MaxPacketLifeTime;
+        public ushort? MaxRetransmits => NativeChannel.MaxRetransmits;
+        public long BufferedAmountLowThreshold
+        {
+            get => NativeChannel.BufferedAmountLowThreshold;
+            set => NativeChannel.BufferedAmountLowThreshold = value;
+        }
+        public string BinaryType
+        {
+            get => NativeChannel.BinaryType;
+            set => NativeChannel.BinaryType = value;
+        }
+
         public event Action? OnOpen;
         public event Action? OnClose;
+        public event Action? OnClosing;
+        public event Action? OnBufferedAmountLow;
         public event Action<string>? OnStringMessage;
         public event Action<byte[]>? OnBinaryMessage;
         public event Action<ArrayBuffer>? OnArrayBufferMessage;
@@ -40,6 +55,8 @@ namespace SpawnDev.RTC.Browser
             NativeChannel.BinaryType = "arraybuffer";
             NativeChannel.OnOpen += HandleOpen;
             NativeChannel.OnClose += HandleClose;
+            NativeChannel.OnClosing += HandleClosing;
+            NativeChannel.OnBufferedAmountLow += HandleBufferedAmountLow;
             NativeChannel.OnMessage += HandleMessage;
             NativeChannel.OnError += HandleError;
         }
@@ -63,6 +80,16 @@ namespace SpawnDev.RTC.Browser
         private void HandleClose(Event e)
         {
             OnClose?.Invoke();
+        }
+
+        private void HandleClosing(Event e)
+        {
+            OnClosing?.Invoke();
+        }
+
+        private void HandleBufferedAmountLow(Event e)
+        {
+            OnBufferedAmountLow?.Invoke();
         }
 
         private void HandleMessage(MessageEvent e)
@@ -111,6 +138,8 @@ namespace SpawnDev.RTC.Browser
             _disposed = true;
             NativeChannel.OnOpen -= HandleOpen;
             NativeChannel.OnClose -= HandleClose;
+            NativeChannel.OnClosing -= HandleClosing;
+            NativeChannel.OnBufferedAmountLow -= HandleBufferedAmountLow;
             NativeChannel.OnMessage -= HandleMessage;
             NativeChannel.OnError -= HandleError;
             NativeChannel.Dispose();

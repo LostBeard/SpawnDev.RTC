@@ -4,10 +4,11 @@ namespace SpawnDev.RTC
 {
     /// <summary>
     /// Cross-platform WebRTC data channel.
-    /// API mirrors the browser RTCDataChannel specification.
+    /// API mirrors the W3C RTCDataChannel specification.
     /// </summary>
     public interface IRTCDataChannel : IDisposable
     {
+        // --- Properties ---
         string Label { get; }
         string ReadyState { get; }
         ushort? Id { get; }
@@ -15,6 +16,10 @@ namespace SpawnDev.RTC
         string Protocol { get; }
         bool Negotiated { get; }
         long BufferedAmount { get; }
+        ushort? MaxPacketLifeTime { get; }
+        ushort? MaxRetransmits { get; }
+        long BufferedAmountLowThreshold { get; set; }
+        string BinaryType { get; set; }
 
         // --- Send: universal (all platforms) ---
         void Send(string data);
@@ -27,8 +32,10 @@ namespace SpawnDev.RTC
 
         void Close();
 
+        // --- Events ---
+
         /// <summary>
-        /// The underlying data channel has been opened and communication is possible.
+        /// The data channel has been opened and communication is possible.
         /// </summary>
         event Action? OnOpen;
 
@@ -36,6 +43,16 @@ namespace SpawnDev.RTC
         /// The data channel has been closed.
         /// </summary>
         event Action? OnClose;
+
+        /// <summary>
+        /// The data channel is closing (before fully closed).
+        /// </summary>
+        event Action? OnClosing;
+
+        /// <summary>
+        /// The outgoing buffer has dropped below BufferedAmountLowThreshold.
+        /// </summary>
+        event Action? OnBufferedAmountLow;
 
         /// <summary>
         /// A string message was received. Works on all platforms.
