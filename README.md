@@ -99,6 +99,31 @@ channel.OnArrayBufferMessage += (arrayBuffer) =>
 channel.OnBinaryMessage += (bytes) => ProcessInDotNet(bytes);
 ```
 
+### Built-in Signaling Client
+
+SpawnDev.RTC includes a drop-in signaling client that handles the SDP offer/answer exchange and ICE candidate trickle automatically:
+
+```csharp
+// Connect to a signal server room
+var signal = new RTCSignalClient("wss://server/signal/my-room", config);
+
+// Called when a new peer connection is created - add your data channels here
+signal.OnPeerConnectionCreated = async (pc, peerId) =>
+{
+    var dc = pc.CreateDataChannel("chat");
+    dc.OnOpen += () => dc.Send("Hello!");
+};
+
+// Called when a remote peer opens a data channel to you
+signal.OnDataChannel += (channel, peerId) =>
+{
+    channel.OnStringMessage += msg => Console.WriteLine($"[{peerId}]: {msg}");
+};
+
+await signal.ConnectAsync();
+// That's it - peers discover each other, exchange SDP, connect via WebRTC
+```
+
 ### Native Platform Access
 
 Cast once at creation to access the full platform API:

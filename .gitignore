@@ -162,3 +162,8 @@ _mldump/
 # Test results
 TestResults/
 WGSLDumps/
+_testresults/
+_ilgpudump/
+
+# Init logs
+init_status.log
