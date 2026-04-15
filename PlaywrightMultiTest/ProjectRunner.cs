@@ -694,10 +694,11 @@ namespace PlaywrightMultiTest
             using var tA = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
             tA.OnDataChannel += (ch, id) =>
             {
-                LogStatus($"[Tracker Embedded] A got data channel '{ch.Label}' from {id[..8]}");
-                ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] A got msg: {m}"); msgFromB.TrySetResult(m); };
-                ch.OnOpen += () => { LogStatus("[Tracker Embedded] A dc open, sending"); ch.Send("from A"); };
-                if (ch.ReadyState == "open") { LogStatus("[Tracker Embedded] A dc already open, sending"); ch.Send("from A"); }
+                LogStatus($"[Tracker Embedded] A got dc '{ch.Label}' state={ch.ReadyState}");
+                ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] A got: {m}"); msgFromB.TrySetResult(m); };
+                ch.OnOpen += () => { LogStatus("[Tracker Embedded] A dc open"); };
+                // Send after a short delay to ensure both sides have wired handlers
+                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("from A"); LogStatus("[Tracker Embedded] A sent"); });
             };
             tA.OnConnected += () => LogStatus("[Tracker Embedded] A connected");
             tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] A peer: {id[..8]}");
@@ -706,10 +707,10 @@ namespace PlaywrightMultiTest
             using var tB = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
             tB.OnDataChannel += (ch, id) =>
             {
-                LogStatus($"[Tracker Embedded] B got data channel '{ch.Label}' from {id[..8]}");
-                ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] B got msg: {m}"); msgFromA.TrySetResult(m); };
-                ch.OnOpen += () => { LogStatus("[Tracker Embedded] B dc open, sending"); ch.Send("from B"); };
-                if (ch.ReadyState == "open") { LogStatus("[Tracker Embedded] B dc already open, sending"); ch.Send("from B"); }
+                LogStatus($"[Tracker Embedded] B got dc '{ch.Label}' state={ch.ReadyState}");
+                ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] B got: {m}"); msgFromA.TrySetResult(m); };
+                ch.OnOpen += () => { LogStatus("[Tracker Embedded] B dc open"); };
+                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("from B"); LogStatus("[Tracker Embedded] B sent"); });
             };
             tB.OnConnected += () => LogStatus("[Tracker Embedded] B connected");
             tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] B peer: {id[..8]}");
@@ -743,10 +744,10 @@ namespace PlaywrightMultiTest
             using var tA = new SpawnDev.RTC.RTCTrackerClient("wss://tracker.openwebtorrent.com", room, config);
             tA.OnDataChannel += (ch, _) =>
             {
-                LogStatus($"[Tracker Live] A got dc '{ch.Label}'");
+                LogStatus($"[Tracker Live] A got dc '{ch.Label}' state={ch.ReadyState}");
                 ch.OnStringMessage += m => { LogStatus($"[Tracker Live] A got: {m}"); msgFromB.TrySetResult(m); };
-                ch.OnOpen += () => { LogStatus("[Tracker Live] A dc open"); ch.Send("live A"); };
-                if (ch.ReadyState == "open") ch.Send("live A");
+                ch.OnOpen += () => LogStatus("[Tracker Live] A dc open");
+                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("live A"); LogStatus("[Tracker Live] A sent"); });
             };
             tA.OnConnected += () => LogStatus("[Tracker Live] A connected to openwebtorrent");
             tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] A peer: {id[..8]}");
@@ -755,10 +756,10 @@ namespace PlaywrightMultiTest
             using var tB = new SpawnDev.RTC.RTCTrackerClient("wss://tracker.openwebtorrent.com", room, config);
             tB.OnDataChannel += (ch, _) =>
             {
-                LogStatus($"[Tracker Live] B got dc '{ch.Label}'");
+                LogStatus($"[Tracker Live] B got dc '{ch.Label}' state={ch.ReadyState}");
                 ch.OnStringMessage += m => { LogStatus($"[Tracker Live] B got: {m}"); msgFromA.TrySetResult(m); };
-                ch.OnOpen += () => { LogStatus("[Tracker Live] B dc open"); ch.Send("live B"); };
-                if (ch.ReadyState == "open") ch.Send("live B");
+                ch.OnOpen += () => LogStatus("[Tracker Live] B dc open");
+                _ = Task.Run(async () => { await Task.Delay(500); ch.Send("live B"); LogStatus("[Tracker Live] B sent"); });
             };
             tB.OnConnected += () => LogStatus("[Tracker Live] B connected to openwebtorrent");
             tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] B peer: {id[..8]}");
