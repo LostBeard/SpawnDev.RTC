@@ -328,11 +328,14 @@
                             InvokeAsync(async () =>
                             {
                                 StateHasChanged();
-                                await Task.Delay(100);
-                                using var remoteVideo = new HTMLVideoElement(state.VideoRef);
-                                using var stream = new MediaStream();
+                                await Task.Delay(200);
+                                // Do NOT dispose the stream - the video element needs it alive
+                                var remoteVideo = new HTMLVideoElement(state.VideoRef);
+                                var stream = new MediaStream();
                                 stream.AddTrack(trackEvent.Track);
                                 remoteVideo.SrcObject = stream;
+                                state.RemoteStream = stream;
+                                state.RemoteVideoEl = remoteVideo;
                             });
                         }
                     };
@@ -341,29 +344,38 @@
 
             _tracker.OnDataChannel += (channel, peerId) =>
             {
+                // Wire message handler on every data channel we receive
+                channel.OnStringMessage += msg => InvokeAsync(() =>
+                {
+                    var name = peerId.Length >= 8 ? peerId[..8] : peerId;
+                    AddMessage(name, msg, false);
+                    StateHasChanged();
+                    ScrollChat();
+                });
+
+                channel.OnOpen += () => InvokeAsync(() =>
+                {
+                    var name = peerId.Length >= 8 ? peerId[..8] : peerId;
+                    AddMessage("System", $"Chat ready with {name}", false);
+                    StateHasChanged();
+                });
+
+                // Store the channel on the peer (peer should exist - OnPeerConnection fires first)
                 if (_peers.TryGetValue(peerId, out var peerState))
                 {
                     peerState.ChatChannel = channel;
                 }
-
-                channel.OnOpen += () => InvokeAsync(() =>
-                {
-                    AddMessage("System", $"Data channel open with {peerId[..8]}", false);
-                    StateHasChanged();
-                });
-
-                channel.OnStringMessage += msg => InvokeAsync(() =>
-                {
-                    AddMessage(peerId[..8], msg, false);
-                    StateHasChanged();
-                    ScrollChat();
-                });
             };
 
             _tracker.OnPeerDisconnected += peerId => InvokeAsync(() =>
             {
-                _peers.Remove(peerId);
-                AddMessage("System", $"{peerId[..8]} disconnected", false);
+                if (_peers.TryGetValue(peerId, out var peer))
+                {
+                    peer.Dispose();
+                    _peers.Remove(peerId);
+                }
+                var name = peerId.Length >= 8 ? peerId[..8] : peerId;
+                AddMessage("System", $"{name} disconnected", false);
                 StateHasChanged();
             });
 
@@ -445,6 +457,7 @@
             _localStream = null;
         }
 
+        foreach (var peer in _peers.Values) peer.Dispose();
         _peers.Clear();
         _messages.Clear();
         _joined = false;
@@ -477,6 +490,8 @@
     public void Dispose()
     {
         _tracker?.Dispose();
+        foreach (var peer in _peers.Values) peer.Dispose();
+        _peers.Clear();
         if (_localStream != null)
         {
             foreach (var track in _localStream.GetTracks())
@@ -488,13 +503,24 @@
         }
     }
 
-    private class PeerState
+    private class PeerState : IDisposable
     {
         public string PeerId { get; set; } = "";
         public IRTCPeerConnection? Connection { get; set; }
         public IRTCDataChannel? ChatChannel { get; set; }
         public ElementReference VideoRef { get; set; }
         public MediaStreamTrack? VideoTrack { get; set; }
+        public MediaStream? RemoteStream { get; set; }
+        public HTMLVideoElement? RemoteVideoEl { get; set; }
+
+        public void Dispose()
+        {
+            RemoteVideoEl?.Dispose();
+            RemoteStream?.Dispose();
+            VideoTrack?.Dispose();
+            ChatChannel?.Dispose();
+            Connection?.Dispose();
+        }
     }
 
     private class ChatMessage

@@ -330,14 +330,15 @@ namespace SpawnDev.RTC
 
             await pc.SetRemoteDescription(new RTCSessionDescriptionInit { Type = "answer", Sdp = answerSdp });
 
-            // Fire OnDataChannel for the local data channel we created in AnnounceWithOffers
+            // Fire OnPeerConnection FIRST so consumers can add the peer to their state
+            OnPeerConnection?.Invoke(pc, remotePeerId);
+
+            // THEN fire OnDataChannel so the peer exists when consumers wire message handlers
             if (_pendingChannels.TryGetValue(offerId, out var localDc))
             {
                 _pendingChannels.Remove(offerId);
                 OnDataChannel?.Invoke(localDc, remotePeerId);
             }
-
-            OnPeerConnection?.Invoke(pc, remotePeerId);
         }
 
         private void WireEvents(IRTCPeerConnection pc, string remotePeerId)
