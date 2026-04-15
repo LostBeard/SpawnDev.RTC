@@ -1,4 +1,5 @@
 using SIPSorcery.Net;
+using SIPSorceryMedia.Abstractions;
 
 namespace SpawnDev.RTC.Desktop
 {
@@ -202,19 +203,50 @@ namespace SpawnDev.RTC.Desktop
 
         public IRTCRtpTransceiver[] GetTransceivers()
         {
-            // SipSorcery doesn't have a unified transceiver model
-            return System.Array.Empty<IRTCRtpTransceiver>();
+            return _transceivers.ToArray();
         }
 
         public IRTCRtpTransceiver AddTransceiver(string kind)
         {
-            throw new NotSupportedException("SipSorcery does not support the unified transceiver API. Use AddTrack() instead.");
+            // Create a SipSorcery track for the specified media kind
+            var mediaType = kind == "audio" ? SDPMediaTypesEnum.audio : SDPMediaTypesEnum.video;
+            List<SDPAudioVideoMediaFormat> formats;
+            if (mediaType == SDPMediaTypesEnum.audio)
+            {
+                formats = new List<SDPAudioVideoMediaFormat>
+                {
+                    new SDPAudioVideoMediaFormat(SDPWellKnownMediaFormatsEnum.PCMU),
+                    new SDPAudioVideoMediaFormat(SDPWellKnownMediaFormatsEnum.PCMA),
+                };
+            }
+            else
+            {
+                formats = new List<SDPAudioVideoMediaFormat>
+                {
+                    new SDPAudioVideoMediaFormat(new VideoFormat(VideoCodecsEnum.VP8, 96)),
+                    new SDPAudioVideoMediaFormat(new VideoFormat(VideoCodecsEnum.H264, 100)),
+                };
+            }
+            var track = new MediaStreamTrack(mediaType, false, formats, MediaStreamStatusEnum.SendRecv);
+            NativeConnection.addTrack(track);
+            var transceiver = new DesktopRTCRtpTransceiver(NativeConnection, track);
+            _transceivers.Add(transceiver);
+            return transceiver;
         }
 
         public IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track)
         {
-            throw new NotSupportedException("SipSorcery does not support the unified transceiver API. Use AddTrack() instead.");
+            if (track is DesktopRTCMediaStreamTrack desktopTrack)
+            {
+                NativeConnection.addTrack(desktopTrack.NativeTrack);
+                var transceiver = new DesktopRTCRtpTransceiver(NativeConnection, desktopTrack.NativeTrack);
+                _transceivers.Add(transceiver);
+                return transceiver;
+            }
+            throw new ArgumentException("Track must be a DesktopRTCMediaStreamTrack on desktop.");
         }
+
+        private readonly List<IRTCRtpTransceiver> _transceivers = new();
 
         public void RestartIce()
         {
