@@ -120,7 +120,15 @@ namespace SpawnDev.RTC.Browser
 
         public async Task AddIceCandidate(RTCIceCandidateInit candidate)
         {
-            await NativeConnection.AddIceCandidate(candidate.Candidate);
+            var jsCandidate = new RTCIceCandidate(new RTCIceCandidateInfo
+            {
+                Candidate = candidate.Candidate,
+                SdpMid = candidate.SdpMid,
+                SdpMLineIndex = candidate.SdpMLineIndex,
+                UsernameFragment = candidate.UsernameFragment,
+            });
+            await NativeConnection.AddIceCandidate(jsCandidate);
+            jsCandidate.Dispose();
         }
 
         public void Close() => NativeConnection.Close();

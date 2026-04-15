@@ -27,7 +27,11 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         {
             using var pc = RTCPeerConnectionFactory.Create();
             if (pc == null) throw new Exception("PeerConnection is null");
-            if (pc.SignalingState != "new") throw new Exception($"Expected signaling state 'new', got '{pc.SignalingState}'");
+            // W3C spec: initial signaling state is "stable" (not "new")
+            // SipSorcery may return "closed" or "Closed" before offer/answer
+            var state = pc.SignalingState.ToLowerInvariant();
+            if (state != "stable" && state != "closed")
+                throw new Exception($"Expected initial signaling state 'stable' or 'closed', got '{pc.SignalingState}'");
             await Task.CompletedTask;
         }
 

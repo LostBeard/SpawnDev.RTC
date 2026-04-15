@@ -153,7 +153,7 @@ namespace PlaywrightMultiTest
 
                         // start a static file server to serve the published output
                         // Fixed port so IndexedDB persists across runs (same origin = same IDB)
-                        var _port = 5491;
+                        var _port = 5570;
                         var baseUrl = $"https://localhost:{_port}/";
                         testableProject.Server = new StaticFileServer(testableProject.ProjectDetails.WwwRoot, baseUrl);
                         // start https server to serve the Blazor WASM app
