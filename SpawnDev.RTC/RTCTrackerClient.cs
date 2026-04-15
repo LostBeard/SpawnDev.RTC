@@ -29,6 +29,7 @@ namespace SpawnDev.RTC
         private readonly RTCPeerConnectionConfig? _config;
         private readonly Dictionary<string, IRTCPeerConnection> _peers = new();
         private readonly Dictionary<string, IRTCPeerConnection> _pendingOffers = new(); // offerId -> pc
+    private readonly Dictionary<string, IRTCDataChannel> _pendingChannels = new(); // offerId -> local data channel
         private CancellationTokenSource? _cts;
         private bool _disposed;
         private int _numwant = 5;
@@ -197,7 +198,7 @@ namespace SpawnDev.RTC
             {
                 var pc = RTCPeerConnectionFactory.Create(_config);
                 // Create a data channel so the offer includes an application media line
-                pc.CreateDataChannel("data");
+                var localDc = pc.CreateDataChannel("data");
 
                 if (OnPeerConnectionCreated != null)
                     await OnPeerConnectionCreated(pc, "");
@@ -211,6 +212,7 @@ namespace SpawnDev.RTC
                 var offerId = Encoding.Latin1.GetString(offerIdBytes);
 
                 _pendingOffers[offerId] = pc;
+                _pendingChannels[offerId] = localDc;
 
                 offers.Add(new
                 {
@@ -327,6 +329,14 @@ namespace SpawnDev.RTC
             _peers[remotePeerId] = pc;
 
             await pc.SetRemoteDescription(new RTCSessionDescriptionInit { Type = "answer", Sdp = answerSdp });
+
+            // Fire OnDataChannel for the local data channel we created in AnnounceWithOffers
+            if (_pendingChannels.TryGetValue(offerId, out var localDc))
+            {
+                _pendingChannels.Remove(offerId);
+                OnDataChannel?.Invoke(localDc, remotePeerId);
+            }
+
             OnPeerConnection?.Invoke(pc, remotePeerId);
         }
 
