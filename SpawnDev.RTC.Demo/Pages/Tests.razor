@@ -1,0 +1,57 @@
+@page "/tests"
+@using System.Reflection
+@using SpawnDev.UnitTesting.Blazor
+@using SpawnDev.RTC
+
+<PageTitle>Unit Tests</PageTitle>
+
+<h3>Unit Tests</h3>
+<div style="font-size:0.85rem;color:#888;margin-top:-0.5rem;display:flex;align-items:center;gap:0.5rem;">
+    <span>Build: <strong style="color:#ccc;">@BuildTimestamp.Value</strong></span>
+    <button style="font-size:0.75rem;padding:2px 8px;" @onclick="CopyBuildInfo" @onclick:stopPropagation="true" title="Copy build time + library versions to clipboard">Copy</button>
+</div>
+<hr />
+
+<UnitTestsView TypeInstanceResolver="TestTypeResolver" TestAssemblies="Assemblies" TestTypes="Types"></UnitTestsView>
+
+@inject SpawnDev.BlazorJS.BlazorJSRuntime JS
+
+@code{
+    [Inject]
+    IServiceCollection ServiceDescriptors { get; set; } = default!;
+
+    // Suppress re-renders from button clicks so UnitTestsView doesn't lose test state
+    private bool _suppressRender;
+    protected override bool ShouldRender()
+    {
+        if (_suppressRender) { _suppressRender = false; return false; }
+        return true;
+    }
+
+    void CopyBuildInfo()
+    {
+        _suppressRender = true;
+        try { JS.CallVoid("navigator.clipboard.writeText", BuildTimestamp.FullBuildInfo); }
+        catch { }
+    }
+
+    List<Assembly>? Assemblies = new List<Assembly>();
+    List<Type>? Types = new List<Type>();
+    object? TestTypeResolver(Type testType)
+    {
+        if (testType == this.GetType()) return this;
+        return null;
+    }
+    protected override void OnInitialized()
+    {
+        Types = new List<Type> { this.GetType() };
+        // add tests in the assembly this is in
+        Assemblies = new List<Assembly> { this.GetType().Assembly };
+        // add all services. only services with tests will be used.
+        // not necessary if the service types are in an assembly that is in the Assemblies list
+        foreach (var descriptor in ServiceDescriptors)
+        {
+            Types.Add(descriptor.ServiceType);
+        }
+    }
+}
