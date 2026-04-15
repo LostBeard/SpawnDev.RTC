@@ -153,30 +153,45 @@ namespace SpawnDev.RTC.Desktop
 
         public void RestartIce()
         {
-            // SipSorcery doesn't expose RestartIce directly
-            // TODO: Implement via SipSorcery ICE agent restart
-            throw new NotImplementedException("ICE restart is not yet implemented for desktop.");
+            NativeConnection.restartIce();
         }
 
         public IRTCRtpSender AddTrack(IRTCMediaStreamTrack track, params IRTCMediaStream[] streams)
         {
-            // TODO: Implement via SipSorcery RTP pipeline
-            throw new NotImplementedException("AddTrack is not yet implemented for desktop. Use NativeConnection for direct SipSorcery media API access.");
+            if (track is DesktopRTCMediaStreamTrack desktopTrack)
+            {
+                NativeConnection.addTrack(desktopTrack.NativeTrack);
+                return new DesktopRtpSender(track);
+            }
+            throw new ArgumentException("Track must be a DesktopRTCMediaStreamTrack on desktop.");
         }
 
         public void RemoveTrack(IRTCRtpSender sender)
         {
-            throw new NotImplementedException("RemoveTrack is not yet implemented for desktop.");
+            if (sender is DesktopRtpSender desktopSender && desktopSender.Track is DesktopRTCMediaStreamTrack desktopTrack)
+            {
+                NativeConnection.removeTrack(desktopTrack.NativeTrack);
+            }
         }
 
         public IRTCRtpSender[] GetSenders()
         {
-            return System.Array.Empty<IRTCRtpSender>();
+            var senders = new List<IRTCRtpSender>();
+            if (NativeConnection.AudioLocalTrack != null)
+                senders.Add(new DesktopRtpSender(new DesktopRTCMediaStreamTrack(NativeConnection.AudioLocalTrack)));
+            if (NativeConnection.VideoLocalTrack != null)
+                senders.Add(new DesktopRtpSender(new DesktopRTCMediaStreamTrack(NativeConnection.VideoLocalTrack)));
+            return senders.ToArray();
         }
 
         public IRTCRtpReceiver[] GetReceivers()
         {
-            return System.Array.Empty<IRTCRtpReceiver>();
+            var receivers = new List<IRTCRtpReceiver>();
+            if (NativeConnection.AudioRemoteTrack != null)
+                receivers.Add(new DesktopRtpReceiver(new DesktopRTCMediaStreamTrack(NativeConnection.AudioRemoteTrack)));
+            if (NativeConnection.VideoRemoteTrack != null)
+                receivers.Add(new DesktopRtpReceiver(new DesktopRTCMediaStreamTrack(NativeConnection.VideoRemoteTrack)));
+            return receivers.ToArray();
         }
 
         public void Close() => NativeConnection.close();
