@@ -3,7 +3,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Net;
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
 
 namespace PlaywrightMultiTest
 {
@@ -13,7 +17,7 @@ namespace PlaywrightMultiTest
         Task? runningTask;
         string WWWRoot;
         string RequestPath;
-        string Url;
+        public string Url { get; private set; }
         string devcertPath;
         string SolutionRoot;
         public StaticFileServer(string wwwroot, string url, string requestPath = "")
@@ -77,6 +81,45 @@ namespace PlaywrightMultiTest
                 builder.WebHost.UseUrls(Url);
 
                 app = builder.Build();
+
+                // WebSocket signaling for cross-platform WebRTC tests
+                app.UseWebSockets();
+                app.Map("/signal/{roomId}", async (HttpContext context, string roomId) =>
+                {
+                    if (!context.WebSockets.IsWebSocketRequest) { context.Response.StatusCode = 400; return; }
+                    var ws = await context.WebSockets.AcceptWebSocketAsync();
+                    var room = SignalRooms.GetOrAdd(roomId, _ => new SignalRoom());
+                    var peerId = Guid.NewGuid().ToString("N")[..8];
+                    var peer = new SignalPeer(peerId, ws);
+                    room.AddPeer(peer);
+                    await room.BroadcastAsync(peerId, new { type = "peer-joined", peerId });
+                    var buffer = new byte[64 * 1024];
+                    try
+                    {
+                        await peer.SendAsync(new { type = "welcome", peerId, peers = room.GetPeerIds(peerId) });
+                        while (ws.State == WebSocketState.Open)
+                        {
+                            var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
+                            if (result.MessageType == WebSocketMessageType.Close) break;
+                            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                            var msg = JsonSerializer.Deserialize<JsonElement>(json);
+                            if (!msg.TryGetProperty("type", out var typeEl)) continue;
+                            var targetId = msg.TryGetProperty("targetId", out var tid) ? tid.GetString() : null;
+                            var relay = new Dictionary<string, object?> { ["type"] = typeEl.GetString(), ["fromId"] = peerId };
+                            foreach (var prop in msg.EnumerateObject())
+                                if (prop.Name != "type" && prop.Name != "targetId") relay[prop.Name] = prop.Value;
+                            if (targetId != null) await room.SendToPeerAsync(targetId, relay);
+                            else await room.BroadcastAsync(peerId, relay);
+                        }
+                    }
+                    catch (WebSocketException) { }
+                    finally
+                    {
+                        room.RemovePeer(peerId);
+                        await room.BroadcastAsync(peerId, new { type = "peer-left", peerId });
+                        if (room.PeerCount == 0) SignalRooms.TryRemove(roomId, out _);
+                    }
+                });
 
                 // (optional) add headers that enables: window.crossOriginIsolated == true
                 app.Use(async (context, next) =>
@@ -190,6 +233,43 @@ namespace PlaywrightMultiTest
                 }
                 catch { }
             }
+        }
+
+        // --- Signal server types for WebRTC cross-platform tests ---
+        private static readonly ConcurrentDictionary<string, SignalRoom> SignalRooms = new();
+    }
+
+    internal class SignalPeer
+    {
+        public string Id { get; }
+        public WebSocket Socket { get; }
+        private readonly SemaphoreSlim _lock = new(1, 1);
+        public SignalPeer(string id, WebSocket socket) { Id = id; Socket = socket; }
+        public async Task SendAsync(object message)
+        {
+            if (Socket.State != WebSocketState.Open) return;
+            var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+            await _lock.WaitAsync();
+            try { await Socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); }
+            finally { _lock.Release(); }
+        }
+    }
+
+    internal class SignalRoom
+    {
+        private readonly ConcurrentDictionary<string, SignalPeer> _peers = new();
+        public int PeerCount => _peers.Count;
+        public void AddPeer(SignalPeer peer) => _peers[peer.Id] = peer;
+        public void RemovePeer(string id) => _peers.TryRemove(id, out _);
+        public string[] GetPeerIds(string excludeId) => _peers.Keys.Where(id => id != excludeId).ToArray();
+        public async Task BroadcastAsync(string fromId, object message)
+        {
+            foreach (var peer in _peers.Values)
+                if (peer.Id != fromId) try { await peer.SendAsync(message); } catch { }
+        }
+        public async Task SendToPeerAsync(string targetId, object message)
+        {
+            if (_peers.TryGetValue(targetId, out var peer)) try { await peer.SendAsync(message); } catch { }
         }
     }
 }

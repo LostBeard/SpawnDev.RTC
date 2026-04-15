@@ -412,10 +412,244 @@ namespace PlaywrightMultiTest
                     yield return testCaseData;
                 }
             }
+            // Cross-platform integration test: desktop peer + browser peer via embedded signal server
+            foreach (var testableProject in TestableProjects)
+            {
+                if (testableProject is TestableBlazorWasm blazor)
+                {
+                    yield return new TestCaseData(new ProjectTest(blazor, "CrossPlatform", "Desktop_Browser_DataChannel")
+                    {
+                        TestFunc = async (page) => await CrossPlatformDataChannelTest(page, blazor),
+                    }).SetName("CrossPlatform.Desktop_Browser_DataChannel").SetCategory("CrossPlatform");
+                    break; // Only one cross-platform test
+                }
+            }
         }
 
-        // Placeholder for future Playwright-level integration tests
-        // (multi-tab WebRTC peer connection tests, etc.)
+        /// <summary>
+        /// Cross-platform test: a desktop SipSorcery peer and a browser peer
+        /// both connect to SignalServer, exchange SDP, and send data channel messages.
+        /// </summary>
+        private static async Task CrossPlatformDataChannelTest(IPage browserPage, TestableBlazorWasm blazorProj)
+        {
+            // Signal server is embedded in the same StaticFileServer that serves the Blazor WASM app
+            var serverUrl = blazorProj.Server!.Url.TrimEnd('/');
+            var roomId = "crossplatform-test-" + Guid.NewGuid().ToString("N")[..6];
+            var signalUrl = serverUrl.Replace("https://", "wss://").Replace("http://", "ws://") + $"/signal/{roomId}";
+            LogStatus($"[CrossPlatform] Signal room: {signalUrl}");
+
+            // Start desktop peer in background
+            var desktopResult = new TaskCompletionSource<string>();
+            var desktopTask = Task.Run(async () =>
+            {
+                try
+                {
+                    var result = await RunDesktopSignalPeer(signalUrl);
+                    desktopResult.TrySetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    desktopResult.TrySetException(ex);
+                }
+            });
+
+            // Give desktop peer a moment to connect to signal server first
+            await Task.Delay(1000);
+
+            // Run browser peer via the test page - trigger the Signal_DataChannel_CrossPlatform test
+            // But since that test uses a hardcoded room, let's use JS to create a simple peer instead
+            var browserResult = await browserPage.EvaluateAsync<string>($@"
+                async () => {{
+                    try {{
+                        const ws = new WebSocket('{signalUrl}');
+                        await new Promise((resolve, reject) => {{
+                            ws.onopen = resolve;
+                            ws.onerror = () => reject('WebSocket failed');
+                            setTimeout(() => reject('WebSocket timeout'), 5000);
+                        }});
+
+                        let myId = '';
+                        let remoteId = '';
+                        const pc = new RTCPeerConnection({{ iceServers: [{{ urls: 'stun:stun.l.google.com:19302' }}] }});
+                        const dc = pc.createDataChannel('cross-platform');
+
+                        const dcOpen = new Promise(resolve => dc.onopen = resolve);
+                        const msgReceived = new Promise(resolve => dc.onmessage = e => resolve(e.data));
+
+                        pc.onicecandidate = e => {{
+                            if (e.candidate) {{
+                                ws.send(JSON.stringify({{ type: 'ice-candidate', targetId: remoteId, candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex }}));
+                            }}
+                        }};
+
+                        ws.onmessage = async e => {{
+                            const msg = JSON.parse(e.data);
+                            if (msg.type === 'welcome') {{
+                                myId = msg.peerId;
+                                if (msg.peers.length > 0) {{
+                                    remoteId = msg.peers[0];
+                                    const offer = await pc.createOffer();
+                                    await pc.setLocalDescription(offer);
+                                    ws.send(JSON.stringify({{ type: 'offer', targetId: remoteId, sdp: offer.sdp }}));
+                                }}
+                            }} else if (msg.type === 'peer-joined') {{
+                                remoteId = msg.peerId;
+                            }} else if (msg.type === 'offer') {{
+                                remoteId = msg.fromId;
+                                await pc.setRemoteDescription({{ type: 'offer', sdp: msg.sdp }});
+                                const answer = await pc.createAnswer();
+                                await pc.setLocalDescription(answer);
+                                ws.send(JSON.stringify({{ type: 'answer', targetId: remoteId, sdp: answer.sdp }}));
+                            }} else if (msg.type === 'answer') {{
+                                await pc.setRemoteDescription({{ type: 'answer', sdp: msg.sdp }});
+                            }} else if (msg.type === 'ice-candidate') {{
+                                await pc.addIceCandidate({{ candidate: msg.candidate, sdpMid: msg.sdpMid, sdpMLineIndex: msg.sdpMLineIndex }});
+                            }}
+                        }};
+
+                        await Promise.race([dcOpen, new Promise((_, reject) => setTimeout(() => reject('DC open timeout'), 30000))]);
+                        dc.send('Hello from browser!');
+                        const received = await Promise.race([msgReceived, new Promise((_, reject) => setTimeout(() => reject('Message timeout'), 10000))]);
+                        ws.close();
+                        pc.close();
+                        return 'OK:' + received;
+                    }} catch (err) {{
+                        return 'ERROR:' + (err.message || err);
+                    }}
+                }}
+            ");
+
+            LogStatus($"[CrossPlatform] Browser result: {{browserResult}}");
+
+            // Wait for desktop result
+            var desktopMsg = await Task.WhenAny(desktopResult.Task, Task.Delay(35000));
+            string desktopResultStr;
+            if (desktopMsg == desktopResult.Task)
+                desktopResultStr = await desktopResult.Task;
+            else
+                desktopResultStr = "TIMEOUT";
+
+            LogStatus($"[CrossPlatform] Desktop result: {{desktopResultStr}}");
+
+            if (!browserResult.StartsWith("OK:"))
+                throw new Exception($"Browser peer failed: {{browserResult}}");
+            if (!desktopResultStr.StartsWith("OK:"))
+                throw new Exception($"Desktop peer failed: {{desktopResultStr}}");
+
+            LogStatus("[CrossPlatform] SUCCESS - Desktop and browser exchanged data channel messages!");
+        }
+
+        /// <summary>
+        /// Runs a desktop SipSorcery peer that connects to the signal server,
+        /// exchanges SDP with the browser peer, and sends/receives a data channel message.
+        /// </summary>
+        private static async Task<string> RunDesktopSignalPeer(string signalUrl)
+        {
+            using var pc = SpawnDev.RTC.RTCPeerConnectionFactory.Create(new SpawnDev.RTC.RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
+            });
+
+            using var ws = new System.Net.WebSockets.ClientWebSocket();
+            ws.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+            await ws.ConnectAsync(new Uri(signalUrl), CancellationToken.None);
+
+            string myPeerId = "", remotePeerId = "";
+            SpawnDev.RTC.IRTCDataChannel? dc = null;
+            var channelOpened = new TaskCompletionSource<bool>();
+            var messageReceived = new TaskCompletionSource<string>();
+
+            pc.OnDataChannel += channel =>
+            {
+                dc = channel;
+                dc.OnOpen += () => channelOpened.TrySetResult(true);
+                dc.OnStringMessage += msg => messageReceived.TrySetResult(msg);
+            };
+
+            pc.OnIceCandidate += async candidate =>
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    type = "ice-candidate", targetId = remotePeerId,
+                    candidate = candidate.Candidate, sdpMid = candidate.SdpMid, sdpMLineIndex = candidate.SdpMLineIndex,
+                });
+                await ws.SendAsync(System.Text.Encoding.UTF8.GetBytes(json),
+                    System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+            };
+
+            // Signal message processing
+            var buffer = new byte[64 * 1024];
+            var signalDone = new TaskCompletionSource<bool>();
+            _ = Task.Run(async () =>
+            {
+                while (ws.State == System.Net.WebSockets.WebSocketState.Open)
+                {
+                    var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
+                    if (result.MessageType == System.Net.WebSockets.WebSocketMessageType.Close) break;
+                    var json = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    var msg = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+                    var msgType = msg.GetProperty("type").GetString();
+
+                    if (msgType == "welcome")
+                    {
+                        myPeerId = msg.GetProperty("peerId").GetString()!;
+                        var peers = msg.GetProperty("peers");
+                        if (peers.GetArrayLength() > 0)
+                        {
+                            remotePeerId = peers[0].GetString()!;
+                            dc = pc.CreateDataChannel("cross-platform");
+                            dc.OnOpen += () => channelOpened.TrySetResult(true);
+                            dc.OnStringMessage += m => messageReceived.TrySetResult(m);
+                            var offer = await pc.CreateOffer();
+                            await pc.SetLocalDescription(offer);
+                            var offerJson = System.Text.Json.JsonSerializer.Serialize(new { type = "offer", targetId = remotePeerId, sdp = offer.Sdp });
+                            await ws.SendAsync(System.Text.Encoding.UTF8.GetBytes(offerJson),
+                                System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+                    }
+                    else if (msgType == "peer-joined")
+                    {
+                        remotePeerId = msg.GetProperty("peerId").GetString()!;
+                    }
+                    else if (msgType == "offer")
+                    {
+                        remotePeerId = msg.GetProperty("fromId").GetString()!;
+                        await pc.SetRemoteDescription(new SpawnDev.RTC.RTCSessionDescriptionInit { Type = "offer", Sdp = msg.GetProperty("sdp").GetString()! });
+                        var answer = await pc.CreateAnswer();
+                        await pc.SetLocalDescription(answer);
+                        var answerJson = System.Text.Json.JsonSerializer.Serialize(new { type = "answer", targetId = remotePeerId, sdp = answer.Sdp });
+                        await ws.SendAsync(System.Text.Encoding.UTF8.GetBytes(answerJson),
+                            System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
+                    else if (msgType == "answer")
+                    {
+                        await pc.SetRemoteDescription(new SpawnDev.RTC.RTCSessionDescriptionInit { Type = "answer", Sdp = msg.GetProperty("sdp").GetString()! });
+                    }
+                    else if (msgType == "ice-candidate")
+                    {
+                        await pc.AddIceCandidate(new SpawnDev.RTC.RTCIceCandidateInit
+                        {
+                            Candidate = msg.GetProperty("candidate").GetString()!,
+                            SdpMid = msg.TryGetProperty("sdpMid", out var mid) ? mid.GetString() : null,
+                            SdpMLineIndex = msg.TryGetProperty("sdpMLineIndex", out var mli) ? mli.GetInt32() : null,
+                        });
+                    }
+                }
+            });
+
+            // Wait for channel to open
+            var openResult = await Task.WhenAny(channelOpened.Task, Task.Delay(30000));
+            if (openResult != channelOpened.Task)
+                return "ERROR:Channel did not open";
+
+            dc!.Send("Hello from desktop!");
+
+            var msgResult = await Task.WhenAny(messageReceived.Task, Task.Delay(10000));
+            if (msgResult != messageReceived.Task)
+                return "ERROR:No response received";
+
+            return "OK:" + await messageReceived.Task;
+        }
 
         /// <summary>
         /// This is called after tests have been enumerated bu before they are run. You can use this to start up any services or infrastructure needed for the tests.
