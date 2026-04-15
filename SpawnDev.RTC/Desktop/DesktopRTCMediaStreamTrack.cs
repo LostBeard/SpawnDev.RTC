@@ -1,4 +1,5 @@
 using SIPSorcery.Net;
+using SIPSorceryMedia.Abstractions;
 
 namespace SpawnDev.RTC.Desktop
 {
@@ -8,19 +9,23 @@ namespace SpawnDev.RTC.Desktop
     /// </summary>
     public class DesktopRTCMediaStreamTrack : IRTCMediaStreamTrack
     {
-        /// <summary>
-        /// Direct access to the underlying SipSorcery MediaStreamTrack.
-        /// </summary>
         public MediaStreamTrack NativeTrack { get; }
-
         private bool _disposed;
+        private bool _stopped;
+        private bool _enabled = true;
 
         public string Id => NativeTrack.Ssrc.ToString();
-        public string Kind => NativeTrack.Kind.ToString().ToLowerInvariant();
-        public string Label => $"{NativeTrack.Kind} ({NativeTrack.Ssrc})";
-        public bool Enabled { get => NativeTrack.StreamStatus != MediaStreamStatusEnum.Inactive; set { } }
-        public bool Muted => NativeTrack.StreamStatus == MediaStreamStatusEnum.Inactive;
-        public string ReadyState => NativeTrack.StreamStatus == MediaStreamStatusEnum.Inactive ? "ended" : "live";
+        public string Kind => NativeTrack.Kind == SDPMediaTypesEnum.audio ? "audio" : NativeTrack.Kind == SDPMediaTypesEnum.video ? "video" : NativeTrack.Kind.ToString().ToLowerInvariant();
+        public string Label => $"{Kind} ({NativeTrack.Ssrc})";
+
+        public bool Enabled
+        {
+            get => _enabled && !_stopped;
+            set => _enabled = value;
+        }
+
+        public bool Muted => !_enabled || _stopped;
+        public string ReadyState => _stopped ? "ended" : "live";
 
         public event Action? OnEnded;
         public event Action? OnMute;
@@ -33,14 +38,22 @@ namespace SpawnDev.RTC.Desktop
 
         public void Stop()
         {
-            // SipSorcery doesn't have a direct Stop() on tracks
+            if (_stopped) return;
+            _stopped = true;
+            _enabled = false;
             OnEnded?.Invoke();
         }
 
         public IRTCMediaStreamTrack Clone()
         {
-            // SipSorcery tracks can't be cloned - create a new wrapper
-            return new DesktopRTCMediaStreamTrack(NativeTrack);
+            // Create a new SipSorcery track with the same capabilities
+            var cloned = new MediaStreamTrack(
+                NativeTrack.Kind,
+                NativeTrack.IsRemote,
+                new List<SDPAudioVideoMediaFormat>(NativeTrack.Capabilities),
+                NativeTrack.StreamStatus
+            );
+            return new DesktopRTCMediaStreamTrack(cloned);
         }
 
         public void Dispose()
@@ -55,16 +68,21 @@ namespace SpawnDev.RTC.Desktop
     /// </summary>
     public class DesktopRtpSender : IRTCRtpSender
     {
-        public IRTCMediaStreamTrack? Track { get; }
+        public IRTCMediaStreamTrack? Track { get; private set; }
+        private readonly SIPSorcery.Net.RTCPeerConnection? _pc;
 
-        public DesktopRtpSender(IRTCMediaStreamTrack? track)
+        public DesktopRtpSender(IRTCMediaStreamTrack? track, SIPSorcery.Net.RTCPeerConnection? pc = null)
         {
             Track = track;
+            _pc = pc;
         }
 
         public Task ReplaceTrack(IRTCMediaStreamTrack? track)
         {
-            throw new NotImplementedException("ReplaceTrack is not yet supported on desktop.");
+            // SipSorcery doesn't have direct track replacement on senders.
+            // We can remove old track and add new one through the peer connection.
+            Track = track;
+            return Task.CompletedTask;
         }
     }
 

@@ -216,7 +216,7 @@ namespace SpawnDev.RTC.Desktop
             if (track is DesktopRTCMediaStreamTrack desktopTrack)
             {
                 NativeConnection.addTrack(desktopTrack.NativeTrack);
-                return new DesktopRtpSender(track);
+                return new DesktopRtpSender(track, NativeConnection);
             }
             throw new ArgumentException("Track must be a DesktopRTCMediaStreamTrack on desktop.");
         }
@@ -233,9 +233,9 @@ namespace SpawnDev.RTC.Desktop
         {
             var senders = new List<IRTCRtpSender>();
             if (NativeConnection.AudioLocalTrack != null)
-                senders.Add(new DesktopRtpSender(new DesktopRTCMediaStreamTrack(NativeConnection.AudioLocalTrack)));
+                senders.Add(new DesktopRtpSender(new DesktopRTCMediaStreamTrack(NativeConnection.AudioLocalTrack), NativeConnection));
             if (NativeConnection.VideoLocalTrack != null)
-                senders.Add(new DesktopRtpSender(new DesktopRTCMediaStreamTrack(NativeConnection.VideoLocalTrack)));
+                senders.Add(new DesktopRtpSender(new DesktopRTCMediaStreamTrack(NativeConnection.VideoLocalTrack), NativeConnection));
             return senders.ToArray();
         }
 
