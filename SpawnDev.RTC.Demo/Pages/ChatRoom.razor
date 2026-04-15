@@ -27,6 +27,12 @@
                 {
                     <small class="text-muted">Swarm ID: @ComputeInfoHash(_roomInput)[..16]...</small>
                 }
+                <div class="mt-3">
+                    <label class="text-muted small">Tracker Server</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_trackerUrl"
+                           style="background: #222; color: #eee; border-color: #444;" />
+                    <small class="text-muted">Uses WebTorrent tracker protocol - no server deployment needed</small>
+                </div>
             </div>
         </div>
     }
@@ -229,10 +235,11 @@
 
     private string _roomInput = "";
     private string _chatInput = "";
+    private string _trackerUrl = "wss://tracker.openwebtorrent.com";
     private bool _joined;
     private bool _micMuted;
     private bool _camMuted;
-    private RTCSignalClient? _signal;
+    private RTCTrackerClient? _tracker;
     private MediaStream? _localStream;
     private readonly Dictionary<string, PeerState> _peers = new();
     private readonly List<ChatMessage> _messages = new();
@@ -278,31 +285,15 @@
             localVideo.SrcObject = _localStream;
             localVideo.Dispose();
 
-            // Connect to signal server
-            var infoHash = ComputeInfoHash(_roomInput);
+            // Connect to tracker (WebTorrent protocol - serverless signaling)
             var config = new RTCPeerConnectionConfig
             {
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            // Auto-detect signal server: use standalone SignalServer (5571) or PlaywrightMultiTest (5570)
-            var jsRuntime = BlazorJSRuntime.JS;
-            var pageOrigin = jsRuntime.Get<string>("location.origin");
-            string signalUrl;
-            if (pageOrigin.Contains(":5570"))
-            {
-                // Running inside PlaywrightMultiTest - signal is embedded
-                signalUrl = pageOrigin.Replace("https://", "wss://").Replace("http://", "ws://") + $"/signal/{infoHash}";
-            }
-            else
-            {
-                // Running standalone - use the standalone SignalServer on 5571
-                signalUrl = $"wss://localhost:5571/signal/{infoHash}";
-            }
+            _tracker = new RTCTrackerClient(_trackerUrl, _roomInput, config);
 
-            _signal = new RTCSignalClient(signalUrl, config);
-
-            _signal.OnPeerConnectionCreated = async (pc, peerId) =>
+            _tracker.OnPeerConnectionCreated = async (pc, peerId) =>
             {
                 // Add local tracks to the connection
                 if (_localStream != null && pc is BrowserRTCPeerConnection browserPc)
@@ -313,30 +304,20 @@
                     }
                 }
 
-                // Create data channel for text chat
-                var dc = pc.CreateDataChannel("chat");
-                var peerState = new PeerState { PeerId = peerId, Connection = pc, ChatChannel = dc };
-                _peers[peerId] = peerState;
-
-                dc.OnOpen += () =>
-                {
-                    AddMessage("System", $"{peerId[..6]} connected", false);
-                    InvokeAsync(StateHasChanged);
-                };
-
-                dc.OnStringMessage += msg =>
-                {
-                    AddMessage(peerId[..6], msg, false);
-                    InvokeAsync(StateHasChanged);
-                    ScrollChat();
-                };
+                await Task.CompletedTask;
             };
 
-            _signal.OnPeerConnection += (pc, peerId) =>
+            _tracker.OnPeerConnection += (pc, peerId) =>
             {
+                InvokeAsync(() =>
+                {
+                    _peers[peerId] = new PeerState { PeerId = peerId, Connection = pc };
+                    AddMessage("System", $"{peerId[..8]} connected", false);
+                    StateHasChanged();
+                });
+
                 if (pc is BrowserRTCPeerConnection browserPc)
                 {
-                    // Handle incoming tracks from remote peer
                     browserPc.NativeConnection.OnTrack += async trackEvent =>
                     {
                         if (trackEvent.Track.Kind == "video")
@@ -346,13 +327,12 @@
                                 StateHasChanged();
                                 await Task.Delay(100);
                                 var JS2 = BlazorJSRuntime.JS;
-                                var remoteVideo = JS2.Call<HTMLVideoElement>("document.getElementById", $"video-{peerId}");
+                                using var remoteVideo = JS2.Call<HTMLVideoElement>("document.getElementById", $"video-{peerId}");
                                 if (remoteVideo != null)
                                 {
                                     using var stream = new MediaStream();
                                     stream.AddTrack(trackEvent.Track);
                                     remoteVideo.SrcObject = stream;
-                                    remoteVideo.Dispose();
                                 }
                             });
                         }
@@ -360,29 +340,41 @@
                 }
             };
 
-            _signal.OnDataChannel += (channel, peerId) =>
+            _tracker.OnDataChannel += (channel, peerId) =>
             {
                 if (_peers.TryGetValue(peerId, out var peerState))
                 {
                     peerState.ChatChannel = channel;
                 }
 
-                channel.OnStringMessage += msg =>
+                channel.OnOpen += () => InvokeAsync(() =>
                 {
-                    AddMessage(peerId[..6], msg, false);
-                    InvokeAsync(StateHasChanged);
+                    AddMessage("System", $"Data channel open with {peerId[..8]}", false);
+                    StateHasChanged();
+                });
+
+                channel.OnStringMessage += msg => InvokeAsync(() =>
+                {
+                    AddMessage(peerId[..8], msg, false);
+                    StateHasChanged();
                     ScrollChat();
-                };
+                });
             };
 
-            _signal.OnPeerDisconnected += peerId =>
+            _tracker.OnPeerDisconnected += peerId => InvokeAsync(() =>
             {
                 _peers.Remove(peerId);
-                AddMessage("System", $"{peerId[..6]} disconnected", false);
-                InvokeAsync(StateHasChanged);
-            };
+                AddMessage("System", $"{peerId[..8]} disconnected", false);
+                StateHasChanged();
+            });
 
-            await _signal.ConnectAsync();
+            _tracker.OnConnected += () => InvokeAsync(() =>
+            {
+                AddMessage("System", $"Connected to tracker. Waiting for peers...", false);
+                StateHasChanged();
+            });
+
+            await _tracker.JoinAsync();
         }
         catch (Exception ex)
         {
@@ -436,11 +428,11 @@
 
     private async Task LeaveRoom()
     {
-        if (_signal != null)
+        if (_tracker != null)
         {
-            await _signal.DisconnectAsync();
-            _signal.Dispose();
-            _signal = null;
+            await _tracker.LeaveAsync();
+            _tracker.Dispose();
+            _tracker = null;
         }
 
         if (_localStream != null)
@@ -486,7 +478,16 @@
 
     public void Dispose()
     {
-        _ = LeaveRoom();
+        _tracker?.Dispose();
+        if (_localStream != null)
+        {
+            foreach (var track in _localStream.GetTracks())
+            {
+                track.Stop();
+                track.Dispose();
+            }
+            _localStream.Dispose();
+        }
     }
 
     private class PeerState
