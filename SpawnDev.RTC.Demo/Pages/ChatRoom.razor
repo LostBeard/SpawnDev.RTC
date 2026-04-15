@@ -285,7 +285,22 @@
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            _signal = new RTCSignalClient($"wss://localhost:5570/signal/{infoHash}", config);
+            // Auto-detect signal server: use standalone SignalServer (5571) or PlaywrightMultiTest (5570)
+            var jsRuntime = BlazorJSRuntime.JS;
+            var pageOrigin = jsRuntime.Get<string>("location.origin");
+            string signalUrl;
+            if (pageOrigin.Contains(":5570"))
+            {
+                // Running inside PlaywrightMultiTest - signal is embedded
+                signalUrl = pageOrigin.Replace("https://", "wss://").Replace("http://", "ws://") + $"/signal/{infoHash}";
+            }
+            else
+            {
+                // Running standalone - use the standalone SignalServer on 5571
+                signalUrl = $"wss://localhost:5571/signal/{infoHash}";
+            }
+
+            _signal = new RTCSignalClient(signalUrl, config);
 
             _signal.OnPeerConnectionCreated = async (pc, peerId) =>
             {

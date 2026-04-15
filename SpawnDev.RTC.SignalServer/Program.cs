@@ -6,7 +6,14 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("https://localhost:5571", "http://localhost:5572");
 
+// CORS for cross-origin WebSocket connections (demo on different port)
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
 var app = builder.Build();
+app.UseCors();
 app.UseWebSockets();
 
 // Simple room-based signaling server for WebRTC
