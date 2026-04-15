@@ -424,7 +424,25 @@ namespace PlaywrightMultiTest
                     {
                         TestFunc = async (page) => await CrossPlatformDataChannelTest(page, blazor),
                     }).SetName("CrossPlatform.Desktop_Browser_DataChannel").SetCategory("CrossPlatform");
-                    break; // Only one cross-platform test
+                    break;
+                }
+            }
+            // Tracker client tests (desktop peers, no 30s UnitTestRunner limit)
+            foreach (var testableProject in TestableProjects)
+            {
+                if (testableProject is TestableBlazorWasm blazor2)
+                {
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Tracker", "Embedded_TwoPeers")
+                    {
+                        TestFunc = async (_) => await TrackerEmbeddedTest(blazor2),
+                    }).SetName("Tracker.Embedded_TwoPeers").SetCategory("Tracker");
+
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Tracker", "Live_OpenWebTorrent")
+                    {
+                        TestFunc = async (_) => await TrackerLiveTest(),
+                    }).SetName("Tracker.Live_OpenWebTorrent").SetCategory("Tracker");
+
+                    break;
                 }
             }
         }
@@ -658,6 +676,85 @@ namespace PlaywrightMultiTest
         /// This is called after tests have been enumerated bu before they are run. You can use this to start up any services or infrastructure needed for the tests.
         /// </summary>
         /// <returns></returns>
+        /// <summary>
+        /// Two desktop peers connect via the embedded WebTorrent tracker and exchange data channel messages.
+        /// </summary>
+        private static async Task TrackerEmbeddedTest(TestableBlazorWasm blazorProj)
+        {
+            var trackerUrl = blazorProj.Server!.Url.TrimEnd('/').Replace("https://", "wss://") + "/announce";
+            var room = "embedded-test-" + Guid.NewGuid().ToString("N")[..6];
+            LogStatus($"[Tracker Embedded] URL: {trackerUrl}, Room: {room}");
+
+            var config = new SpawnDev.RTC.RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+            };
+
+            var msgFromB = new TaskCompletionSource<string>();
+            using var tA = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
+            tA.OnPeerConnectionCreated = async (pc, _) => { pc.CreateDataChannel("test"); await Task.CompletedTask; };
+            tA.OnDataChannel += (ch, _) => { ch.OnStringMessage += m => msgFromB.TrySetResult(m); ch.OnOpen += () => ch.Send("from A"); };
+            tA.OnConnected += () => LogStatus("[Tracker Embedded] A connected");
+            tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] A peer: {id[..8]}");
+
+            var msgFromA = new TaskCompletionSource<string>();
+            using var tB = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
+            tB.OnPeerConnectionCreated = async (pc, _) => { pc.CreateDataChannel("test"); await Task.CompletedTask; };
+            tB.OnDataChannel += (ch, _) => { ch.OnStringMessage += m => msgFromA.TrySetResult(m); ch.OnOpen += () => ch.Send("from B"); };
+            tB.OnConnected += () => LogStatus("[Tracker Embedded] B connected");
+            tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] B peer: {id[..8]}");
+
+            await tA.JoinAsync();
+            await Task.Delay(1000);
+            await tB.JoinAsync();
+
+            var rA = await Task.WhenAny(msgFromB.Task, Task.Delay(25000));
+            var rB = await Task.WhenAny(msgFromA.Task, Task.Delay(25000));
+
+            if (rA != msgFromB.Task) throw new Exception("A did not receive from B");
+            if (rB != msgFromA.Task) throw new Exception("B did not receive from A");
+            LogStatus($"[Tracker Embedded] A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
+        }
+
+        /// <summary>
+        /// Two desktop peers connect via the live openwebtorrent tracker.
+        /// </summary>
+        private static async Task TrackerLiveTest()
+        {
+            var room = "live-test-" + Guid.NewGuid().ToString("N")[..8];
+            LogStatus($"[Tracker Live] Room: {room}");
+
+            var config = new SpawnDev.RTC.RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+            };
+
+            var msgFromB = new TaskCompletionSource<string>();
+            using var tA = new SpawnDev.RTC.RTCTrackerClient("wss://tracker.openwebtorrent.com", room, config);
+            tA.OnPeerConnectionCreated = async (pc, _) => { pc.CreateDataChannel("test"); await Task.CompletedTask; };
+            tA.OnDataChannel += (ch, _) => { ch.OnStringMessage += m => msgFromB.TrySetResult(m); ch.OnOpen += () => ch.Send("live A"); };
+            tA.OnConnected += () => LogStatus("[Tracker Live] A connected to openwebtorrent");
+            tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] A peer: {id[..8]}");
+
+            var msgFromA = new TaskCompletionSource<string>();
+            using var tB = new SpawnDev.RTC.RTCTrackerClient("wss://tracker.openwebtorrent.com", room, config);
+            tB.OnPeerConnectionCreated = async (pc, _) => { pc.CreateDataChannel("test"); await Task.CompletedTask; };
+            tB.OnDataChannel += (ch, _) => { ch.OnStringMessage += m => msgFromA.TrySetResult(m); ch.OnOpen += () => ch.Send("live B"); };
+            tB.OnConnected += () => LogStatus("[Tracker Live] B connected to openwebtorrent");
+            tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] B peer: {id[..8]}");
+
+            await tA.JoinAsync();
+            await Task.Delay(2000);
+            await tB.JoinAsync();
+
+            var rA = await Task.WhenAny(msgFromB.Task, Task.Delay(45000));
+            var rB = await Task.WhenAny(msgFromA.Task, Task.Delay(45000));
+
+            if (rA != msgFromB.Task) throw new Exception("A did not receive from B via live tracker");
+            if (rB != msgFromA.Task) throw new Exception("B did not receive from A via live tracker");
+            LogStatus($"[Tracker Live] SUCCESS - A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
+        }
+
         public async Task StartUp()
         {
             Debug.WriteLine("StartUp()");

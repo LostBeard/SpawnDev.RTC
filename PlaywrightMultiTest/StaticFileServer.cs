@@ -141,16 +141,19 @@ namespace PlaywrightMultiTest
                             var infoHash = msg.GetProperty("info_hash").GetString()!;
                             peerId = msg.GetProperty("peer_id").GetString()!;
 
-                            // Handle offers: store them and relay to other peers in the swarm
+                            // Handle offers: store and cross-relay with existing peers
                             if (msg.TryGetProperty("offers", out var offersEl) && offersEl.ValueKind == JsonValueKind.Array)
                             {
                                 var swarm = TrackerSwarms.GetOrAdd(infoHash, _ => new TrackerSwarm());
                                 swarm.AddPeer(peerId, ws);
 
-                                // Relay each offer to a different existing peer
+                                var offersList = new List<JsonElement>();
+                                foreach (var o in offersEl.EnumerateArray()) offersList.Add(o.Clone());
+
+                                // Relay this peer's offers to existing peers
                                 var otherPeers = swarm.GetOtherPeers(peerId);
                                 int peerIdx = 0;
-                                foreach (var offerItem in offersEl.EnumerateArray())
+                                foreach (var offerItem in offersList)
                                 {
                                     if (peerIdx >= otherPeers.Length) break;
                                     var targetPeer = otherPeers[peerIdx++];
@@ -163,6 +166,28 @@ namespace PlaywrightMultiTest
                                         offer_id = offerItem.GetProperty("offer_id").GetString(),
                                     }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
                                     try { await targetPeer.Socket.SendAsync(Encoding.UTF8.GetBytes(relay), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
+                                }
+
+                                // Store remaining offers for future peers
+                                var remaining = offersList.Skip(peerIdx).ToList();
+                                if (remaining.Count > 0)
+                                    swarm.StoreOffers(peerId, remaining);
+
+                                // Send stored offers from OTHER peers to this new peer
+                                var storedOffer = swarm.TakeStoredOffer(peerId);
+                                while (storedOffer != null)
+                                {
+                                    var (storedPeerId, storedOfferEl) = storedOffer.Value;
+                                    var relay2 = JsonSerializer.Serialize(new
+                                    {
+                                        action = "announce",
+                                        info_hash = infoHash,
+                                        peer_id = storedPeerId,
+                                        offer = storedOfferEl.GetProperty("offer"),
+                                        offer_id = storedOfferEl.GetProperty("offer_id").GetString(),
+                                    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                                    try { await ws.SendAsync(Encoding.UTF8.GetBytes(relay2), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
+                                    storedOffer = swarm.TakeStoredOffer(peerId);
                                 }
                             }
                             // Handle answer: relay to the target peer
@@ -341,10 +366,23 @@ namespace PlaywrightMultiTest
     internal class TrackerSwarm
     {
         private readonly ConcurrentDictionary<string, TrackerPeer> _peers = new();
+        private readonly ConcurrentDictionary<string, List<JsonElement>> _storedOffers = new();
         public void AddPeer(string peerId, WebSocket ws) => _peers[peerId] = new TrackerPeer(peerId, ws);
-        public void RemovePeer(string peerId) => _peers.TryRemove(peerId, out _);
+        public void RemovePeer(string peerId) { _peers.TryRemove(peerId, out _); _storedOffers.TryRemove(peerId, out _); }
         public TrackerPeer? GetPeer(string peerId) => _peers.TryGetValue(peerId, out var p) ? p : null;
         public TrackerPeer[] GetOtherPeers(string excludeId) => _peers.Values.Where(p => p.PeerId != excludeId).ToArray();
+        public void StoreOffers(string peerId, List<JsonElement> offers) => _storedOffers[peerId] = offers;
+        public (string peerId, JsonElement offer)? TakeStoredOffer(string excludePeerId)
+        {
+            foreach (var kvp in _storedOffers)
+            {
+                if (kvp.Key == excludePeerId || kvp.Value.Count == 0) continue;
+                var offer = kvp.Value[0];
+                kvp.Value.RemoveAt(0);
+                return (kvp.Key, offer);
+            }
+            return null;
+        }
     }
 
     internal class TrackerPeer
