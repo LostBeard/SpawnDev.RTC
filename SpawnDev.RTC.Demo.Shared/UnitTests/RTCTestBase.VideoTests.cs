@@ -179,6 +179,76 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         }
 
         /// <summary>
+        /// Send BOTH audio and video tracks simultaneously through WebRTC loopback,
+        /// verify both arrive on the receiving side.
+        /// </summary>
+        [TestMethod]
+        public async Task AudioVideo_Loopback_BothTracksReceived()
+        {
+            if (!OperatingSystem.IsBrowser()) return;
+
+            try
+            {
+                var stream = await RTCMediaDevices.GetUserMedia(new MediaStreamConstraints { Audio = true, Video = true });
+                var browserStream = ((SpawnDev.RTC.Browser.BrowserRTCMediaStream)stream).NativeStream;
+
+                var config = new RTCPeerConnectionConfig
+                {
+                    IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+                };
+
+                using var pc1 = RTCPeerConnectionFactory.Create(config);
+                using var pc2 = RTCPeerConnectionFactory.Create(config);
+
+                pc1.OnIceCandidate += c => _ = pc2.AddIceCandidate(c);
+                pc2.OnIceCandidate += c => _ = pc1.AddIceCandidate(c);
+
+                // Add ALL tracks (audio + video) to pc1
+                var bpc1 = (SpawnDev.RTC.Browser.BrowserRTCPeerConnection)pc1;
+                foreach (var track in browserStream.GetTracks())
+                {
+                    bpc1.NativeConnection.AddTrack(track, browserStream);
+                }
+
+                pc1.CreateDataChannel("signal");
+                pc2.OnDataChannel += _ => { };
+
+                // Track both kinds received
+                var audioReceived = new TaskCompletionSource<bool>();
+                var videoReceived = new TaskCompletionSource<bool>();
+                var bpc2 = (SpawnDev.RTC.Browser.BrowserRTCPeerConnection)pc2;
+                bpc2.NativeConnection.OnTrack += e =>
+                {
+                    if (e.Track.Kind == "audio") audioReceived.TrySetResult(true);
+                    if (e.Track.Kind == "video") videoReceived.TrySetResult(true);
+                };
+
+                var offer = await pc1.CreateOffer();
+                await pc1.SetLocalDescription(offer);
+                await pc2.SetRemoteDescription(offer);
+                var answer = await pc2.CreateAnswer();
+                await pc2.SetLocalDescription(answer);
+                await pc1.SetRemoteDescription(answer);
+
+                // Wait for BOTH tracks
+                var bothDone = Task.WhenAll(audioReceived.Task, videoReceived.Task);
+                var result = await Task.WhenAny(bothDone, Task.Delay(15000));
+                if (result != bothDone)
+                {
+                    var gotAudio = audioReceived.Task.IsCompletedSuccessfully;
+                    var gotVideo = videoReceived.Task.IsCompletedSuccessfully;
+                    throw new Exception($"Timeout waiting for both tracks. Audio: {gotAudio}, Video: {gotVideo}");
+                }
+
+                stream.Dispose();
+            }
+            catch (Exception ex) when (ex.Message.Contains("NotAllowedError"))
+            {
+                throw new Exception($"SKIP: Camera/mic not available: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Verify AddTrack increases sender count and RemoveTrack decreases it.
         /// </summary>
         [TestMethod]
