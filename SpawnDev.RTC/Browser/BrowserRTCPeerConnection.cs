@@ -45,9 +45,11 @@ namespace SpawnDev.RTC.Browser
 
         public event Action<RTCIceCandidateInit>? OnIceCandidate;
         public event Action<IRTCDataChannel>? OnDataChannel;
+        public event Action<RTCTrackEventInit>? OnTrack;
         public event Action<string>? OnConnectionStateChange;
         public event Action<string>? OnIceConnectionStateChange;
         public event Action<string>? OnIceGatheringStateChange;
+        public event Action? OnNegotiationNeeded;
 
         public BrowserRTCPeerConnection(RTCPeerConnectionConfig? config = null)
         {
@@ -70,9 +72,11 @@ namespace SpawnDev.RTC.Browser
             }
             NativeConnection.OnIceCandidate += HandleIceCandidate;
             NativeConnection.OnDataChannel += HandleDataChannel;
+            NativeConnection.OnTrack += HandleTrack;
             NativeConnection.OnConnectionStateChange += HandleConnectionStateChange;
             NativeConnection.OnIceConnectionStateChange += HandleIceConnectionStateChange;
             NativeConnection.OnIceGatheringStateChange += HandleIceGatheringStateChange;
+            NativeConnection.OnNegotiationNeeded += HandleNegotiationNeeded;
         }
 
         public IRTCDataChannel CreateDataChannel(string label, RTCDataChannelConfig? options = null)
@@ -131,6 +135,40 @@ namespace SpawnDev.RTC.Browser
             jsCandidate.Dispose();
         }
 
+        public void RestartIce() => NativeConnection.RestartIce();
+
+        public IRTCRtpSender AddTrack(IRTCMediaStreamTrack track, params IRTCMediaStream[] streams)
+        {
+            var browserTrack = track as BrowserRTCMediaStreamTrack
+                ?? throw new ArgumentException("Track must be a BrowserRTCMediaStreamTrack in WASM.");
+            var jsStreams = streams
+                .Cast<BrowserRTCMediaStream>()
+                .Select(s => s.NativeStream)
+                .ToArray();
+            var sender = jsStreams.Length > 0
+                ? NativeConnection.AddTrack(browserTrack.NativeTrack, jsStreams)
+                : NativeConnection.AddTrack(browserTrack.NativeTrack);
+            return new BrowserRtpSender(sender);
+        }
+
+        public void RemoveTrack(IRTCRtpSender sender)
+        {
+            if (sender is BrowserRtpSender browserSender)
+            {
+                NativeConnection.RemoveTrack(browserSender.NativeSender);
+            }
+        }
+
+        public IRTCRtpSender[] GetSenders()
+        {
+            return NativeConnection.GetSenders().Select(s => (IRTCRtpSender)new BrowserRtpSender(s)).ToArray();
+        }
+
+        public IRTCRtpReceiver[] GetReceivers()
+        {
+            return NativeConnection.GetReceivers().Select(r => (IRTCRtpReceiver)new BrowserRtpReceiver(r)).ToArray();
+        }
+
         public void Close() => NativeConnection.Close();
 
         private void HandleIceCandidate(RTCPeerConnectionEvent e)
@@ -167,15 +205,32 @@ namespace SpawnDev.RTC.Browser
             OnIceGatheringStateChange?.Invoke(IceGatheringState);
         }
 
+        private void HandleTrack(RTCTrackEvent e)
+        {
+            OnTrack?.Invoke(new RTCTrackEventInit
+            {
+                Track = new BrowserRTCMediaStreamTrack(e.Track),
+                Receiver = new BrowserRtpReceiver(e.Receiver),
+                Streams = e.Streams.Select(s => (IRTCMediaStream)new BrowserRTCMediaStream(s)).ToArray(),
+            });
+        }
+
+        private void HandleNegotiationNeeded(Event e)
+        {
+            OnNegotiationNeeded?.Invoke();
+        }
+
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
             NativeConnection.OnIceCandidate -= HandleIceCandidate;
             NativeConnection.OnDataChannel -= HandleDataChannel;
+            NativeConnection.OnTrack -= HandleTrack;
             NativeConnection.OnConnectionStateChange -= HandleConnectionStateChange;
             NativeConnection.OnIceConnectionStateChange -= HandleIceConnectionStateChange;
             NativeConnection.OnIceGatheringStateChange -= HandleIceGatheringStateChange;
+            NativeConnection.OnNegotiationNeeded -= HandleNegotiationNeeded;
             NativeConnection.Close();
             NativeConnection.Dispose();
         }

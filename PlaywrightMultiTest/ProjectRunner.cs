@@ -416,7 +416,6 @@ namespace PlaywrightMultiTest
 
         // Placeholder for future Playwright-level integration tests
         // (multi-tab WebRTC peer connection tests, etc.)
-        }
 
         /// <summary>
         /// This is called after tests have been enumerated bu before they are run. You can use this to start up any services or infrastructure needed for the tests.

@@ -43,9 +43,11 @@ namespace SpawnDev.RTC.Desktop
 
         public event Action<RTCIceCandidateInit>? OnIceCandidate;
         public event Action<IRTCDataChannel>? OnDataChannel;
+        public event Action<RTCTrackEventInit>? OnTrack;
         public event Action<string>? OnConnectionStateChange;
         public event Action<string>? OnIceConnectionStateChange;
         public event Action<string>? OnIceGatheringStateChange;
+        public event Action? OnNegotiationNeeded;
 
         public DesktopRTCPeerConnection(RTCPeerConnectionConfig? config = null)
         {
@@ -67,6 +69,7 @@ namespace SpawnDev.RTC.Desktop
             NativeConnection.onicecandidate += HandleIceCandidate;
             NativeConnection.ondatachannel += HandleDataChannel;
             NativeConnection.onconnectionstatechange += HandleConnectionStateChange;
+            NativeConnection.onnegotiationneeded += HandleNegotiationNeeded;
             NativeConnection.oniceconnectionstatechange += HandleIceConnectionStateChange;
             NativeConnection.onicegatheringstatechange += HandleIceGatheringStateChange;
         }
@@ -148,6 +151,34 @@ namespace SpawnDev.RTC.Desktop
             return Task.CompletedTask;
         }
 
+        public void RestartIce()
+        {
+            // SipSorcery doesn't expose RestartIce directly
+            // TODO: Implement via SipSorcery ICE agent restart
+            throw new NotImplementedException("ICE restart is not yet implemented for desktop.");
+        }
+
+        public IRTCRtpSender AddTrack(IRTCMediaStreamTrack track, params IRTCMediaStream[] streams)
+        {
+            // TODO: Implement via SipSorcery RTP pipeline
+            throw new NotImplementedException("AddTrack is not yet implemented for desktop. Use NativeConnection for direct SipSorcery media API access.");
+        }
+
+        public void RemoveTrack(IRTCRtpSender sender)
+        {
+            throw new NotImplementedException("RemoveTrack is not yet implemented for desktop.");
+        }
+
+        public IRTCRtpSender[] GetSenders()
+        {
+            return System.Array.Empty<IRTCRtpSender>();
+        }
+
+        public IRTCRtpReceiver[] GetReceivers()
+        {
+            return System.Array.Empty<IRTCRtpReceiver>();
+        }
+
         public void Close() => NativeConnection.close();
 
         private void HandleIceCandidate(RTCIceCandidate candidate)
@@ -181,6 +212,11 @@ namespace SpawnDev.RTC.Desktop
             OnIceGatheringStateChange?.Invoke(state.ToString());
         }
 
+        private void HandleNegotiationNeeded()
+        {
+            OnNegotiationNeeded?.Invoke();
+        }
+
         public void Dispose()
         {
             if (_disposed) return;
@@ -188,6 +224,7 @@ namespace SpawnDev.RTC.Desktop
             NativeConnection.onicecandidate -= HandleIceCandidate;
             NativeConnection.ondatachannel -= HandleDataChannel;
             NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;
+            NativeConnection.onnegotiationneeded -= HandleNegotiationNeeded;
             NativeConnection.oniceconnectionstatechange -= HandleIceConnectionStateChange;
             NativeConnection.onicegatheringstatechange -= HandleIceGatheringStateChange;
             NativeConnection.close();
