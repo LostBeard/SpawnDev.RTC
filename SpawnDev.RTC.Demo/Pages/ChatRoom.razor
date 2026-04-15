@@ -457,7 +457,8 @@
         {
             await Task.Delay(50);
             var JS = BlazorJSRuntime.JS;
-            JS.CallVoid("eval", "document.getElementById('chat-messages')?.scrollTo(0, 999999)");
+            using var el = JS.Call<HTMLElement?>("document.getElementById", "chat-messages");
+            el?.JSRef?.CallVoid("scrollTo", 0, 999999);
         });
     }
 

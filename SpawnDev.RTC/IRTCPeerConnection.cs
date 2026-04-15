@@ -50,6 +50,9 @@ namespace SpawnDev.RTC
         IRTCRtpTransceiver AddTransceiver(string kind);
         IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track);
 
+        // --- Statistics ---
+        Task<IRTCStatsReport> GetStats();
+
         // --- Lifecycle ---
         void Close();
 

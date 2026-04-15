@@ -60,18 +60,28 @@ namespace SpawnDev.RTC.Desktop
         public DesktopRTCPeerConnection(RTCPeerConnectionConfig? config = null)
         {
             var sipConfig = new RTCConfiguration();
-            if (config?.IceServers != null)
+            if (config != null)
             {
-                sipConfig.iceServers = new List<RTCIceServer>();
-                foreach (var server in config.IceServers)
+                if (config.IceServers != null)
                 {
-                    sipConfig.iceServers.Add(new RTCIceServer
+                    sipConfig.iceServers = new List<RTCIceServer>();
+                    foreach (var server in config.IceServers)
                     {
-                        urls = server.Urls,
-                        username = server.Username,
-                        credential = server.Credential,
-                    });
+                        sipConfig.iceServers.Add(new RTCIceServer
+                        {
+                            urls = server.Urls,
+                            username = server.Username,
+                            credential = server.Credential,
+                        });
+                    }
                 }
+                // Map additional config properties
+                if (config.IceTransportPolicy == "relay")
+                    sipConfig.iceTransportPolicy = RTCIceTransportPolicy.relay;
+                if (config.BundlePolicy == "max-bundle")
+                    sipConfig.bundlePolicy = RTCBundlePolicy.max_bundle;
+                else if (config.BundlePolicy == "max-compat")
+                    sipConfig.bundlePolicy = RTCBundlePolicy.max_compat;
             }
             NativeConnection = new RTCPeerConnection(sipConfig);
             NativeConnection.onicecandidate += HandleIceCandidate;
@@ -247,6 +257,13 @@ namespace SpawnDev.RTC.Desktop
             if (NativeConnection.VideoRemoteTrack != null)
                 receivers.Add(new DesktopRtpReceiver(new DesktopRTCMediaStreamTrack(NativeConnection.VideoRemoteTrack)));
             return receivers.ToArray();
+        }
+
+        public Task<IRTCStatsReport> GetStats()
+        {
+            // SipSorcery doesn't have browser-compatible stats
+            // Return an empty report
+            return Task.FromResult<IRTCStatsReport>(new DesktopRTCStatsReport());
         }
 
         public void Close() => NativeConnection.close();

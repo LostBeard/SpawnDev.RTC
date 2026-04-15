@@ -12,6 +12,9 @@ namespace SpawnDev.RTC.Desktop
         public string Id { get; } = Guid.NewGuid().ToString("N")[..12];
         public bool Active => _tracks.Any(t => t.ReadyState == "live");
 
+        public event Action<IRTCMediaStreamTrack>? OnAddTrack;
+        public event Action<IRTCMediaStreamTrack>? OnRemoveTrack;
+
         public DesktopRTCMediaStream(IRTCMediaStreamTrack[] tracks)
         {
             _tracks = new List<IRTCMediaStreamTrack>(tracks);
@@ -28,9 +31,17 @@ namespace SpawnDev.RTC.Desktop
         public IRTCMediaStreamTrack? GetTrackById(string trackId) =>
             _tracks.FirstOrDefault(t => t.Id == trackId);
 
-        public void AddTrack(IRTCMediaStreamTrack track) => _tracks.Add(track);
+        public void AddTrack(IRTCMediaStreamTrack track)
+        {
+            _tracks.Add(track);
+            OnAddTrack?.Invoke(track);
+        }
 
-        public void RemoveTrack(IRTCMediaStreamTrack track) => _tracks.Remove(track);
+        public void RemoveTrack(IRTCMediaStreamTrack track)
+        {
+            if (_tracks.Remove(track))
+                OnRemoveTrack?.Invoke(track);
+        }
 
         public IRTCMediaStream Clone()
         {

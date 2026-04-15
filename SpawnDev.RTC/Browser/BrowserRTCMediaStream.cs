@@ -18,6 +18,9 @@ namespace SpawnDev.RTC.Browser
         public string Id => NativeStream.Id;
         public bool Active => NativeStream.Active;
 
+        public event Action<IRTCMediaStreamTrack>? OnAddTrack;
+        public event Action<IRTCMediaStreamTrack>? OnRemoveTrack;
+
         public BrowserRTCMediaStream(MediaStream stream)
         {
             NativeStream = stream;
@@ -49,6 +52,7 @@ namespace SpawnDev.RTC.Browser
             if (track is BrowserRTCMediaStreamTrack browserTrack)
             {
                 NativeStream.AddTrack(browserTrack.NativeTrack);
+                OnAddTrack?.Invoke(track);
             }
             else
             {
@@ -61,6 +65,7 @@ namespace SpawnDev.RTC.Browser
             if (track is BrowserRTCMediaStreamTrack browserTrack)
             {
                 NativeStream.RemoveTrack(browserTrack.NativeTrack);
+                OnRemoveTrack?.Invoke(track);
             }
         }
 

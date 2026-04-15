@@ -51,5 +51,15 @@ namespace SpawnDev.RTC
         /// Clones this stream and all its tracks.
         /// </summary>
         IRTCMediaStream Clone();
+
+        /// <summary>
+        /// Fired when a track is added to this stream.
+        /// </summary>
+        event Action<IRTCMediaStreamTrack>? OnAddTrack;
+
+        /// <summary>
+        /// Fired when a track is removed from this stream.
+        /// </summary>
+        event Action<IRTCMediaStreamTrack>? OnRemoveTrack;
     }
 }

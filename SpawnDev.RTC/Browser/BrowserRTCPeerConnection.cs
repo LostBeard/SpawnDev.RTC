@@ -57,7 +57,12 @@ namespace SpawnDev.RTC.Browser
                         Urls = s.Urls,
                         Username = s.Username,
                         Credential = s.Credential,
-                    }).ToArray()
+                    }).ToArray(),
+                    BundlePolicy = config.BundlePolicy,
+                    IceTransportPolicy = config.IceTransportPolicy,
+                    IceCandidatePoolSize = config.IceCandidatePoolSize,
+                    PeerIdentity = config.PeerIdentity,
+                    RtcMuxPolicy = config.RtcpMuxPolicy,
                 };
                 NativeConnection = new RTCPeerConnection(jsConfig);
             }
@@ -200,6 +205,12 @@ namespace SpawnDev.RTC.Browser
         public IRTCRtpReceiver[] GetReceivers()
         {
             return NativeConnection.GetReceivers().Select(r => (IRTCRtpReceiver)new BrowserRtpReceiver(r)).ToArray();
+        }
+
+        public async Task<IRTCStatsReport> GetStats()
+        {
+            var report = await NativeConnection.GetStats();
+            return new BrowserRTCStatsReport(report);
         }
 
         public void Close() => NativeConnection.Close();
