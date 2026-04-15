@@ -151,6 +151,7 @@ namespace SpawnDev.RTC
         IRTCDTMFSender? DTMF { get; }
         Task ReplaceTrack(IRTCMediaStreamTrack? track);
         void SetStreams(params IRTCMediaStream[] streams);
+        Task<IRTCStatsReport> GetStats();
     }
 
     /// <summary>

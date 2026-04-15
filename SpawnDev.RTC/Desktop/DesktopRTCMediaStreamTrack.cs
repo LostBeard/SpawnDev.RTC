@@ -102,6 +102,11 @@ namespace SpawnDev.RTC.Desktop
             _pc = pc;
         }
 
+        public Task<IRTCStatsReport> GetStats()
+        {
+            return Task.FromResult<IRTCStatsReport>(new DesktopRTCStatsReport());
+        }
+
         public Task ReplaceTrack(IRTCMediaStreamTrack? track)
         {
             Track = track;

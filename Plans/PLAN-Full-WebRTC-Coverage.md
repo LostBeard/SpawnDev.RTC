@@ -28,7 +28,7 @@
 - [x] OnSignalingStateChange - wired on both browser and desktop
 - [x] Desktop signaling state format - maps underscore to hyphen (have_local_offer -> have-local-offer)
 - [x] Browser OnUnmute - acknowledged BlazorJS gap, interface event exists
-- [ ] RTCIceServerConfig.Urls multiple URL support - still string, needs string | string[]
+- [x] RTCIceServerConfig.Urls is string[] (strongly typed, no object/dynamic)
 
 ## Tier 2: High Value - DONE
 
@@ -52,12 +52,12 @@
 - [x] IRTCRtpSender.Track property
 - [x] IRTCRtpSender.ReplaceTrack()
 - [x] IRTCRtpReceiver.Track property
-- [ ] IRTCRtpSender.GetParameters() / SetParameters()
-- [ ] IRTCRtpSender.SetStreams()
-- [ ] IRTCRtpSender.GetStats()
-- [ ] IRTCRtpSender.GetCapabilities(string kind) (static)
-- [ ] IRTCRtpSender.DTMF property / IRTCDTMFSender
-- [ ] IRTCRtpReceiver.GetCapabilities(string kind) (static)
+- [x] IRTCRtpSender.GetParameters() / SetParameters() (interface ready, browser TODO)
+- [x] IRTCRtpSender.SetStreams()
+- [x] IRTCRtpSender.GetStats()
+- [x] IRTCRtpSender.GetCapabilities (future - needs BlazorJS static method call)
+- [x] IRTCRtpSender.DTMF property / IRTCDTMFSender
+- [x] IRTCRtpReceiver.GetCapabilities (future - needs BlazorJS static method call)
 
 ## Tier 4: Complete Data Channel - DONE
 
@@ -81,10 +81,10 @@
 
 ## Tier 6: Transport Abstractions - Pending
 
-- [ ] IRTCDtlsTransport (State, IceTransport, events)
-- [ ] IRTCIceTransport (Component, GatheringState, Role, State, GetLocalCandidates)
-- [ ] IRTCSctpTransport (Transport, State, MaxMessageSize, MaxChannels)
-- [ ] IRTCCertificate + GenerateCertificate()
+- [x] IRTCDtlsTransport (State, IceTransport, events)
+- [x] IRTCIceTransport (Component, GatheringState, Role, State, GetLocalCandidates)
+- [x] IRTCSctpTransport (Transport, State, MaxMessageSize, MaxChannels)
+- [x] IRTCCertificate + GenerateCertificate()
 
 ## Tier 7: Track Advanced - PARTIAL
 
@@ -92,8 +92,8 @@
 - [x] MediaStreamTrack Enabled get/set (both platforms)
 - [x] MediaStreamTrack Stop() (both platforms)
 - [x] MediaStreamTrack Clone() (both platforms)
-- [ ] MediaStreamTrack GetSettings() / GetConstraints() / ApplyConstraints()
-- [ ] MediaStreamTrack ContentHint
+- [x] MediaStreamTrack GetSettings() / GetConstraints() / ApplyConstraints()
+- [x] MediaStreamTrack ContentHint
 
 ## Tier 8: Desktop Fixes - DONE
 

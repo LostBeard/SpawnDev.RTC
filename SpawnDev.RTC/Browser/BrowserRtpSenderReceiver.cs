@@ -48,6 +48,12 @@ namespace SpawnDev.RTC.Browser
             }
         }
 
+        public async Task<IRTCStatsReport> GetStats()
+        {
+            var report = await NativeSender.GetStats();
+            return new BrowserRTCStatsReport(report);
+        }
+
         public void SetStreams(params IRTCMediaStream[] streams)
         {
             var jsStreams = streams.Cast<BrowserRTCMediaStream>().Select(s => s.NativeStream).ToArray();
