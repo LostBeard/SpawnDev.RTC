@@ -44,7 +44,11 @@ namespace SpawnDev.RTC.Browser
         }
 
         public bool Has(string id) => _report.Has(id);
-        public string[] Keys() => _report.Keys();
+        public string[] Keys()
+        {
+            try { return _report.Keys(); }
+            catch { return Entries().Select(e => e.Id).ToArray(); }
+        }
 
         public void Dispose() => _report.Dispose();
     }
