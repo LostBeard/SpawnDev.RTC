@@ -4,6 +4,8 @@
 
 Cross-platform WebRTC for .NET - browser and desktop from a single API.
 
+[Live Demo](https://lostbeard.github.io/SpawnDev.RTC/) - Video/audio/text chat room, serverless via WebTorrent tracker
+
 SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazor WebAssembly (using native browser WebRTC) and on desktop .NET (using a bundled SipSorcery fork with proven browser-interop DTLS/SRTP). Write your peer connection, data channel, and signaling code once - it runs everywhere.
 
 ## Features
