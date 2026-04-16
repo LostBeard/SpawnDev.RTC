@@ -246,6 +246,7 @@
     private MediaStream? _localStream;
     private readonly Dictionary<string, PeerState> _peers = new();
     private readonly List<ChatMessage> _messages = new();
+    private readonly Dictionary<IRTCPeerConnection, MediaStreamTrack> _pendingVideoTracks = new();
 
     protected override void OnInitialized()
     {
@@ -296,12 +297,27 @@
 
             _tracker.OnPeerConnectionCreated = async (pc, peerId) =>
             {
-                // Add local tracks to the connection
-                if (_localStream != null && pc is BrowserRTCPeerConnection browserPc)
+                if (pc is BrowserRTCPeerConnection browserPc)
                 {
-                    foreach (var track in _localStream.GetTracks())
+                    // Wire OnTrack BEFORE any SDP exchange - OnTrack fires during
+                    // SetRemoteDescription, so it must be wired before that happens
+                    browserPc.NativeConnection.OnTrack += trackEvent =>
                     {
-                        browserPc.NativeConnection.AddTrack(track, _localStream);
+                        if (trackEvent.Track.Kind == "video")
+                        {
+                            // Store track - we'll attach it to video element when peer is in _peers
+                            _pendingVideoTracks[pc] = trackEvent.Track;
+                            InvokeAsync(() => AttachPendingVideoTracks());
+                        }
+                    };
+
+                    // Add local tracks to the connection
+                    if (_localStream != null)
+                    {
+                        foreach (var track in _localStream.GetTracks())
+                        {
+                            browserPc.NativeConnection.AddTrack(track, _localStream);
+                        }
                     }
                 }
 
@@ -313,33 +329,11 @@
                 InvokeAsync(() =>
                 {
                     _peers[peerId] = new PeerState { PeerId = peerId, Connection = pc };
-                    AddMessage("System", $"{peerId[..8]} connected", false);
+                    var name = peerId.Length >= 8 ? peerId[..8] : peerId;
+                    AddMessage("System", $"{name} connected", false);
                     StateHasChanged();
+                    AttachPendingVideoTracks();
                 });
-
-                if (pc is BrowserRTCPeerConnection browserPc)
-                {
-                    browserPc.NativeConnection.OnTrack += trackEvent =>
-                    {
-                        if (trackEvent.Track.Kind == "video" && _peers.TryGetValue(peerId, out var state))
-                        {
-                            state.VideoTrack = trackEvent.Track;
-                            // Attach after Blazor renders the video element
-                            InvokeAsync(async () =>
-                            {
-                                StateHasChanged();
-                                await Task.Delay(200);
-                                // Do NOT dispose the stream - the video element needs it alive
-                                var remoteVideo = new HTMLVideoElement(state.VideoRef);
-                                var stream = new MediaStream();
-                                stream.AddTrack(trackEvent.Track);
-                                remoteVideo.SrcObject = stream;
-                                state.RemoteStream = stream;
-                                state.RemoteVideoEl = remoteVideo;
-                            });
-                        }
-                    };
-                }
             };
 
             _tracker.OnDataChannel += (channel, peerId) =>
@@ -468,6 +462,32 @@
     {
         _messages.Add(new ChatMessage { Sender = sender, Text = text, IsLocal = isLocal });
         if (_messages.Count > 200) _messages.RemoveAt(0);
+    }
+
+    private async void AttachPendingVideoTracks()
+    {
+        // Match pending video tracks to peers by their connection reference
+        var matched = new List<IRTCPeerConnection>();
+        foreach (var kvp in _pendingVideoTracks)
+        {
+            var pc = kvp.Key;
+            var track = kvp.Value;
+            var peer = _peers.Values.FirstOrDefault(p => p.Connection == pc);
+            if (peer != null)
+            {
+                matched.Add(pc);
+                peer.VideoTrack = track;
+                StateHasChanged();
+                await Task.Delay(200); // Let Blazor render the video element
+                var remoteVideo = new HTMLVideoElement(peer.VideoRef);
+                var stream = new MediaStream();
+                stream.AddTrack(track);
+                remoteVideo.SrcObject = stream;
+                peer.RemoteStream = stream;
+                peer.RemoteVideoEl = remoteVideo;
+            }
+        }
+        foreach (var pc in matched) _pendingVideoTracks.Remove(pc);
     }
 
     private void ScrollChat()
