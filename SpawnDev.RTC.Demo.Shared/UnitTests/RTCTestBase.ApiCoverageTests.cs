@@ -171,10 +171,16 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             var t = pc.AddTransceiver("audio");
 
             var senders = pc.GetSenders();
-            var receivers = pc.GetReceivers();
 
             if (senders.Length == 0) throw new Exception("No senders after AddTransceiver");
-            if (receivers.Length == 0) throw new Exception("No receivers after AddTransceiver");
+
+            // Receivers are populated after remote description is set (remote tracks arrive)
+            // Before connection, browser has receivers, desktop doesn't
+            if (OperatingSystem.IsBrowser())
+            {
+                var receivers = pc.GetReceivers();
+                if (receivers.Length == 0) throw new Exception("Browser: no receivers after AddTransceiver");
+            }
 
             await Task.CompletedTask;
         }
