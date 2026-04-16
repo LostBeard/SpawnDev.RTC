@@ -28,17 +28,20 @@ namespace SpawnDev.RTC.Browser
 
         public IRTCMediaStreamTrack[] GetTracks()
         {
-            return NativeStream.GetTracks().Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
+            using var tracks = NativeStream.GetTracks();
+            return tracks.Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
         }
 
         public IRTCMediaStreamTrack[] GetAudioTracks()
         {
-            return NativeStream.GetAudioTracks().Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
+            using var tracks = NativeStream.GetAudioTracks();
+            return tracks.Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
         }
 
         public IRTCMediaStreamTrack[] GetVideoTracks()
         {
-            return NativeStream.GetVideoTracks().Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
+            using var tracks = NativeStream.GetVideoTracks();
+            return tracks.Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
         }
 
         public IRTCMediaStreamTrack? GetTrackById(string trackId)

@@ -36,7 +36,7 @@ namespace SpawnDev.RTC.Browser
         public string ContentHint
         {
             get => NativeTrack.ContentHint ?? "";
-            set { } // BlazorJS ContentHint is read-only, set via JS if needed
+            set { } // BlazorJS MediaStreamTrack.ContentHint is get-only - needs setter added (Rule #2)
         }
 
         public RTCMediaTrackSettings GetSettings()

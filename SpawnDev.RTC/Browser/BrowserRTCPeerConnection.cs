@@ -121,7 +121,6 @@ namespace SpawnDev.RTC.Browser
 
         public async Task<RTCSessionDescriptionInit> CreateAnswer(RTCAnswerOptions options)
         {
-            // Browser CreateAnswer doesn't have meaningful options yet
             var desc = await NativeConnection.CreateAnswer();
             return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
         }
