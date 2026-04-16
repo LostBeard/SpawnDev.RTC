@@ -70,11 +70,23 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Video" Foreground="#666" FontSize="12" Margin="4,0,0,4"/>
-                        <Border Grid.Row="1" Background="#1a1a1a" CornerRadius="8">
-                            <TextBlock Text="Video feeds will appear here when camera capture is available.&#x0a;&#x0a;Desktop video requires SIPSorceryMedia.Windows or FFmpeg.&#x0a;Text chat and data channels work now."
-                                       Foreground="#555" TextWrapping="Wrap" TextAlignment="Center"
-                                       VerticalAlignment="Center" HorizontalAlignment="Center" Padding="20"/>
-                        </Border>
+                        <!-- Video grid: local + remote tiles -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <WrapPanel x:Name="VideoGrid" Orientation="Horizontal">
+                                <!-- Local video tile -->
+                                <Border x:Name="LocalVideoTile" Background="#1a1a1a" CornerRadius="8" Margin="4"
+                                        Width="320" Height="240" Visibility="Collapsed">
+                                    <Grid>
+                                        <Image x:Name="LocalVideoImage" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        <Border Background="#80000000" CornerRadius="4" Padding="4,2" Margin="8"
+                                                VerticalAlignment="Bottom" HorizontalAlignment="Left">
+                                            <TextBlock Text="You" Foreground="White" FontSize="11"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <!-- Remote video tiles added dynamically -->
+                            </WrapPanel>
+                        </ScrollViewer>
                     </Grid>
                 </Border>
 
