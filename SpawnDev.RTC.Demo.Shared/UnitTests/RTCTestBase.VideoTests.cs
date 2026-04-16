@@ -227,6 +227,89 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         }
 
         /// <summary>
+        /// Send blue video through WebRTC, verify blue pixels arrive.
+        /// Combined with the red test, this proves the pipeline preserves
+        /// actual pixel content - not just "something non-black."
+        /// </summary>
+        [TestMethod]
+        public async Task Video_Loopback_BluePixelVerification()
+        {
+            if (!OperatingSystem.IsBrowser()) return;
+
+            using var sourceCanvas = new HTMLCanvasElement();
+            sourceCanvas.Width = 320;
+            sourceCanvas.Height = 240;
+            using var sourceCtx = sourceCanvas.GetContext<CanvasRenderingContext2D>("2d");
+            sourceCtx.FillStyle = "#0000FF";
+            sourceCtx.FillRect(0, 0, 320, 240);
+
+            using var sourceStream = sourceCanvas.CaptureStream(30);
+            var videoTrack = sourceStream.GetVideoTracks()[0];
+
+            var painting = true;
+            _ = Task.Run(async () =>
+            {
+                while (painting) { sourceCtx.FillStyle = "#0000FF"; sourceCtx.FillRect(0, 0, 320, 240); await Task.Delay(33); }
+            });
+
+            var config = new RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+            };
+
+            using var pc1 = RTCPeerConnectionFactory.Create(config);
+            using var pc2 = RTCPeerConnectionFactory.Create(config);
+            pc1.OnIceCandidate += c => _ = pc2.AddIceCandidate(c);
+            pc2.OnIceCandidate += c => _ = pc1.AddIceCandidate(c);
+
+            var bpc1 = (SpawnDev.RTC.Browser.BrowserRTCPeerConnection)pc1;
+            bpc1.NativeConnection.AddTrack(videoTrack, sourceStream);
+            pc1.CreateDataChannel("signal");
+            pc2.OnDataChannel += _ => { };
+
+            var trackReceived = new TaskCompletionSource<MediaStreamTrack>();
+            var bpc2 = (SpawnDev.RTC.Browser.BrowserRTCPeerConnection)pc2;
+            bpc2.NativeConnection.OnTrack += e => { if (e.Track.Kind == "video") trackReceived.TrySetResult(e.Track); };
+
+            var offer = await pc1.CreateOffer();
+            await pc1.SetLocalDescription(offer);
+            await pc2.SetRemoteDescription(offer);
+            var answer = await pc2.CreateAnswer();
+            await pc2.SetLocalDescription(answer);
+            await pc1.SetRemoteDescription(answer);
+
+            var result = await Task.WhenAny(trackReceived.Task, Task.Delay(15000));
+            if (result != trackReceived.Task) throw new Exception("Track not received");
+
+            using var video = new HTMLVideoElement();
+            var remoteStream = new MediaStream();
+            remoteStream.AddTrack(await trackReceived.Task);
+            video.SrcObject = remoteStream;
+            await video.Play();
+            await Task.Delay(1500);
+
+            var w = video.VideoWidth;
+            var h = video.VideoHeight;
+            if (w == 0 || h == 0) throw new Exception($"No dimensions: {w}x{h}");
+
+            using var vc = new HTMLCanvasElement();
+            vc.Width = w; vc.Height = h;
+            using var vctx = vc.GetContext<CanvasRenderingContext2D>("2d");
+            vctx.DrawImage(video, 0, 0, w, h);
+            using var id = vctx.GetImageData(0, 0, w, h);
+            var px = id.Data.ReadBytes();
+            painting = false;
+
+            int cx = (h / 2) * w * 4 + (w / 2) * 4;
+            byte r = px[cx], g = px[cx + 1], b = px[cx + 2];
+
+            // Blue: R low, G low, B high
+            if (b < 180) throw new Exception($"Blue too low: R={r} G={g} B={b}");
+            if (r > 100) throw new Exception($"Red too high: R={r} G={g} B={b}");
+            if (g > 100) throw new Exception($"Green too high: R={r} G={g} B={b}");
+        }
+
+        /// <summary>
         /// Send fake mic audio through WebRTC loopback, verify audio track received.
         /// </summary>
         [TestMethod]
