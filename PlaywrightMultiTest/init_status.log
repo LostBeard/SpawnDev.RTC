@@ -1,60 +1,60 @@
-[20:12:23.352] [T4] Init() started
-[20:12:23.355] [T4] Discovering projects...
-[20:12:23.404] [T4] Found 3 projects
-[20:12:23.405] [T4] Publishing SpawnDev.RTC.Demo...
-[20:12:23.406] [T4] RunDotnetAsync: dotnet publish (timeout=300s)
-[20:12:23.410] [T4] RunDotnetAsync: started PID=35236
-[20:12:38.644] [T15,pool] RunDotnetAsync: done PID=35236 exit=0
-[20:12:38.645] [T15,pool] Publish SpawnDev.RTC.Demo: exit=0
-[20:12:38.645] [T15,pool] Installing Playwright browsers...
-[20:12:39.083] [T15,pool] Creating Playwright instance...
-[20:12:39.449] [T14,pool] Launching Chromium (persistent profile: C:\Users\TJ\AppData\Local\Temp\SpawnDev.RTC.PlaywrightProfile)...
-[20:12:39.846] [T14,pool] Navigating to https://localhost:5570/tests...
-[20:12:40.284] [T9,pool] Page loaded, waiting for test table...
-[20:12:40.854] [T15,pool] Test table ready
-[20:12:41.080] [T9,pool] Browser tests enumerated: 70 tests
-[20:12:41.081] [T9,pool] Publishing SpawnDev.RTC.DemoConsole...
-[20:12:41.081] [T9,pool] RunDotnetAsync: dotnet publish (timeout=300s)
-[20:12:41.085] [T9,pool] RunDotnetAsync: started PID=19612
-[20:12:43.215] [T9,pool] RunDotnetAsync: done PID=19612 exit=0
-[20:12:43.216] [T9,pool] Publish SpawnDev.RTC.DemoConsole: exit=0
-[20:12:43.217] [T9,pool] Enumerating tests from SpawnDev.RTC.DemoConsole.exe...
-[20:12:43.337] [T14,pool] Enumeration done: exit=0, lines=69
-[20:12:43.339] [T14,pool] Init() complete. Total projects=2, total tests=140
-[20:14:05.340] [T25] [CrossPlatform] Signal room: wss://localhost:5570/signal/crossplatform-test-4d8007
-[20:14:07.875] [T17,pool] [CrossPlatform] Browser result: {browserResult}
-[20:14:07.880] [T30] [CrossPlatform] Desktop result: {desktopResultStr}
-[20:14:07.880] [T30] [CrossPlatform] SUCCESS - Desktop and browser exchanged data channel messages!
-[20:14:07.930] [T25] [Tracker Embedded] URL: wss://localhost:5570/announce, Room: embedded-test-4d3bee
-[20:14:09.969] [T17,pool] [Tracker Embedded] A connected
-[20:14:13.292] [T18,pool] [Tracker Embedded] B connected
-[20:14:13.632] [T18,pool] [Tracker Embedded] A peer: -SR0100-
-[20:14:13.636] [T11,pool] [Tracker Embedded] B peer: -SR0100-
-[20:14:13.637] [T33,pool] [Tracker Embedded] A peer: -SR0100-
-[20:14:13.637] [T11,pool] [Tracker Embedded] B peer: -SR0100-
-[20:14:13.638] [T33,pool] [Tracker Embedded] A got dc 'data' state=connecting
-[20:14:13.638] [T11,pool] [Tracker Embedded] B got dc 'data' state=connecting
-[20:14:13.876] [T35] [Tracker Embedded] A got dc 'data' state=open
-[20:14:13.908] [T34] [Tracker Embedded] B dc open
-[20:14:13.938] [T37] [Tracker Embedded] B got dc 'data' state=open
-[20:14:13.971] [T36] [Tracker Embedded] A dc open
-[20:14:14.144] [T18,pool] [Tracker Embedded] B sent
-[20:14:14.145] [T31,pool] [Tracker Embedded] A sent
-[20:14:14.160] [T35] [Tracker Embedded] A got: from B
-[20:14:14.161] [T37] [Tracker Embedded] B got: from A
-[20:14:14.161] [T37] [Tracker Embedded] A got: from B, B got: from A
-[20:14:14.205] [T25] [Tracker Live] Room: live-test-ead5a269
-[20:14:14.383] [T31,pool] [Tracker Embedded] A sent
-[20:14:14.447] [T31,pool] [Tracker Embedded] B sent
-[20:14:14.472] [T31,pool] [Tracker Live] A connected to openwebtorrent
-[20:14:16.995] [T18,pool] [Tracker Live] B connected to openwebtorrent
-[20:14:17.425] [T11,pool] [Tracker Live] A peer: -SR0100-
-[20:14:17.534] [T33,pool] [Tracker Live] B peer: -SR0100-
-[20:14:17.534] [T33,pool] [Tracker Live] B got dc 'data' state=connecting
-[20:14:17.809] [T36] [Tracker Live] A got dc 'data' state=open
-[20:14:17.841] [T39] [Tracker Live] B dc open
-[20:14:18.047] [T18,pool] [Tracker Live] B sent
-[20:14:18.063] [T36] [Tracker Live] A got: live B
-[20:14:18.315] [T31,pool] [Tracker Live] A sent
-[20:14:18.347] [T39] [Tracker Live] B got: live A
-[20:14:18.347] [T39] [Tracker Live] SUCCESS - A got: live B, B got: live A
+[20:15:54.795] [T4] Init() started
+[20:15:54.801] [T4] Discovering projects...
+[20:15:54.854] [T4] Found 3 projects
+[20:15:54.855] [T4] Publishing SpawnDev.RTC.Demo...
+[20:15:54.857] [T4] RunDotnetAsync: dotnet publish (timeout=300s)
+[20:15:54.861] [T4] RunDotnetAsync: started PID=31340
+[20:16:09.064] [T14,pool] RunDotnetAsync: done PID=31340 exit=0
+[20:16:09.065] [T14,pool] Publish SpawnDev.RTC.Demo: exit=0
+[20:16:09.066] [T14,pool] Installing Playwright browsers...
+[20:16:09.505] [T14,pool] Creating Playwright instance...
+[20:16:09.868] [T9,pool] Launching Chromium (persistent profile: C:\Users\TJ\AppData\Local\Temp\SpawnDev.RTC.PlaywrightProfile)...
+[20:16:10.264] [T14,pool] Navigating to https://localhost:5570/tests...
+[20:16:10.695] [T15,pool] Page loaded, waiting for test table...
+[20:16:11.264] [T18,pool] Test table ready
+[20:16:11.507] [T19,pool] Browser tests enumerated: 74 tests
+[20:16:11.508] [T19,pool] Publishing SpawnDev.RTC.DemoConsole...
+[20:16:11.509] [T19,pool] RunDotnetAsync: dotnet publish (timeout=300s)
+[20:16:11.512] [T19,pool] RunDotnetAsync: started PID=32324
+[20:16:13.665] [T19,pool] RunDotnetAsync: done PID=32324 exit=0
+[20:16:13.665] [T19,pool] Publish SpawnDev.RTC.DemoConsole: exit=0
+[20:16:13.666] [T19,pool] Enumerating tests from SpawnDev.RTC.DemoConsole.exe...
+[20:16:13.786] [T15,pool] Enumeration done: exit=0, lines=73
+[20:16:13.787] [T15,pool] Init() complete. Total projects=2, total tests=148
+[20:17:35.627] [T22] [CrossPlatform] Signal room: wss://localhost:5570/signal/crossplatform-test-594a27
+[20:17:38.213] [T15,pool] [CrossPlatform] Browser result: {browserResult}
+[20:17:38.219] [T29] [CrossPlatform] Desktop result: {desktopResultStr}
+[20:17:38.220] [T29] [CrossPlatform] SUCCESS - Desktop and browser exchanged data channel messages!
+[20:17:38.274] [T22] [Tracker Embedded] URL: wss://localhost:5570/announce, Room: embedded-test-89618f
+[20:17:40.315] [T27,pool] [Tracker Embedded] A connected
+[20:17:43.653] [T18,pool] [Tracker Embedded] B connected
+[20:17:44.012] [T27,pool] [Tracker Embedded] A peer: -SR0100-
+[20:17:44.014] [T26,pool] [Tracker Embedded] B peer: -SR0100-
+[20:17:44.015] [T26,pool] [Tracker Embedded] B peer: -SR0100-
+[20:17:44.015] [T15,pool] [Tracker Embedded] A peer: -SR0100-
+[20:17:44.016] [T26,pool] [Tracker Embedded] B got dc 'data' state=connecting
+[20:17:44.016] [T15,pool] [Tracker Embedded] A got dc 'data' state=connecting
+[20:17:44.237] [T25] [Tracker Embedded] A got dc 'data' state=open
+[20:17:44.252] [T35] [Tracker Embedded] B got dc 'data' state=open
+[20:17:44.252] [T29] [Tracker Embedded] B dc open
+[20:17:44.284] [T34] [Tracker Embedded] A dc open
+[20:17:44.521] [T18,pool] [Tracker Embedded] A sent
+[20:17:44.521] [T27,pool] [Tracker Embedded] B sent
+[20:17:44.538] [T35] [Tracker Embedded] B got: from A
+[20:17:44.554] [T25] [Tracker Embedded] A got: from B
+[20:17:44.554] [T25] [Tracker Embedded] A got: from B, B got: from A
+[20:17:44.600] [T22] [Tracker Live] Room: live-test-d8b53a31
+[20:17:44.743] [T27,pool] [Tracker Embedded] A sent
+[20:17:44.759] [T27,pool] [Tracker Embedded] B sent
+[20:17:44.861] [T27,pool] [Tracker Live] A connected to openwebtorrent
+[20:17:47.359] [T15,pool] [Tracker Live] B connected to openwebtorrent
+[20:17:47.784] [T15,pool] [Tracker Live] A peer: -SR0100-
+[20:17:47.891] [T18,pool] [Tracker Live] B peer: -SR0100-
+[20:17:47.892] [T18,pool] [Tracker Live] B got dc 'data' state=connecting
+[20:17:48.178] [T36] [Tracker Live] A got dc 'data' state=open
+[20:17:48.209] [T37] [Tracker Live] B dc open
+[20:17:48.396] [T27,pool] [Tracker Live] B sent
+[20:17:48.427] [T36] [Tracker Live] A got: live B
+[20:17:48.679] [T15,pool] [Tracker Live] A sent
+[20:17:48.710] [T37] [Tracker Live] B got: live A
+[20:17:48.711] [T37] [Tracker Live] SUCCESS - A got: live B, B got: live A
