@@ -6,8 +6,7 @@ namespace SpawnDev.RTC.Desktop
     /// <summary>
     /// Desktop implementation of media device access.
     /// Creates SipSorcery media tracks with standard codec capabilities.
-    /// For real device capture (cameras, microphones), use NativeConnection
-    /// with SIPSorceryMedia.Windows or SIPSorceryMedia.FFmpeg packages.
+    /// Real device capture (cameras, microphones) requires SpawnDev.MultiMedia.
     /// </summary>
     public static class DesktopMediaDevices
     {
@@ -42,6 +41,18 @@ namespace SpawnDev.RTC.Desktop
 
             IRTCMediaStream stream = new DesktopRTCMediaStream(tracks.ToArray());
             return Task.FromResult(stream);
+        }
+
+        /// <summary>
+        /// Enumerates available media devices on desktop.
+        /// SipSorcery does not provide hardware device enumeration - this returns
+        /// an empty array. For real device enumeration, use SpawnDev.MultiMedia.
+        /// </summary>
+        public static Task<RTCMediaDeviceInfo[]> EnumerateDevices()
+        {
+            // SipSorcery handles codec negotiation but not hardware device discovery.
+            // Real device enumeration requires SpawnDev.MultiMedia (MediaFoundation/DirectShow/WASAPI).
+            return Task.FromResult(Array.Empty<RTCMediaDeviceInfo>());
         }
     }
 }
