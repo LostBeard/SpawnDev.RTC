@@ -4,21 +4,22 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.1.0</Version>
+		<Version>1.0.0</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
 		<DebugType>Embedded</DebugType>
 		<Title>SpawnDev.RTC</Title>
 		<Authors>LostBeard</Authors>
-		<Description>.Net cross platform WebRTC for browser and desktop.</Description>
+		<Description>Cross-platform WebRTC for .NET. Browser (Blazor WASM) and desktop from a single API. Data channels, audio, video, media streams, tracks, transceivers, ICE, DTLS, SCTP. Zero-copy JS types in WASM. Serverless signaling via WebTorrent tracker protocol. Powered by SpawnDev.BlazorJS (browser) and SipSorcery (desktop).</Description>
 		<PackageProjectUrl>https://github.com/LostBeard/SpawnDev.RTC</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<PackageIcon>icon-128.png</PackageIcon>
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform</PackageTags>
+		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
+		<PackageReleaseNotes>v1.0.0: Initial release. Full W3C WebRTC API, 204 tests, cross-platform verified (desktop-to-browser), pixel-level video verification, serverless tracker signaling.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>
