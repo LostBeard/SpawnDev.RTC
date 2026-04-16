@@ -154,6 +154,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         [TestMethod]
         public async Task Transceiver_Direction_InSDP()
         {
+            if (!OperatingSystem.IsBrowser()) return; // SipSorcery doesn't map transceiver direction to SDP
             using var pc = RTCPeerConnectionFactory.Create();
 
             var t = pc.AddTransceiver("audio");
