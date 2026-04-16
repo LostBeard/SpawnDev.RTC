@@ -1,0 +1,57 @@
+name: Deploy Blazor Demo to GitHub Pages
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install wasm-tools
+        run: dotnet workload install wasm-tools
+
+      - name: Publish Blazor WASM
+        run: dotnet publish SpawnDev.RTC.Demo/SpawnDev.RTC.Demo.csproj -c Release -o publish
+
+      - name: Configure base path for GitHub Pages
+        run: |
+          # Update base href for GitHub Pages subdirectory
+          sed -i 's|<base href="/" />|<base href="/SpawnDev.RTC/" />|g' publish/wwwroot/index.html
+
+      - name: Add .nojekyll
+        run: touch publish/wwwroot/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish/wwwroot
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
