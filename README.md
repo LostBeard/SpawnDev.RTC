@@ -226,13 +226,15 @@ dotnet run --project SpawnDev.RTC.SignalServer
 
 ## Test Results
 
-100+ tests passing across browser (Chrome) and desktop (.NET):
+**203 tests passing** across browser (Chrome) and desktop (.NET). 102 test methods across 17 files.
 
-- **Data integrity:** SHA-256 verified payloads, 50-chunk ordered delivery with per-byte verification, 256KB max payload, simultaneous bidirectional messaging
-- **Media pipeline:** video loopback with frame decode verification, audio loopback, simultaneous audio+video, dynamic track add/remove mid-call
-- **Stress:** 5 simultaneous peer pairs, 100-message rapid burst, 20 channels rapid create/close
-- **Cross-platform:** desktop SipSorcery peer connects to browser Chrome peer
+- **Video pixel verification:** red canvas -> WebRTC -> verify red pixels arrive. Blue canvas -> verify blue. Split-screen (left=red, right=green) -> verify spatial accuracy
+- **Data integrity:** SHA-256 verified 32KB payloads, 50-chunk ordered delivery with per-byte verification, 256KB max payload, simultaneous bidirectional messaging, Unicode (emoji, CJK, Arabic)
+- **Media pipeline:** video loopback with frame decode, audio loopback, simultaneous audio+video+data, dynamic track add/remove mid-call, getUserMedia, track settings/constraints
+- **Stress:** 5 simultaneous peer pairs, 100-message rapid burst, 20 channels rapid create/close, 10x GetStats without leaking
+- **Cross-platform:** desktop SipSorcery peer connects to browser Chrome peer via embedded signal server
 - **Tracker signaling:** peers connect via embedded tracker AND live openwebtorrent.com
+- **API coverage:** every interface property readable, double-dispose safe, connection state machine, SDP content verification, ICE gathering, negotiated channels, renegotiation, perfect negotiation, DTMF, transceivers
 
 ## Why a SipSorcery Fork?
 

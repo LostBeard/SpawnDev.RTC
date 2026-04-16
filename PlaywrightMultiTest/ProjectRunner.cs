@@ -442,6 +442,11 @@ namespace PlaywrightMultiTest
                         TestFunc = async (_) => await TrackerLiveTest(),
                     }).SetName("Tracker.Live_OpenWebTorrent").SetCategory("Tracker");
 
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Tracker", "CrossPlatform_BrowserDesktop")
+                    {
+                        TestFunc = async (page) => await TrackerCrossPlatformTest(page, blazor2),
+                    }).SetName("Tracker.CrossPlatform_BrowserDesktop").SetCategory("Tracker");
+
                     break;
                 }
             }
@@ -774,6 +779,121 @@ namespace PlaywrightMultiTest
             if (rA != msgFromB.Task) throw new Exception("A did not receive from B via live tracker");
             if (rB != msgFromA.Task) throw new Exception("B did not receive from A via live tracker");
             LogStatus($"[Tracker Live] SUCCESS - A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
+        }
+
+        /// <summary>
+        /// Cross-platform tracker test: desktop peer + browser peer connect
+        /// via embedded WebTorrent tracker and exchange data channel messages.
+        /// </summary>
+        private static async Task TrackerCrossPlatformTest(IPage browserPage, TestableBlazorWasm blazorProj)
+        {
+            var trackerUrl = blazorProj.Server!.Url.TrimEnd('/').Replace("https://", "wss://") + "/announce";
+            var room = "xplat-tracker-" + Guid.NewGuid().ToString("N")[..6];
+            LogStatus($"[Tracker XPlat] URL: {trackerUrl}, Room: {room}");
+
+            var config = new SpawnDev.RTC.RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+            };
+
+            // Desktop peer in background
+            var desktopMsg = new TaskCompletionSource<string>();
+            using var desktopTracker = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
+            desktopTracker.OnDataChannel += (ch, _) =>
+            {
+                ch.OnStringMessage += m => { LogStatus($"[Tracker XPlat] Desktop got: {m}"); desktopMsg.TrySetResult(m); };
+                Task.Run(async () => { await Task.Delay(500); ch.Send("from desktop"); LogStatus("[Tracker XPlat] Desktop sent"); });
+            };
+            desktopTracker.OnConnected += () => LogStatus("[Tracker XPlat] Desktop connected");
+            desktopTracker.OnPeerConnection += (_, id) => LogStatus($"[Tracker XPlat] Desktop peer: {id[..8]}");
+
+            await desktopTracker.JoinAsync();
+            await Task.Delay(1000);
+
+            // Browser peer via JS
+            var wsUrl = trackerUrl;
+            var browserResult = await browserPage.EvaluateAsync<string>($@"
+                async () => {{
+                    try {{
+                        const ws = new WebSocket('{wsUrl}');
+                        await new Promise((resolve, reject) => {{
+                            ws.onopen = resolve;
+                            ws.onerror = () => reject('ws failed');
+                            setTimeout(() => reject('ws timeout'), 5000);
+                        }});
+
+                        const peerId = '-BR0100-' + Math.random().toString(36).substr(2, 12);
+                        const infoHashBytes = new Uint8Array(await crypto.subtle.digest('SHA-1',
+                            new TextEncoder().encode('{room}'.trim().toLowerCase())));
+                        const infoHash = String.fromCharCode(...infoHashBytes);
+
+                        const pc = new RTCPeerConnection({{ iceServers: [{{ urls: 'stun:stun.l.google.com:19302' }}] }});
+                        const dc = pc.createDataChannel('data');
+
+                        const dcOpen = new Promise(r => dc.onopen = r);
+                        const msgReceived = new Promise(r => dc.onmessage = e => r(e.data));
+
+                        pc.onicecandidate = () => {{}};
+
+                        const offer = await pc.createOffer();
+                        await pc.setLocalDescription(offer);
+
+                        const offerId = String.fromCharCode(...crypto.getRandomValues(new Uint8Array(20)));
+
+                        ws.send(JSON.stringify({{
+                            action: 'announce',
+                            info_hash: infoHash,
+                            peer_id: peerId,
+                            uploaded: 0, downloaded: 0, left: 1,
+                            event: 'started',
+                            numwant: 5,
+                            offers: [{{ offer: {{ type: 'offer', sdp: offer.sdp }}, offer_id: offerId }}]
+                        }}));
+
+                        // Wait for offer from desktop peer
+                        const msg = await new Promise((resolve, reject) => {{
+                            ws.onmessage = e => resolve(JSON.parse(e.data));
+                            setTimeout(() => reject('no offer'), 15000);
+                        }});
+
+                        if (msg.offer) {{
+                            await pc.setRemoteDescription({{ type: 'offer', sdp: msg.offer.sdp }});
+                            const answer = await pc.createAnswer();
+                            await pc.setLocalDescription(answer);
+                            ws.send(JSON.stringify({{
+                                action: 'announce',
+                                info_hash: infoHash,
+                                peer_id: peerId,
+                                to_peer_id: msg.peer_id,
+                                answer: {{ type: 'answer', sdp: answer.sdp }},
+                                offer_id: msg.offer_id
+                            }}));
+                        }} else if (msg.answer) {{
+                            await pc.setRemoteDescription({{ type: 'answer', sdp: msg.answer.sdp }});
+                        }}
+
+                        await Promise.race([dcOpen, new Promise((_, r) => setTimeout(() => r('dc timeout'), 15000))]);
+                        dc.send('from browser');
+                        const received = await Promise.race([msgReceived, new Promise((_, r) => setTimeout(() => r('msg timeout'), 10000))]);
+                        ws.close();
+                        pc.close();
+                        return 'OK:' + received;
+                    }} catch (err) {{
+                        return 'ERROR:' + (err.message || err);
+                    }}
+                }}
+            ");
+
+            LogStatus($"[Tracker XPlat] Browser result: {browserResult}");
+
+            var dr = await Task.WhenAny(desktopMsg.Task, Task.Delay(20000));
+            var desktopResult = dr == desktopMsg.Task ? "OK:" + await desktopMsg.Task : "TIMEOUT";
+            LogStatus($"[Tracker XPlat] Desktop result: {desktopResult}");
+
+            if (!browserResult.StartsWith("OK:")) throw new Exception($"Browser: {browserResult}");
+            if (!desktopResult.StartsWith("OK:")) throw new Exception($"Desktop: {desktopResult}");
+
+            LogStatus("[Tracker XPlat] SUCCESS - Browser and desktop exchanged messages via WebTorrent tracker!");
         }
 
         public async Task StartUp()
