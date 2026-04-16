@@ -14,8 +14,7 @@ namespace SpawnDev.RTC.Browser
             var JS = BlazorJSRuntime.JS;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
-            var jsConstraints = BuildJsConstraints(constraints);
-            var stream = await mediaDevices.GetUserMedia(jsConstraints);
+            var stream = await mediaDevices.GetUserMedia(constraints);
             return new BrowserRTCMediaStream(stream);
         }
 
@@ -24,24 +23,17 @@ namespace SpawnDev.RTC.Browser
             var JS = BlazorJSRuntime.JS;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
-            MediaStream stream;
+            MediaStream? stream;
             if (constraints != null)
             {
-                var jsConstraints = BuildJsConstraints(constraints);
-                stream = await mediaDevices.JSRef!.CallAsync<MediaStream>("getDisplayMedia", jsConstraints);
+                stream = await mediaDevices.GetDisplayMedia(constraints);
             }
             else
             {
-                stream = await mediaDevices.JSRef!.CallAsync<MediaStream>("getDisplayMedia");
+                stream = await mediaDevices.GetDisplayMedia(new { });
             }
+            if (stream == null) throw new InvalidOperationException("GetDisplayMedia returned null");
             return new BrowserRTCMediaStream(stream);
-        }
-
-        private static MediaStreamConstraints BuildJsConstraints(MediaStreamConstraints constraints)
-        {
-            // The constraints class is JSON-serializable and matches the browser API
-            // so we can pass it directly
-            return constraints;
         }
     }
 }
