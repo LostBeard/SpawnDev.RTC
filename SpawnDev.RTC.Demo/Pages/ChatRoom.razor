@@ -475,8 +475,8 @@
         _ = InvokeAsync(async () =>
         {
             await Task.Delay(50);
-            using var el = new HTMLElement(_chatMessagesRef);
-            el.JSRef?.CallVoid("scrollTo", 0, 999999);
+            using var el = new Element(_chatMessagesRef);
+            el.ScrollTop = el.ScrollHeight;
         });
     }
 
