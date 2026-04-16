@@ -126,6 +126,31 @@ await signal.ConnectAsync();
 // That's it - peers discover each other, exchange SDP, connect via WebRTC
 ```
 
+### Device Enumeration
+
+```csharp
+// List available cameras, microphones, and speakers
+var devices = await RTCMediaDevices.EnumerateDevices();
+
+foreach (var device in devices)
+{
+    Console.WriteLine($"{device.Kind}: {device.Label} ({device.DeviceId})");
+}
+
+// Request specific device with constraints
+var stream = await RTCMediaDevices.GetUserMedia(new MediaStreamConstraints
+{
+    Audio = true,  // Default audio
+    Video = new MediaTrackConstraints  // Specific video settings
+    {
+        DeviceId = "preferred-camera-id",
+        Width = 1920,
+        Height = 1080,
+        FrameRate = 30,
+    },
+});
+```
+
 ### Native Platform Access
 
 Cast once at creation to access the full platform API:
@@ -162,12 +187,13 @@ SpawnDev.RTC (cross-platform WebRTC)
     +-- IRTCDTMFSender         (telephone dial tones)
     +-- IRTCDtlsTransport      (DTLS state, ICE transport)
     +-- IRTCSctpTransport      (SCTP for data channels)
+    +-- RTCMediaDevices         (getUserMedia, getDisplayMedia, enumerateDevices)
     +-- RTCSignalClient        (drop-in signaling + peer management)
     |
     +-- Browser (Blazor WASM)
     |       Native RTCPeerConnection via SpawnDev.BlazorJS
     |       Zero-copy JS types (ArrayBuffer, TypedArray, Blob, DataView)
-    |       getUserMedia, getDisplayMedia via navigator.mediaDevices
+    |       getUserMedia, getDisplayMedia, enumerateDevices
     |
     +-- Desktop (.NET)
             SipSorcery fork (Src/sipsorcery/) with SRTP browser fix
@@ -181,11 +207,11 @@ SpawnDev.RTC (cross-platform WebRTC)
 |---------|---------|
 | SpawnDev.RTC | Core library - cross-platform WebRTC abstraction (NuGet package) |
 | SpawnDev.RTC.Demo | Blazor WASM app - ChatRoom (video/audio/text) + unit tests |
-| SpawnDev.RTC.Demo.Shared | 34 shared test methods - run on both browser and desktop |
+| SpawnDev.RTC.Demo.Shared | Shared test methods - run on both browser and desktop |
 | SpawnDev.RTC.DemoConsole | Desktop test runner + text chat mode (`dotnet run -- chat`) |
 | SpawnDev.RTC.WpfDemo | WPF desktop chat room - peer list, text chat, mute controls |
 | SpawnDev.RTC.SignalServer | Standalone WebSocket signal server for WebRTC |
-| PlaywrightMultiTest | Automated test runner - 71 tests across browser + desktop + cross-platform |
+| PlaywrightMultiTest | Automated test runner - tests across browser + desktop + cross-platform |
 
 ## Dependencies
 
