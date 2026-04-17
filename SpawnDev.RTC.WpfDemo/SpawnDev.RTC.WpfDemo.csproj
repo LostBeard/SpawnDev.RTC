@@ -11,6 +11,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\SpawnDev.RTC\SpawnDev.RTC.csproj" />
+		<ProjectReference Include="..\..\..\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj" />
 	</ItemGroup>
 
 </Project>

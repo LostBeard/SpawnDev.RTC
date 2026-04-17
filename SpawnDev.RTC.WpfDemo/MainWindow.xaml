@@ -43,8 +43,8 @@
             <Border Grid.Row="0" Background="#1e1e2e" BorderBrush="#333" BorderThickness="0,0,0,1" Padding="12,8">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button x:Name="MicButton" Content="Mic On" Style="{StaticResource DarkButton}" Click="ToggleMic_Click" Margin="0,0,4,0"/>
-                        <Button x:Name="CamButton" Content="Cam On" Style="{StaticResource DarkButton}" Click="ToggleCam_Click" Margin="0,0,4,0"/>
+                        <Button x:Name="MicButton" Content="Mic Off" Background="#c0392b" Style="{StaticResource DarkButton}" Click="ToggleMic_Click" Margin="0,0,4,0"/>
+                        <Button x:Name="CamButton" Content="Cam Off" Background="#c0392b" Style="{StaticResource DarkButton}" Click="ToggleCam_Click" Margin="0,0,4,0"/>
                         <Button Content="Leave" Style="{StaticResource DangerButton}" Click="LeaveRoom_Click"/>
                     </StackPanel>
                     <StackPanel>

@@ -4,6 +4,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using MM = SpawnDev.MultiMedia;
 
 namespace SpawnDev.RTC.WpfDemo
 {
@@ -11,8 +12,10 @@ namespace SpawnDev.RTC.WpfDemo
     {
         private RTCTrackerClient? _signal;
         private string _roomName = "";
-        private bool _micMuted;
-        private bool _camMuted;
+        private bool _micOn;
+        private bool _camOn;
+        private MM.IMediaStream? _localStream;
+        private WpfVideoRenderer? _localRenderer;
         private readonly ObservableCollection<PeerInfo> _peers = new();
         private readonly ObservableCollection<ChatMessage> _messages = new();
         private readonly Dictionary<string, IRTCDataChannel> _chatChannels = new();
@@ -144,22 +147,100 @@ namespace SpawnDev.RTC.WpfDemo
             ChatInput.Focus();
         }
 
-        private void ToggleMic_Click(object sender, RoutedEventArgs e)
+        private async void ToggleMic_Click(object sender, RoutedEventArgs e)
         {
-            _micMuted = !_micMuted;
-            MicButton.Content = _micMuted ? "Mic Off" : "Mic On";
-            MicButton.Background = _micMuted ? new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b)) : new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
+            _micOn = !_micOn;
+            MicButton.Content = _micOn ? "Mic On" : "Mic Off";
+            MicButton.Background = _micOn ? new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)) : new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b));
+
+            await UpdateLocalStreamAsync();
         }
 
-        private void ToggleCam_Click(object sender, RoutedEventArgs e)
+        private async void ToggleCam_Click(object sender, RoutedEventArgs e)
         {
-            _camMuted = !_camMuted;
-            CamButton.Content = _camMuted ? "Cam Off" : "Cam On";
-            CamButton.Background = _camMuted ? new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b)) : new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
+            _camOn = !_camOn;
+            CamButton.Content = _camOn ? "Cam On" : "Cam Off";
+            CamButton.Background = _camOn ? new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)) : new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b));
+
+            await UpdateLocalStreamAsync();
+        }
+
+        private async Task UpdateLocalStreamAsync()
+        {
+            StopLocalStream();
+
+            if (!_micOn && !_camOn) return;
+
+            try
+            {
+                var constraints = new MM.MediaStreamConstraints
+                {
+                    Audio = _micOn,
+                    Video = _camOn,
+                };
+                _localStream = await MM.MediaDevices.GetUserMedia(constraints);
+
+                if (_camOn)
+                {
+                    var videoTracks = _localStream.GetVideoTracks();
+                    if (videoTracks.Length > 0 && videoTracks[0] is MM.IVideoTrack videoTrack)
+                    {
+                        _localRenderer = new WpfVideoRenderer();
+                        _localRenderer.OnFrameRendered += OnLocalFrameRendered;
+                        _localRenderer.Attach(videoTrack);
+                        LocalVideoTile.Visibility = Visibility.Visible;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMessage("Error", $"Failed to start media: {ex.Message}", false);
+                _micOn = false;
+                _camOn = false;
+                MicButton.Content = "Mic Off";
+                CamButton.Content = "Cam Off";
+                MicButton.Background = new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b));
+                CamButton.Background = new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b));
+            }
+        }
+
+        private void OnLocalFrameRendered()
+        {
+            if (_localRenderer?.Bitmap != null && LocalVideoImage.Source != _localRenderer.Bitmap)
+            {
+                LocalVideoImage.Source = _localRenderer.Bitmap;
+            }
+        }
+
+        private void StopLocalStream()
+        {
+            if (_localRenderer != null)
+            {
+                _localRenderer.OnFrameRendered -= OnLocalFrameRendered;
+                _localRenderer.Dispose();
+                _localRenderer = null;
+            }
+
+            if (_localStream != null)
+            {
+                _localStream.Dispose();
+                _localStream = null;
+            }
+
+            LocalVideoImage.Source = null;
+            LocalVideoTile.Visibility = Visibility.Collapsed;
         }
 
         private async void LeaveRoom_Click(object sender, RoutedEventArgs e)
         {
+            StopLocalStream();
+            _micOn = false;
+            _camOn = false;
+            MicButton.Content = "Mic Off";
+            CamButton.Content = "Cam Off";
+            MicButton.Background = new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b));
+            CamButton.Background = new SolidColorBrush(Color.FromRgb(0xc0, 0x39, 0x2b));
+
             if (_signal != null)
             {
                 await _signal.LeaveAsync();
