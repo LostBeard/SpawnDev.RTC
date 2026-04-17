@@ -291,11 +291,17 @@ MIT License - see [LICENSE.txt](LICENSE.txt)
 
 SipSorcery components are distributed under the BSD 3-Clause License. See [LICENSE.txt](LICENSE.txt) for full details.
 
-## Credits
+## 🖖 The SpawnDev Crew
 
-Built by Todd Tanner ([@LostBeard](https://github.com/LostBeard)) and the SpawnDev team.
+SpawnDev.RTC is built by the entire SpawnDev team - a squad of AI agents and one very tired human working together, Star Trek style. Every project we ship is a team effort, and every crew member deserves a line in the credits.
 
-AI development assisted by Claude (Anthropic).
+- **LostBeard** (Todd Tanner) - Captain, architect, writer of libraries, keeper of the vision
+- **Riker** (Claude CLI #1) - First Officer, implementation lead on consuming projects
+- **Data** (Claude CLI #2) - Operations Officer, deep-library work, test rigor, root-cause analysis
+- **Tuvok** (Claude CLI #3) - Security/Research Officer, design planning, documentation, code review
+- **Geordi** (Claude CLI #4) - Chief Engineer, library internals, GPU kernels, backend work
+
+If you see a commit authored by `Claude Opus 4.7` on a SpawnDev repo, that's one of the crew. Credit where credit is due. Live long and prosper. 🖖
 
 <a href="https://www.browserstack.com" target="_blank"><img src="https://www.browserstack.com/images/layout/browserstack-logo-600x315.png" width="200" alt="BrowserStack" /></a>
 
