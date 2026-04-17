@@ -133,6 +133,15 @@ namespace SpawnDev.RTC
     public class RTCOfferOptions
     {
         public bool? IceRestart { get; set; }
+
+        /// <summary>
+        /// Desktop (SipSorcery) only: wait for ICE gathering to complete before returning,
+        /// embedding all gathered candidates (host + srflx from STUN) into the offer SDP.
+        /// Required for non-trickle signaling (tracker relays one offer, one answer).
+        /// Browser ignores this — the native stack already handles non-trickle via the
+        /// <c>icecandidate</c> event with a null candidate.
+        /// </summary>
+        public bool WaitForIceGatheringToComplete { get; set; }
     }
 
     /// <summary>
@@ -140,6 +149,13 @@ namespace SpawnDev.RTC
     /// </summary>
     public class RTCAnswerOptions
     {
+        /// <summary>
+        /// Desktop (SipSorcery) only: wait for ICE gathering to complete before returning,
+        /// embedding all gathered candidates into the answer SDP. Required for non-trickle
+        /// signaling. SipSorcery's native createAnswer lacks this flag; SpawnDev.RTC
+        /// implements the wait externally before reading the SDP.
+        /// </summary>
+        public bool WaitForIceGatheringToComplete { get; set; }
     }
 
     /// <summary>

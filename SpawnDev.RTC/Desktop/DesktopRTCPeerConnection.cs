@@ -127,22 +127,12 @@ namespace SpawnDev.RTC.Desktop
 
         public Task<RTCSessionDescriptionInit> CreateOffer()
         {
-            var offer = NativeConnection.createOffer();
-            return Task.FromResult(new RTCSessionDescriptionInit
-            {
-                Type = offer.type.ToString(),
-                Sdp = offer.sdp,
-            });
+            return CreateOffer(new RTCOfferOptions());
         }
 
         public Task<RTCSessionDescriptionInit> CreateAnswer()
         {
-            var answer = NativeConnection.createAnswer();
-            return Task.FromResult(new RTCSessionDescriptionInit
-            {
-                Type = answer.type.ToString(),
-                Sdp = answer.sdp,
-            });
+            return CreateAnswer(new RTCAnswerOptions());
         }
 
         public async Task SetLocalDescription(RTCSessionDescriptionInit description)
@@ -179,15 +169,33 @@ namespace SpawnDev.RTC.Desktop
 
         public Task<RTCSessionDescriptionInit> CreateOffer(RTCOfferOptions options)
         {
-            // SipSorcery createOffer accepts options
-            var sipOptions = new SIPSorcery.Net.RTCOfferOptions();
-            // Map IceRestart if needed
-            return CreateOffer();
+            var sipOptions = new SIPSorcery.Net.RTCOfferOptions
+            {
+                X_WaitForIceGatheringToComplete = options.WaitForIceGatheringToComplete,
+            };
+            // SipSorcery createOffer is synchronous. When X_WaitForIceGatheringToComplete is set,
+            // it blocks internally until _iceCompletedGatheringTask fires (STUN binding done),
+            // then embeds all gathered candidates (host + srflx) into the returned SDP.
+            var offer = NativeConnection.createOffer(sipOptions);
+            return Task.FromResult(new RTCSessionDescriptionInit
+            {
+                Type = offer.type.ToString(),
+                Sdp = offer.sdp,
+            });
         }
 
         public Task<RTCSessionDescriptionInit> CreateAnswer(RTCAnswerOptions options)
         {
-            return CreateAnswer();
+            var sipOptions = new SIPSorcery.Net.RTCAnswerOptions
+            {
+                X_WaitForIceGatheringToComplete = options.WaitForIceGatheringToComplete,
+            };
+            var answer = NativeConnection.createAnswer(sipOptions);
+            return Task.FromResult(new RTCSessionDescriptionInit
+            {
+                Type = answer.type.ToString(),
+                Sdp = answer.sdp,
+            });
         }
 
         public async Task SetLocalDescription()

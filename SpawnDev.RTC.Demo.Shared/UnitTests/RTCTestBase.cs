@@ -246,5 +246,22 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             if (r2 != msg2to1.Task) throw new Exception("Timed out waiting for pong");
             if (await msg2to1.Task != "pong") throw new Exception($"Expected 'pong', got '{await msg2to1.Task}'");
         }
+
+        /// <summary>
+        /// Regression: SIPSorcery.Sys.NetServices static constructor must not throw on Blazor WASM.
+        /// Its upstream cctor subscribes to NetworkChange.NetworkAddressChanged which raises
+        /// PlatformNotSupportedException in the browser runtime. The fork guards the subscription
+        /// with try/catch so any consumer that reaches NetServices type resolution on WASM (e.g.
+        /// the IL.P2P swarm stack in a browser test) does not crash.
+        /// </summary>
+        [TestMethod]
+        public async Task SipSorceryFork_NetServicesCctor_DoesNotThrowOnWasm()
+        {
+            var netServicesType = Type.GetType("SIPSorcery.Sys.NetServices, SIPSorcery");
+            if (netServicesType == null)
+                throw new Exception("SIPSorcery.Sys.NetServices type not found - fork may not be referenced");
+            System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(netServicesType.TypeHandle);
+            await Task.CompletedTask;
+        }
     }
 }
