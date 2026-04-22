@@ -332,7 +332,13 @@
             {
                 InvokeAsync(() =>
                 {
-                    _peers[peerId] = new PeerState { PeerId = peerId, Connection = pc };
+                    // Merge into existing PeerState if OnDataChannel already created one for this peer.
+                    if (!_peers.TryGetValue(peerId, out var peer))
+                    {
+                        peer = new PeerState { PeerId = peerId };
+                        _peers[peerId] = peer;
+                    }
+                    peer.Connection = pc;
                     var name = peerId.Length >= 8 ? peerId[..8] : peerId;
                     AddMessage("System", $"{name} connected", false);
                     StateHasChanged();
@@ -358,11 +364,19 @@
                     StateHasChanged();
                 });
 
-                // Store the channel on the peer (peer should exist - OnPeerConnection fires first)
-                if (_peers.TryGetValue(peerId, out var peerState))
+                // Associate the channel with the peer via the UI-thread context so we share
+                // ordering with OnPeerConnection's InvokeAsync. OnPeerConnection and
+                // OnDataChannel can fire in either order relative to _peers mutations; create
+                // the PeerState if missing so the channel is never dropped.
+                InvokeAsync(() =>
                 {
+                    if (!_peers.TryGetValue(peerId, out var peerState))
+                    {
+                        peerState = new PeerState { PeerId = peerId };
+                        _peers[peerId] = peerState;
+                    }
                     peerState.ChatChannel = channel;
-                }
+                });
             };
 
             _handler.OnPeerDisconnected += peerId => InvokeAsync(() =>
