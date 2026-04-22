@@ -49,7 +49,7 @@ dotnet publish -c Release -r osx-arm64 --self-contained \
 The resulting binary lives at `bin/Release/net10.0/<rid>/publish/SpawnDev.RTC.ServerApp` (or `.exe` on Windows). Copy it to the server. Run it:
 
 ```bash
-ASPNETCORE_URLS=http://0.0.0.0:5580 ./SpawnDev.RTC.ServerApp
+ASPNETCORE_URLS=http://0.0.0.0:5590 ./SpawnDev.RTC.ServerApp
 ```
 
 ## Shape 3: systemd on Linux
@@ -69,7 +69,7 @@ WorkingDirectory=/opt/rtc-signaling
 ExecStart=/opt/rtc-signaling/SpawnDev.RTC.ServerApp
 Restart=on-failure
 RestartSec=5
-Environment=ASPNETCORE_URLS=http://0.0.0.0:5580
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5590
 # Optional: tune the tracker
 Environment=RTC__AnnounceIntervalSeconds=120
 Environment=RTC__MaxPeersPerAnnounce=50
@@ -99,13 +99,13 @@ sudo systemctl status rtc-signaling
 
 ## Reverse proxy configs
 
-Browsers require TLS for WebSocket connections to any origin that isn't `localhost`. Do not expose the raw `http://:5580` port to the public internet. Always front it with one of these.
+Browsers require TLS for WebSocket connections to any origin that isn't `localhost`. Do not expose the raw `http://:5590` port to the public internet. Always front it with one of these.
 
 ### Caddy (simplest)
 
 ```caddy
 tracker.example.com {
-    reverse_proxy localhost:5580
+    reverse_proxy localhost:5590
 }
 ```
 
@@ -122,7 +122,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/tracker.example.com/privkey.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:5580;
+        proxy_pass http://127.0.0.1:5590;
         proxy_http_version 1.1;
 
         # WebSocket upgrade - required for /announce
@@ -150,7 +150,7 @@ frontend fe_tracker
 
 backend be_tracker
     option forwardfor
-    server rtc 127.0.0.1:5580 check
+    server rtc 127.0.0.1:5590 check
 ```
 
 ### Cloudflare
@@ -168,7 +168,7 @@ All settings read from `appsettings.json`, environment variables (double undersc
 | `RTC:MaxPeersPerAnnounce` | `RTC__MaxPeersPerAnnounce` | `50` | Ceiling on peer list per announce response |
 | `RTC:MaxMessageBytes` | `RTC__MaxMessageBytes` | `1000000` | Drop WebSocket frames above this size |
 | `RTC:SendTimeoutMs` | `RTC__SendTimeoutMs` | `10000` | Per-send timeout when forwarding relays |
-| `ASPNETCORE_URLS` | `ASPNETCORE_URLS` | `http://0.0.0.0:5580` | Listen address(es). Override for TLS or a different port. |
+| `ASPNETCORE_URLS` | `ASPNETCORE_URLS` | `http://0.0.0.0:5590` | Listen address(es). Override for TLS or a different port. |
 
 ## Verifying your deployment
 

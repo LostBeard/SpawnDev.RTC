@@ -3,7 +3,7 @@ using SpawnDev.RTC.Server;
 using SpawnDev.RTC.Server.Extensions;
 
 // SpawnDev.RTC.ServerApp - minimal standalone host for the WebTorrent-compatible
-// signaling tracker. Zero-config startup: runs on port 5580 over HTTP by default
+// signaling tracker. Zero-config startup: runs on port 5590 over HTTP by default
 // (override with ASPNETCORE_URLS for TLS or a reverse proxy). Docker image binds
 // 0.0.0.0:8080.
 
@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Default dev binding. ASPNETCORE_URLS overrides unconditionally, which is what
 // container images and production deployments should use.
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
-    builder.WebHost.UseUrls("http://0.0.0.0:5580");
+    builder.WebHost.UseUrls("http://0.0.0.0:5590");
 
 // Trust X-Forwarded-* headers from a reverse proxy (nginx / haproxy / Caddy /
 // Traefik / Cloudflare). Without this, ctx.Request.Scheme reflects the internal
