@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0-rc.4 (2026-04-22)
+
+### Desktop GetStats + stronger test coverage
+
+- `DesktopRTCStatsReport` now emits W3C-standard `dataChannelsOpened` / `dataChannelsClosed` on the `peer-connection` entry, derived from `SIPSorcery.Net.RTCPeerConnection.DataChannels`. Existing Desktop-specific extras (`connectionState`, `signalingState`, `iceGatheringState`, `iceConnectionState`) remain on the same entry for monitoring tools.
+- `PeerConnection_GetStats` test strengthened: waits for DC open, asserts `peer-connection` + `transport` entries exist, asserts W3C `dataChannelsOpened >= 1` after opening a DC, and on Desktop asserts `connectionState == "connected"` post-handshake. Runs on both browser + desktop.
+- New `ServerApp.SmokeTest`: launches `SpawnDev.RTC.ServerApp` as a subprocess on default port 5590, polls `/health` until ready, then verifies `/`, `/health`, `/stats` JSON shapes + a real `TrackerSignalingClient` announce round-trip. Kills the subprocess on teardown.
+- Full RTC PlaywrightMultiTest suite: **253 / 0 / 0** at this ship (`1.1.0-rc.3` baseline of 252 plus the new ServerApp smoke test).
+
 ## 1.1.0-rc.3 (2026-04-22)
 
 ### Legacy removal

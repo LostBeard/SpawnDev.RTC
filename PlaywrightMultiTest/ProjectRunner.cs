@@ -463,9 +463,142 @@ namespace PlaywrightMultiTest
                         TestFunc = async (_) => await SignalingRoomIsolationTest(blazor2),
                     }).SetName("Signaling.RoomIsolation").SetCategory("Signaling");
 
+                    yield return new TestCaseData(new ProjectTest(blazor2, "ServerApp", "SmokeTest")
+                    {
+                        TestFunc = async (_) => await ServerAppSmokeTest(),
+                    }).SetName("ServerApp.SmokeTest").SetCategory("ServerApp");
+
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Launches <c>SpawnDev.RTC.ServerApp</c> as a subprocess on its default port
+        /// (5590), waits for it to become healthy, and exercises the three public
+        /// endpoints (<c>/</c>, <c>/health</c>, <c>/stats</c>) plus one real announce
+        /// via <see cref="SpawnDev.RTC.Signaling.TrackerSignalingClient"/>. Verifies
+        /// the documented JSON shapes so consumers who build monitoring dashboards or
+        /// alerting against these endpoints have a contract they can rely on.
+        /// </summary>
+        private static async Task ServerAppSmokeTest()
+        {
+            var serverAppDir = FindServerAppDirectory();
+            if (serverAppDir == null)
+            {
+                throw new Exception("SpawnDev.RTC.ServerApp project not found on disk");
+            }
+            const int port = 5590;
+            var baseUrl = $"http://localhost:{port}";
+
+            var proc = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo("dotnet", "run -c Debug")
+                {
+                    WorkingDirectory = serverAppDir,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    Environment = { ["ASPNETCORE_URLS"] = baseUrl },
+                },
+                EnableRaisingEvents = true,
+            };
+            proc.OutputDataReceived += (_, e) => { if (e.Data != null) LogStatus($"[ServerApp] {e.Data}"); };
+            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) LogStatus($"[ServerApp-err] {e.Data}"); };
+            proc.Start();
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+
+            try
+            {
+                using var http = new HttpClient();
+
+                // Wait for /health to be reachable. ServerApp is a trimmed host with no
+                // heavy deps, so it should be up within a few seconds on a cold dotnet run
+                // (first run may take longer due to JIT + publish).
+                string? healthJson = null;
+                for (int i = 0; i < 60; i++)
+                {
+                    try
+                    {
+                        var r = await http.GetAsync($"{baseUrl}/health");
+                        if (r.IsSuccessStatusCode) { healthJson = await r.Content.ReadAsStringAsync(); break; }
+                    }
+                    catch { }
+                    await Task.Delay(1000);
+                }
+                if (healthJson == null) throw new Exception($"ServerApp /health unreachable after 60s on {baseUrl}");
+
+                var health = System.Text.Json.JsonDocument.Parse(healthJson).RootElement;
+                if (!health.TryGetProperty("status", out var statusEl) || statusEl.GetString() != "ok")
+                    throw new Exception($"Expected /health.status='ok', got: {healthJson}");
+                if (!health.TryGetProperty("rooms", out _)) throw new Exception($"/health missing 'rooms': {healthJson}");
+                if (!health.TryGetProperty("peers", out _)) throw new Exception($"/health missing 'peers': {healthJson}");
+
+                // Root endpoint: identity + endpoints list + webtorrentCompatible flag
+                var rootJson = await http.GetStringAsync(baseUrl + "/");
+                var root = System.Text.Json.JsonDocument.Parse(rootJson).RootElement;
+                if (!root.TryGetProperty("name", out var nameEl) || nameEl.GetString() != "SpawnDev.RTC.ServerApp")
+                    throw new Exception($"Expected /.name='SpawnDev.RTC.ServerApp', got: {rootJson}");
+                if (!root.TryGetProperty("webtorrentCompatible", out var compatEl) || !compatEl.GetBoolean())
+                    throw new Exception($"Expected webtorrentCompatible=true, got: {rootJson}");
+
+                // Real announce - pushes the room count on /stats up from 0
+                var room = SpawnDev.RTC.Signaling.RoomKey.FromString("smoke-" + Guid.NewGuid().ToString("N")[..6]);
+                var peerId = NewRandomPeerId();
+                await using (var client = new SpawnDev.RTC.Signaling.TrackerSignalingClient(
+                    baseUrl.Replace("http://", "ws://") + "/announce", peerId))
+                {
+                    var connected = new TaskCompletionSource();
+                    client.OnConnected += () => connected.TrySetResult();
+                    if (await Task.WhenAny(connected.Task, Task.Delay(10_000)) != connected.Task)
+                        throw new Exception("Client did not connect to ServerApp within 10s");
+
+                    var handler = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(
+                        new SpawnDev.RTC.RTCPeerConnectionConfig());
+                    client.Subscribe(room, handler);
+                    await client.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 1 });
+                    // Allow the tracker to register the announce before we query /stats
+                    await Task.Delay(500);
+
+                    var statsJson = await http.GetStringAsync(baseUrl + "/stats");
+                    var stats = System.Text.Json.JsonDocument.Parse(statsJson).RootElement;
+                    if (!stats.TryGetProperty("rooms", out var roomsEl)) throw new Exception($"/stats missing 'rooms': {statsJson}");
+                    if (!stats.TryGetProperty("totalPeers", out var tpEl)) throw new Exception($"/stats missing 'totalPeers': {statsJson}");
+                    if (!stats.TryGetProperty("roomDetails", out var rdEl)) throw new Exception($"/stats missing 'roomDetails': {statsJson}");
+                    if (roomsEl.GetInt32() < 1) throw new Exception($"Expected >= 1 room after announce, got: {statsJson}");
+                    if (tpEl.GetInt32() < 1) throw new Exception($"Expected >= 1 peer after announce, got: {statsJson}");
+                    if (rdEl.ValueKind != System.Text.Json.JsonValueKind.Array) throw new Exception($"Expected roomDetails array, got: {statsJson}");
+
+                    // Each roomDetails entry must carry peers / seeders / leechers counts
+                    foreach (var rd in rdEl.EnumerateArray())
+                    {
+                        if (!rd.TryGetProperty("peers", out _)) throw new Exception($"roomDetails entry missing 'peers': {statsJson}");
+                        if (!rd.TryGetProperty("seeders", out _)) throw new Exception($"roomDetails entry missing 'seeders': {statsJson}");
+                        if (!rd.TryGetProperty("leechers", out _)) throw new Exception($"roomDetails entry missing 'leechers': {statsJson}");
+                    }
+                }
+
+                LogStatus("[ServerApp.SmokeTest] SUCCESS - /health, /, /stats, /announce all behaved");
+            }
+            finally
+            {
+                try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
+                try { proc.Dispose(); } catch { }
+            }
+        }
+
+        private static string? FindServerAppDirectory()
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                var candidate = Path.Combine(dir.FullName, "SpawnDev.RTC.ServerApp", "SpawnDev.RTC.ServerApp.csproj");
+                if (File.Exists(candidate)) return Path.GetDirectoryName(candidate);
+                dir = dir.Parent;
+            }
+            return null;
         }
 
         /// <summary>

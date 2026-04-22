@@ -29,7 +29,14 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             };
 
             pc2.OnDataChannel += _ => { };
-            pc1.CreateDataChannel("stats-test");
+
+            // DC must be created BEFORE the offer (desktop SipSorcery forbids adding DCs
+            // after the SCTP transport has started). Wire OnOpen up-front so we can wait
+            // for DCEP ACK before querying stats - Chrome only bumps dataChannelsOpened
+            // after the ACK, and that can lag connectionState==connected by a few ms.
+            var dcOpened = new TaskCompletionSource<bool>();
+            using var dc = pc1.CreateDataChannel("stats-test");
+            dc.OnOpen += () => dcOpened.TrySetResult(true);
 
             var offer = await pc1.CreateOffer();
             await pc1.SetLocalDescription(offer);
@@ -39,28 +46,55 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             await pc1.SetRemoteDescription(answer);
 
             await Task.WhenAny(connected.Task, Task.Delay(15000));
+            await Task.WhenAny(dcOpened.Task, Task.Delay(10000));
 
             using var stats = await pc1.GetStats();
             if (stats == null) throw new Exception("GetStats returned null");
-
-            // Both platforms now return entries. Browser returns rich per-candidate-pair /
-            // per-codec / per-transport stats from the native stack. Desktop returns a
-            // best-effort peer-connection + transport pair sourced from SipSorcery state.
             if (stats.Size == 0) throw new Exception("Stats should have entries after connection");
-            var keys = stats.Keys();
-            if (keys.Length == 0) throw new Exception("Stats keys should not be empty");
 
-            // Assert at least one entry has a populated Values dict. This guards against
-            // the pre-2026-04-22 bug where BrowserRTCStatsReport left every entry's
-            // Values empty (dropping bytesReceived / rtt / packetsLost / jitter) and
-            // DesktopRTCStatsReport returned nothing at all. We don't assert specific
-            // field names because the W3C-standard fields vary across stat types
-            // (e.g. peer-connection stats only have dataChannelsOpened/Closed; transport
-            // stats have dtlsState; candidate-pair has roundTripTime; etc.).
             var entries = stats.Entries();
-            var populated = entries.Where(e => e.Values.Count > 0).ToArray();
-            if (populated.Length == 0)
-                throw new Exception($"No stats entry has populated Values. Types found: {string.Join(",", entries.Select(e => e.Type).Distinct())}");
+            var types = string.Join(",", entries.Select(e => e.Type).Distinct());
+
+            // ---- W3C RTCPeerConnectionStats: every implementation must emit this ----
+            var pcEntry = entries.FirstOrDefault(e => e.Type == "peer-connection");
+            if (pcEntry == null)
+                throw new Exception($"No peer-connection entry. Types found: {types}");
+            if (pcEntry.Values.Count == 0)
+                throw new Exception("peer-connection entry has empty Values dict");
+
+            // Both platforms must populate the two W3C-standard cumulative counters.
+            // Protects against the pre-2026-04-22 bug where Browser's Values was empty
+            // and Desktop returned nothing at all.
+            if (!pcEntry.Values.ContainsKey("dataChannelsOpened"))
+                throw new Exception($"peer-connection missing 'dataChannelsOpened'. Keys: {string.Join(",", pcEntry.Values.Keys)}");
+            if (!pcEntry.Values.ContainsKey("dataChannelsClosed"))
+                throw new Exception($"peer-connection missing 'dataChannelsClosed'. Keys: {string.Join(",", pcEntry.Values.Keys)}");
+
+            // After the DC opens, dataChannelsOpened must reflect it. Snapshot semantics
+            // on Desktop, cumulative on Browser - both are >= 1 here.
+            var opened = Convert.ToInt64(pcEntry.Values["dataChannelsOpened"] ?? 0L);
+            if (opened < 1)
+                throw new Exception($"Expected dataChannelsOpened >= 1 after opening a DC, got {opened}");
+
+            // ---- Transport entry: every implementation should emit at least one ----
+            var transport = entries.FirstOrDefault(e => e.Type == "transport");
+            if (transport == null)
+                throw new Exception($"No transport entry. Types found: {types}");
+            if (transport.Values.Count == 0)
+                throw new Exception("transport entry has empty Values dict");
+
+            // ---- Desktop-specific: SipSorcery state fields are surfaced on Desktop ----
+            // These are non-standard W3C extras that DesktopRTCStatsReport injects so
+            // monitoring tools can read connection state from the stats dump without a
+            // second API call. Browser exposes this via RTCPeerConnection.connectionState
+            // directly, so the test only asserts the Desktop side.
+            if (!OperatingSystem.IsBrowser())
+            {
+                if (!pcEntry.Values.TryGetValue("connectionState", out var csObj) || csObj is not string cs)
+                    throw new Exception("Desktop peer-connection missing 'connectionState' string");
+                if (cs != "connected")
+                    throw new Exception($"Desktop connectionState should be 'connected' after handshake, got '{cs}'");
+            }
         }
 
         /// <summary>

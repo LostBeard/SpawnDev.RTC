@@ -5,7 +5,7 @@
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.0-rc.1</Version>
+		<Version>1.0.0-rc.2</Version>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<Description>SpawnDev.RTC standalone signaling server. WebTorrent-compatible WebSocket tracker with generic room signaling. Zero-config startup - run the exe or the Docker image and consumers have a signaling endpoint. Designed for multiplayer games, collaborative tools, voice chat, agent swarms, distributed compute, and anyone else who needs serverless WebRTC discovery without renting SaaS.</Description>
 		<Authors>LostBeard</Authors>
