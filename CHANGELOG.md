@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0-rc.3 (2026-04-22)
+
+### Legacy removal
+
+The custom `/signal/{roomId}` protocol from the pre-tracker-migration era is deleted. The WebTorrent-tracker-compatible signaling (`SpawnDev.RTC.Signaling.TrackerSignalingClient` + `SpawnDev.RTC.Server.TrackerSignalingServer`) replaces it in full.
+
+- Removed: `SpawnDev.RTC/RTCSignalClient.cs` (the custom-protocol client).
+- Removed: `SpawnDev.RTC.SignalServer/` project (the custom-protocol standalone server).
+- Removed: `PlaywrightMultiTest/StaticFileServer` `/signal/{roomId}` endpoint + `SignalRoom` / `SignalPeer` support types.
+- Removed: `PlaywrightMultiTest/ProjectRunner` `CrossPlatform.Desktop_Browser_DataChannel` test + `RunDesktopSignalPeer` helper - superseded by `Signaling.CrossPlatform_BrowserDesktop` which tests the same scenario through the tracker wire protocol.
+- `_run-demo.bat` now launches `SpawnDev.RTC.ServerApp` (standalone tracker on `http://localhost:5590`) instead of the deleted SignalServer.
+
+The codebase is < a month old, so no external consumer is relying on these - this is a clean cut, not a deprecation dance.
+
 ## 1.1.0-rc.2 (2026-04-22)
 
 ### GetStats fix on both platforms
@@ -62,9 +76,9 @@ Initial release. Built from scratch in a single day.
 - DTMF: InsertDTMF, ToneBuffer
 - Transport abstractions: DTLS, ICE, SCTP
 - Configuration: BundlePolicy, IceTransportPolicy, IceCandidatePoolSize
-- RTCTrackerClient: serverless signaling via WebTorrent tracker protocol
-- RTCSignalClient: custom WebSocket signal server client
-- Signal server: standalone + embedded in test infrastructure
+- RTCTrackerClient: serverless signaling via WebTorrent tracker protocol (removed in 1.1.0-rc.1; replaced by `SpawnDev.RTC.Signaling.TrackerSignalingClient`)
+- RTCSignalClient: custom WebSocket signal server client (removed in 1.1.0-rc.3; replaced by `SpawnDev.RTC.Signaling.TrackerSignalingClient`)
+- Signal server: standalone + embedded in test infrastructure (removed in 1.1.0-rc.3; replaced by `SpawnDev.RTC.Server` + `SpawnDev.RTC.ServerApp`)
 
 ### Demos
 - Browser ChatRoom: video/audio/text conference with swarm signaling

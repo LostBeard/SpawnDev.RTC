@@ -194,7 +194,10 @@ SpawnDev.RTC (cross-platform WebRTC)
     +-- IRTCDtlsTransport      (DTLS state, ICE transport)
     +-- IRTCSctpTransport      (SCTP for data channels)
     +-- RTCMediaDevices         (getUserMedia, getDisplayMedia, enumerateDevices)
-    +-- RTCSignalClient        (drop-in signaling + peer management)
+    +-- SpawnDev.RTC.Signaling  (WebTorrent-tracker-compatible signaling)
+    |     +-- RoomKey                (20-byte room identifier)
+    |     +-- TrackerSignalingClient (shared socket pool, reconnect, announce)
+    |     +-- RtcPeerConnectionRoomHandler (default PC-per-peer handler)
     |
     +-- Browser (Blazor WASM)
     |       Native RTCPeerConnection via SpawnDev.BlazorJS
@@ -218,7 +221,6 @@ SpawnDev.RTC (cross-platform WebRTC)
 | SpawnDev.RTC.Demo.Shared | Shared test methods - run on both browser and desktop |
 | SpawnDev.RTC.DemoConsole | Desktop test runner + text chat mode (`dotnet run -- chat`) |
 | SpawnDev.RTC.WpfDemo | WPF desktop chat room - peer list, text chat, mute controls |
-| SpawnDev.RTC.SignalServer | Legacy custom-protocol signal server kept for reference - new consumers should prefer `SpawnDev.RTC.ServerApp` |
 | PlaywrightMultiTest | Automated test runner - tests across browser + desktop + cross-platform |
 
 ### SpawnDev.RTC.Server + SpawnDev.RTC.ServerApp

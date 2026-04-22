@@ -1,14 +1,14 @@
 @echo off
 echo Starting SpawnDev.RTC Demo...
 echo.
-echo Signal Server: https://localhost:5571
-echo Blazor Demo:   will open in browser automatically
+echo Tracker:      http://localhost:5590  (WebTorrent-compatible signaling, /announce)
+echo Blazor Demo:  will open in browser automatically
 echo.
 echo Open multiple browser tabs at the same URL to test multi-peer chat.
 echo Join the same room name in each tab.
 echo.
 
-start "SignalServer" dotnet run --project SpawnDev.RTC.SignalServer\SpawnDev.RTC.SignalServer.csproj
+start "RTC.ServerApp" dotnet run --project SpawnDev.RTC.ServerApp\SpawnDev.RTC.ServerApp.csproj
 timeout /t 2 /nobreak >nul
 start "BlazorDemo" dotnet run --project SpawnDev.RTC.Demo\SpawnDev.RTC.Demo.csproj --launch-profile https
 
