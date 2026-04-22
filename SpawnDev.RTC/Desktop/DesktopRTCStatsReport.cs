@@ -26,6 +26,16 @@ namespace SpawnDev.RTC.Desktop
             {
                 var timestamp = (double)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+                // W3C RTCPeerConnectionStats: standard fields are dataChannelsOpened /
+                // dataChannelsClosed (cumulative counters). Desktop derives them as a
+                // snapshot from the live DataChannels collection - any DC not currently
+                // closed is counted as "opened", any closed one as "closed". Close enough
+                // for monitoring; not byte-for-byte the W3C cumulative-over-lifetime
+                // semantic, which would need class-level state tracking.
+                var dcs = pc.DataChannels;
+                var dcOpened = dcs.Count(c => c.readyState != RTCDataChannelState.closed);
+                var dcClosed = dcs.Count(c => c.readyState == RTCDataChannelState.closed);
+
                 list.Add(new RTCStatsEntry
                 {
                     Id = "pc",
@@ -33,6 +43,12 @@ namespace SpawnDev.RTC.Desktop
                     Timestamp = timestamp,
                     Values = new Dictionary<string, object?>
                     {
+                        // W3C-spec fields (RTCPeerConnectionStats)
+                        ["dataChannelsOpened"] = (long)dcOpened,
+                        ["dataChannelsClosed"] = (long)dcClosed,
+                        // Extra fields - not on the W3C peer-connection stats type, but
+                        // surfaced here because SipSorcery does not expose a separate
+                        // stats entry for connection state and monitoring tools want it.
                         ["connectionState"] = ToW3CState(pc.connectionState.ToString()),
                         ["signalingState"] = ToW3CSignalingState(pc.signalingState.ToString()),
                         ["iceGatheringState"] = ToW3CState(pc.iceGatheringState.ToString()),
