@@ -19,6 +19,8 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 - **Media streams** - Audio and video capture, tracks, and stream management
 - **ICE with STUN/TURN** - Full ICE candidate gathering, connectivity checks, and relay fallback
 - **SCTP** - Complete SCTP implementation for data channel transport
+- **WebTorrent-compatible signaling** - [`SpawnDev.RTC.Signaling`](Docs/signaling-overview.md) speaks the WebTorrent tracker wire protocol. Public trackers (`wss://tracker.openwebtorrent.com`) work out of the box; no server to host for the default case.
+- **Self-hostable signaling server** - [`SpawnDev.RTC.Server`](#spawndevrtcserver--spawndevrtcserverapp) (library) and `SpawnDev.RTC.ServerApp` (exe + Docker image) let any ASP.NET Core app host its own tracker with one line of code. See [Docs/run-a-tracker.md](Docs/run-a-tracker.md).
 - **No native dependencies** - Pure C# on desktop, native browser APIs in WASM
 - **Native access** - Cast once at creation to access platform-specific features (BlazorJS JSObjects in WASM, SipSorcery in desktop)
 
@@ -101,30 +103,34 @@ channel.OnArrayBufferMessage += (arrayBuffer) =>
 channel.OnBinaryMessage += (bytes) => ProcessInDotNet(bytes);
 ```
 
-### Built-in Signaling Client
+### WebTorrent-Compatible Signaling (`SpawnDev.RTC.Signaling`)
 
-SpawnDev.RTC includes a drop-in signaling client that handles the SDP offer/answer exchange and ICE candidate trickle automatically:
+Connect to any WebTorrent-protocol tracker - the public fleet or your own self-hosted - for room-based peer discovery. The same `RoomKey` bytes addresses a room whether peers use `SpawnDev.RTC`, plain JS WebTorrent, or any other BitTorrent-over-WebRTC client:
 
 ```csharp
-// Connect to a signal server room
-var signal = new RTCSignalClient("wss://server/signal/my-room", config);
+using SpawnDev.RTC;
+using SpawnDev.RTC.Signaling;
 
-// Called when a new peer connection is created - add your data channels here
-signal.OnPeerConnectionCreated = async (pc, peerId) =>
+var peerId = new byte[20];
+System.Security.Cryptography.RandomNumberGenerator.Fill(peerId);
+var room = RoomKey.FromString("my-lobby-42"); // SHA-1 of UTF-8; no trim, no lowercase
+
+var config = new RTCPeerConnectionConfig
 {
-    var dc = pc.CreateDataChannel("chat");
-    dc.OnOpen += () => dc.Send("Hello!");
+    IceServers = new[] { new RTCIceServerConfig { Urls = "stun:stun.l.google.com:19302" } }
 };
 
-// Called when a remote peer opens a data channel to you
-signal.OnDataChannel += (channel, peerId) =>
-{
-    channel.OnStringMessage += msg => Console.WriteLine($"[{peerId}]: {msg}");
-};
+var handler = new RtcPeerConnectionRoomHandler(config);
+handler.OnPeerConnection += (pc, peerId) => { /* pc is ready, add tracks/channels */ };
+handler.OnDataChannel    += (channel, peerId) => { /* remote opened a DC */ };
 
-await signal.ConnectAsync();
-// That's it - peers discover each other, exchange SDP, connect via WebRTC
+await using var client = new TrackerSignalingClient("wss://tracker.openwebtorrent.com/announce", peerId);
+client.Subscribe(room, handler);
+await client.AnnounceAsync(room, new AnnounceOptions { Event = "started", NumWant = 5 });
+// That's it - peers in the same room find each other and establish WebRTC.
 ```
+
+The tracker is out of the loop once peers meet; all subsequent traffic goes peer-to-peer over the data channel. See [Docs/signaling-overview.md](Docs/signaling-overview.md) and [Docs/use-cases.md](Docs/use-cases.md) for more examples.
 
 ### Device Enumeration
 
@@ -205,13 +211,45 @@ SpawnDev.RTC (cross-platform WebRTC)
 
 | Project | Purpose |
 |---------|---------|
-| SpawnDev.RTC | Core library - cross-platform WebRTC abstraction (NuGet package) |
+| SpawnDev.RTC | Core library - cross-platform WebRTC abstraction + `SpawnDev.RTC.Signaling` namespace (NuGet package) |
+| SpawnDev.RTC.Server | ASP.NET Core library - adds `app.UseRtcSignaling("/announce")` to any web app so it hosts a WebTorrent-compatible tracker (NuGet package) |
+| SpawnDev.RTC.ServerApp | Standalone executable + Docker image - zero-config signaling server on port 5590 (or override via `ASPNETCORE_URLS`). See [Docs/run-a-tracker.md](Docs/run-a-tracker.md) |
 | SpawnDev.RTC.Demo | Blazor WASM app - ChatRoom (video/audio/text) + unit tests |
 | SpawnDev.RTC.Demo.Shared | Shared test methods - run on both browser and desktop |
 | SpawnDev.RTC.DemoConsole | Desktop test runner + text chat mode (`dotnet run -- chat`) |
 | SpawnDev.RTC.WpfDemo | WPF desktop chat room - peer list, text chat, mute controls |
-| SpawnDev.RTC.SignalServer | Standalone WebSocket signal server for WebRTC |
+| SpawnDev.RTC.SignalServer | Legacy custom-protocol signal server kept for reference - new consumers should prefer `SpawnDev.RTC.ServerApp` |
 | PlaywrightMultiTest | Automated test runner - tests across browser + desktop + cross-platform |
+
+### SpawnDev.RTC.Server + SpawnDev.RTC.ServerApp
+
+Anyone who needs WebRTC signaling can host their own tracker with one of three deploy shapes:
+
+**Drop-in one liner for your existing ASP.NET Core app:**
+
+```csharp
+// Program.cs - add alongside whatever else your app does
+app.UseWebSockets();
+app.UseRtcSignaling("/announce");
+```
+
+**Standalone executable (no code required):**
+
+```bash
+# From source
+dotnet run --project SpawnDev.RTC/SpawnDev.RTC.ServerApp
+# /announce (WebSocket), /health, /stats on port 5590
+```
+
+**Docker:**
+
+```bash
+docker run -d -p 8080:8080 --restart unless-stopped \
+  --name rtc-signaling \
+  ghcr.io/lostbeard/rtc-signaling:latest
+```
+
+The wire format is bit-compatible with the public WebTorrent tracker fleet - a plain JS WebTorrent client can torrent through your server, and any SpawnDev.RTC consumer can meet peers through a public WebTorrent tracker. See [Docs/run-a-tracker.md](Docs/run-a-tracker.md) for reverse-proxy configs (Caddy / nginx / haproxy / Cloudflare), systemd units, and operational notes.
 
 ## Dependencies
 
@@ -239,18 +277,11 @@ dotnet run --project SpawnDev.RTC.DemoConsole -- chat
 
 ### Serverless Signaling (WebTorrent Tracker)
 
-All demos use the public `wss://tracker.openwebtorrent.com` for signaling - no server deployment needed. Room names are hashed to BitTorrent-compatible infohashes. Works on GitHub Pages.
+All demos use the public `wss://tracker.openwebtorrent.com` for signaling - no server deployment needed. Room names are hashed to BitTorrent-compatible infohashes via `RoomKey.FromString(...)`. Works on GitHub Pages.
 
-### Signal Server (Optional)
+### Self-hosted Signaling Server
 
-Included for custom deployments and testing. Room-based WebSocket signaling.
-
-```bash
-# Standalone
-dotnet run --project SpawnDev.RTC.SignalServer
-
-# Also embedded in PlaywrightMultiTest for cross-platform tests
-```
+For private deployments, run `SpawnDev.RTC.ServerApp` (see [Solution Structure](#spawndevrtcserver--spawndevrtcserverapp) above) or embed `SpawnDev.RTC.Server` into an existing ASP.NET Core app with a single `app.UseRtcSignaling("/announce")` call. Both host the same WebTorrent-protocol tracker - clients using the public fleet and clients using your server can't tell the difference, and WebTorrent clients treat it as just another tracker URL.
 
 ## Test Results
 
