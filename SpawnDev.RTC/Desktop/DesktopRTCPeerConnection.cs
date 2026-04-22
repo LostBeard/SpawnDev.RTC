@@ -306,9 +306,10 @@ namespace SpawnDev.RTC.Desktop
 
         public Task<IRTCStatsReport> GetStats()
         {
-            // SipSorcery doesn't have browser-compatible stats
-            // Return an empty report
-            return Task.FromResult<IRTCStatsReport>(new DesktopRTCStatsReport());
+            // SipSorcery doesn't expose browser-style per-codec / per-candidate-pair
+            // counters, but we can surface connection-level + transport-level state
+            // as `peer-connection` and `transport` entries. Richer than empty.
+            return Task.FromResult<IRTCStatsReport>(new DesktopRTCStatsReport(NativeConnection));
         }
 
         public void Close() => NativeConnection.close();

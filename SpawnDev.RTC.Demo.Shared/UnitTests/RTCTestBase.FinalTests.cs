@@ -43,13 +43,24 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             using var stats = await pc1.GetStats();
             if (stats == null) throw new Exception("GetStats returned null");
 
-            // Browser should have stats entries, desktop returns empty (SipSorcery limitation)
-            if (OperatingSystem.IsBrowser())
-            {
-                if (stats.Size == 0) throw new Exception("Browser stats should have entries after connection");
-                var keys = stats.Keys();
-                if (keys.Length == 0) throw new Exception("Browser stats keys should not be empty");
-            }
+            // Both platforms now return entries. Browser returns rich per-candidate-pair /
+            // per-codec / per-transport stats from the native stack. Desktop returns a
+            // best-effort peer-connection + transport pair sourced from SipSorcery state.
+            if (stats.Size == 0) throw new Exception("Stats should have entries after connection");
+            var keys = stats.Keys();
+            if (keys.Length == 0) throw new Exception("Stats keys should not be empty");
+
+            // Assert at least one entry has a populated Values dict. This guards against
+            // the pre-2026-04-22 bug where BrowserRTCStatsReport left every entry's
+            // Values empty (dropping bytesReceived / rtt / packetsLost / jitter) and
+            // DesktopRTCStatsReport returned nothing at all. We don't assert specific
+            // field names because the W3C-standard fields vary across stat types
+            // (e.g. peer-connection stats only have dataChannelsOpened/Closed; transport
+            // stats have dtlsState; candidate-pair has roundTripTime; etc.).
+            var entries = stats.Entries();
+            var populated = entries.Where(e => e.Values.Count > 0).ToArray();
+            if (populated.Length == 0)
+                throw new Exception($"No stats entry has populated Values. Types found: {string.Join(",", entries.Select(e => e.Type).Distinct())}");
         }
 
         /// <summary>
