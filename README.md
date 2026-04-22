@@ -243,12 +243,13 @@ dotnet run --project SpawnDev.RTC/SpawnDev.RTC.ServerApp
 # /announce (WebSocket), /health, /stats on port 5590
 ```
 
-**Docker:**
+**Docker** (build from source; a published image is planned but not yet on a public registry):
 
 ```bash
+docker build -t spawndev/rtc-signaling -f SpawnDev.RTC/SpawnDev.RTC.ServerApp/Dockerfile SpawnDev.RTC
 docker run -d -p 8080:8080 --restart unless-stopped \
   --name rtc-signaling \
-  ghcr.io/lostbeard/rtc-signaling:latest
+  spawndev/rtc-signaling
 ```
 
 The wire format is bit-compatible with the public WebTorrent tracker fleet - a plain JS WebTorrent client can torrent through your server, and any SpawnDev.RTC consumer can meet peers through a public WebTorrent tracker. See [Docs/run-a-tracker.md](Docs/run-a-tracker.md) for reverse-proxy configs (Caddy / nginx / haproxy / Cloudflare), systemd units, and operational notes.

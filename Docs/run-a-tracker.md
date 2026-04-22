@@ -4,23 +4,20 @@
 
 There are three common deploy shapes. Pick the one that matches your ops. All three front the server with TLS via a reverse proxy - browsers will refuse WebSocket connections that aren't either same-origin or TLS.
 
-## Shape 1: Docker (one line)
+## Shape 1: Docker
 
-```bash
-docker run -d -p 8080:8080 --restart unless-stopped \
-  --name rtc-signaling \
-  ghcr.io/lostbeard/rtc-signaling:latest
-```
-
-Done. The container listens on `0.0.0.0:8080`. Front it with your reverse proxy of choice (examples below). The container exposes `/announce` for WebSocket, plus `/health` and `/stats` for ops.
-
-To build the image yourself from source:
+Build from source (a published image is planned but not yet on a public registry):
 
 ```bash
 git clone https://github.com/LostBeard/SpawnDev.RTC.git
 cd SpawnDev.RTC
 docker build -t spawndev/rtc-signaling -f SpawnDev.RTC/SpawnDev.RTC.ServerApp/Dockerfile SpawnDev.RTC
+docker run -d -p 8080:8080 --restart unless-stopped \
+  --name rtc-signaling \
+  spawndev/rtc-signaling
 ```
+
+The container listens on `0.0.0.0:8080`. Front it with your reverse proxy of choice (examples below). The container exposes `/announce` for WebSocket, plus `/health` and `/stats` for ops.
 
 ## Shape 2: Single binary on bare metal
 
