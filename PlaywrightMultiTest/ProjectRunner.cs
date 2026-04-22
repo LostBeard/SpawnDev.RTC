@@ -468,6 +468,17 @@ namespace PlaywrightMultiTest
                         TestFunc = async (_) => await ServerAppSmokeTest(),
                     }).SetName("ServerApp.SmokeTest").SetCategory("ServerApp");
 
+                    // Interop with real JS WebTorrent library is verified manually against
+                    // hub.spawndev.com (2026-04-22): JS WebTorrent browser -> JS WebTorrent
+                    // browser works, JS WebTorrent browser -> SpawnDev.WebTorrent C# client
+                    // works. An automated Playwright version was attempted with two WebTorrent
+                    // instances in one browser page but fails because a single browser process
+                    // can't cleanly loopback-WebRTC between two in-page clients sharing the
+                    // same device. A proper automated version needs two browser contexts, out
+                    // of scope for this release; the tracker wire itself is already exercised
+                    // by Signaling.CrossPlatform_BrowserDesktop + Signaling.Embedded_TwoPeers
+                    // + Signaling.RoomIsolation + ServerApp.SmokeTest.
+
                     break;
                 }
             }
