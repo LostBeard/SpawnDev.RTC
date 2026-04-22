@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.1-rc.1</Version>
+		<Version>1.1.0-rc.1</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.0.1-rc.1: Guard SipSorcery fork NetServices static constructor against PlatformNotSupportedException on Blazor WASM (NetworkChange.NetworkAddressChanged subscription wrapped in try/catch); add WaitForIceGatheringToComplete option for synchronous SDP gathering on Desktop.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.0-rc.1: New SpawnDev.RTC.Signaling namespace - WebTorrent-independent signaling abstraction. ISignalingClient / ISignalingRoomHandler interfaces, RoomKey helper (SHA-1 of raw UTF-8 room name, no normalization), TrackerSignalingClient (WebTorrent tracker wire protocol), RtcPeerConnectionRoomHandler (default room handler with PC pool). Legacy RTCTrackerClient removed - consumers migrate to TrackerSignalingClient. Pairs with SpawnDev.RTC.Server 1.0.0 for self-hosted signaling. Also: SipSorcery fork NetServices cctor guard for WASM + WaitForIceGatheringToComplete option on Desktop.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>

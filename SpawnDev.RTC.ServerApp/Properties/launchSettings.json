@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SpawnDev.RTC.ServerApp": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5580",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
