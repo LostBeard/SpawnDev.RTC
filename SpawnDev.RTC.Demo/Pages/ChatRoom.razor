@@ -330,6 +330,7 @@
 
             _handler.OnPeerConnection += (pc, peerId) =>
             {
+                Console.WriteLine($"[ChatRoom] OnPeerConnection peerId={peerId[..Math.Min(8, peerId.Length)]}");
                 InvokeAsync(() =>
                 {
                     // Merge into existing PeerState if OnDataChannel already created one for this peer.
@@ -343,14 +344,17 @@
                     AddMessage("System", $"{name} connected", false);
                     StateHasChanged();
                     AttachPendingVideoTracks();
+                    Console.WriteLine($"[ChatRoom] _peers count now {_peers.Count}, peer {name} Connection={(peer.Connection != null ? "set" : "null")}");
                 });
             };
 
             _handler.OnDataChannel += (channel, peerId) =>
             {
+                Console.WriteLine($"[ChatRoom] OnDataChannel peerId={peerId[..Math.Min(8, peerId.Length)]} readyState={channel.ReadyState}");
                 // Wire message handler on every data channel we receive
                 channel.OnStringMessage += msg => InvokeAsync(() =>
                 {
+                    Console.WriteLine($"[ChatRoom] incoming chat msg from {peerId[..Math.Min(8, peerId.Length)]}: {msg}");
                     var name = peerId.Length >= 8 ? peerId[..8] : peerId;
                     AddMessage(name, msg, false);
                     StateHasChanged();
@@ -359,6 +363,7 @@
 
                 channel.OnOpen += () => InvokeAsync(() =>
                 {
+                    Console.WriteLine($"[ChatRoom] DataChannel OPEN peerId={peerId[..Math.Min(8, peerId.Length)]}");
                     var name = peerId.Length >= 8 ? peerId[..8] : peerId;
                     AddMessage("System", $"Chat ready with {name}", false);
                     StateHasChanged();
@@ -376,11 +381,13 @@
                         _peers[peerId] = peerState;
                     }
                     peerState.ChatChannel = channel;
+                    Console.WriteLine($"[ChatRoom] stored ChatChannel on peer {peerId[..Math.Min(8, peerId.Length)]} (Connection={(peerState.Connection != null ? "set" : "null")})");
                 });
             };
 
             _handler.OnPeerDisconnected += peerId => InvokeAsync(() =>
             {
+                Console.WriteLine($"[ChatRoom] OnPeerDisconnected peerId={peerId[..Math.Min(8, peerId.Length)]}");
                 if (_peers.TryGetValue(peerId, out var peer))
                 {
                     peer.Dispose();
@@ -394,18 +401,23 @@
             var localPeerId = new byte[20];
             System.Security.Cryptography.RandomNumberGenerator.Fill(localPeerId);
             _tracker = new TrackerSignalingClient(_trackerUrl, localPeerId);
+            Console.WriteLine($"[ChatRoom] localPeerId={Convert.ToHexString(localPeerId)[..8]} tracker={_trackerUrl}");
 
             _tracker.OnConnected += () => InvokeAsync(() =>
             {
+                Console.WriteLine($"[ChatRoom] tracker OnConnected");
                 AddMessage("System", $"Connected to tracker. Waiting for peers...", false);
                 StateHasChanged();
             });
 
             _tracker.Subscribe(_roomKey, _handler);
+            Console.WriteLine($"[ChatRoom] Subscribed to room, announcing started...");
             await _tracker.AnnounceAsync(_roomKey, new AnnounceOptions { Event = "started", NumWant = 5 });
+            Console.WriteLine($"[ChatRoom] Announce complete");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ChatRoom] JoinRoom EXCEPTION: {ex}");
             AddMessage("Error", ex.Message, false);
             StateHasChanged();
         }
