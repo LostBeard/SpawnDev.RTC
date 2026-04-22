@@ -35,6 +35,10 @@
 		<PackageReference Include="SpawnDev.BlazorJS.Cryptography" Version="3.2.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="SpawnDev.RTC.Server" />
+	</ItemGroup>
+
 	<!-- Desktop: reference SipSorcery fork for WebRTC stack -->
 	<ItemGroup>
 		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />

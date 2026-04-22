@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
+using SpawnDev.RTC.Server.Extensions;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
@@ -121,111 +122,9 @@ namespace PlaywrightMultiTest
                     }
                 });
 
-                // WebTorrent tracker protocol endpoint (for TrackerSignalingClient tests)
-                app.Map("/announce", async (HttpContext context) =>
-                {
-                    if (!context.WebSockets.IsWebSocketRequest) { context.Response.StatusCode = 400; return; }
-                    var ws = await context.WebSockets.AcceptWebSocketAsync();
-                    var buffer = new byte[64 * 1024];
-                    string? peerId = null;
-                    try
-                    {
-                        while (ws.State == WebSocketState.Open)
-                        {
-                            var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
-                            if (result.MessageType == WebSocketMessageType.Close) break;
-                            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                            var msg = JsonSerializer.Deserialize<JsonElement>(json);
-                            if (!msg.TryGetProperty("action", out var actionEl) || actionEl.GetString() != "announce") continue;
-
-                            var infoHash = msg.GetProperty("info_hash").GetString()!;
-                            peerId = msg.GetProperty("peer_id").GetString()!;
-
-                            // Handle offers: store and cross-relay with existing peers
-                            if (msg.TryGetProperty("offers", out var offersEl) && offersEl.ValueKind == JsonValueKind.Array)
-                            {
-                                var swarm = TrackerSwarms.GetOrAdd(infoHash, _ => new TrackerSwarm());
-                                swarm.AddPeer(peerId, ws);
-
-                                var offersList = new List<JsonElement>();
-                                foreach (var o in offersEl.EnumerateArray()) offersList.Add(o.Clone());
-
-                                // Relay this peer's offers to existing peers
-                                var otherPeers = swarm.GetOtherPeers(peerId);
-                                int peerIdx = 0;
-                                foreach (var offerItem in offersList)
-                                {
-                                    if (peerIdx >= otherPeers.Length) break;
-                                    var targetPeer = otherPeers[peerIdx++];
-                                    var relay = JsonSerializer.Serialize(new
-                                    {
-                                        action = "announce",
-                                        info_hash = infoHash,
-                                        peer_id = peerId,
-                                        offer = offerItem.GetProperty("offer"),
-                                        offer_id = offerItem.GetProperty("offer_id").GetString(),
-                                    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                                    try { await targetPeer.Socket.SendAsync(Encoding.UTF8.GetBytes(relay), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
-                                }
-
-                                // Store remaining offers for future peers
-                                var remaining = offersList.Skip(peerIdx).ToList();
-                                if (remaining.Count > 0)
-                                    swarm.StoreOffers(peerId, remaining);
-
-                                // Send stored offers from OTHER peers to this new peer
-                                var storedOffer = swarm.TakeStoredOffer(peerId);
-                                while (storedOffer != null)
-                                {
-                                    var (storedPeerId, storedOfferEl) = storedOffer.Value;
-                                    var relay2 = JsonSerializer.Serialize(new
-                                    {
-                                        action = "announce",
-                                        info_hash = infoHash,
-                                        peer_id = storedPeerId,
-                                        offer = storedOfferEl.GetProperty("offer"),
-                                        offer_id = storedOfferEl.GetProperty("offer_id").GetString(),
-                                    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                                    try { await ws.SendAsync(Encoding.UTF8.GetBytes(relay2), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
-                                    storedOffer = swarm.TakeStoredOffer(peerId);
-                                }
-                            }
-                            // Handle answer: relay to the target peer
-                            else if (msg.TryGetProperty("answer", out var answerEl) && msg.TryGetProperty("to_peer_id", out var toPeerEl))
-                            {
-                                var swarm = TrackerSwarms.GetOrAdd(infoHash, _ => new TrackerSwarm());
-                                var targetPeerId = toPeerEl.GetString()!;
-                                var targetPeer = swarm.GetPeer(targetPeerId);
-                                if (targetPeer != null)
-                                {
-                                    var relay = JsonSerializer.Serialize(new
-                                    {
-                                        action = "announce",
-                                        info_hash = infoHash,
-                                        peer_id = peerId,
-                                        answer = answerEl,
-                                        offer_id = msg.TryGetProperty("offer_id", out var oid) ? oid.GetString() : null,
-                                    }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                                    try { await targetPeer.Socket.SendAsync(Encoding.UTF8.GetBytes(relay), WebSocketMessageType.Text, true, CancellationToken.None); } catch { }
-                                }
-                            }
-
-                            // Send announce response
-                            var response = JsonSerializer.Serialize(new { action = "announce", info_hash = infoHash, interval = 120, complete = 0, incomplete = 1 },
-                                new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                            await ws.SendAsync(Encoding.UTF8.GetBytes(response), WebSocketMessageType.Text, true, CancellationToken.None);
-                        }
-                    }
-                    catch (WebSocketException) { }
-                    finally
-                    {
-                        if (peerId != null)
-                        {
-                            foreach (var swarm in TrackerSwarms.Values)
-                                swarm.RemovePeer(peerId);
-                        }
-                    }
-                });
+                // WebTorrent tracker protocol endpoint, served by SpawnDev.RTC.Server.
+                // Dogfoods the library that ships in Phase 2 of the tracker signaling migration.
+                app.UseRtcSignaling("/announce");
 
                 // (optional) add headers that enables: window.crossOriginIsolated == true
                 app.Use(async (context, next) =>
@@ -343,8 +242,6 @@ namespace PlaywrightMultiTest
 
         // --- Signal server types for WebRTC cross-platform tests ---
         private static readonly ConcurrentDictionary<string, SignalRoom> SignalRooms = new();
-        // --- Tracker protocol types ---
-        private static readonly ConcurrentDictionary<string, TrackerSwarm> TrackerSwarms = new();
     }
 
     internal class SignalPeer
@@ -361,35 +258,6 @@ namespace PlaywrightMultiTest
             try { await Socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); }
             finally { _lock.Release(); }
         }
-    }
-
-    internal class TrackerSwarm
-    {
-        private readonly ConcurrentDictionary<string, TrackerPeer> _peers = new();
-        private readonly ConcurrentDictionary<string, List<JsonElement>> _storedOffers = new();
-        public void AddPeer(string peerId, WebSocket ws) => _peers[peerId] = new TrackerPeer(peerId, ws);
-        public void RemovePeer(string peerId) { _peers.TryRemove(peerId, out _); _storedOffers.TryRemove(peerId, out _); }
-        public TrackerPeer? GetPeer(string peerId) => _peers.TryGetValue(peerId, out var p) ? p : null;
-        public TrackerPeer[] GetOtherPeers(string excludeId) => _peers.Values.Where(p => p.PeerId != excludeId).ToArray();
-        public void StoreOffers(string peerId, List<JsonElement> offers) => _storedOffers[peerId] = offers;
-        public (string peerId, JsonElement offer)? TakeStoredOffer(string excludePeerId)
-        {
-            foreach (var kvp in _storedOffers)
-            {
-                if (kvp.Key == excludePeerId || kvp.Value.Count == 0) continue;
-                var offer = kvp.Value[0];
-                kvp.Value.RemoveAt(0);
-                return (kvp.Key, offer);
-            }
-            return null;
-        }
-    }
-
-    internal class TrackerPeer
-    {
-        public string PeerId { get; }
-        public WebSocket Socket { get; }
-        public TrackerPeer(string peerId, WebSocket socket) { PeerId = peerId; Socket = socket; }
     }
 
     internal class SignalRoom

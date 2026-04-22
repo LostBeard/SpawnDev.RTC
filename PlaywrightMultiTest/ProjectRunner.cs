@@ -470,9 +470,97 @@ namespace PlaywrightMultiTest
                         TestFunc = async (page) => await SignalingCrossPlatformTest(page, blazor2),
                     }).SetName("Signaling.CrossPlatform_BrowserDesktop").SetCategory("Signaling");
 
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Signaling", "RoomIsolation")
+                    {
+                        TestFunc = async (_) => await SignalingRoomIsolationTest(blazor2),
+                    }).SetName("Signaling.RoomIsolation").SetCategory("Signaling");
+
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Two raw WebSocket clients announce into two different rooms against the embedded
+        /// <c>SpawnDev.RTC.Server</c> tracker. Each verifies the tracker's announce response
+        /// contains only peers from its own room - peers in room A must never appear in the
+        /// peer list delivered to room B's peer, and vice versa. Exercises the library's
+        /// public <c>UseRtcSignaling</c> surface directly via the dogfooded embedded server.
+        /// </summary>
+        private static async Task SignalingRoomIsolationTest(TestableBlazorWasm blazorProj)
+        {
+            var trackerUrl = blazorProj.Server!.Url.TrimEnd('/').Replace("https://", "wss://") + "/announce";
+            var roomA = SpawnDev.RTC.Signaling.RoomKey.FromString("iso-A-" + Guid.NewGuid().ToString("N")[..6]).ToWireString();
+            var roomB = SpawnDev.RTC.Signaling.RoomKey.FromString("iso-B-" + Guid.NewGuid().ToString("N")[..6]).ToWireString();
+            var peerA = "-RT0100-" + Guid.NewGuid().ToString("N")[..12];
+            var peerB = "-RT0100-" + Guid.NewGuid().ToString("N")[..12];
+            LogStatus($"[Signaling Isolation] Rooms A={roomA.Length} bytes, B={roomB.Length} bytes, peers A={peerA[..8]}, B={peerB[..8]}");
+
+            using var wsA = new System.Net.WebSockets.ClientWebSocket();
+            wsA.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+            using var wsB = new System.Net.WebSockets.ClientWebSocket();
+            wsB.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            await wsA.ConnectAsync(new Uri(trackerUrl), cts.Token);
+            await wsB.ConnectAsync(new Uri(trackerUrl), cts.Token);
+            LogStatus("[Signaling Isolation] Both WS connected");
+
+            await SendIsolationAnnounce(wsA, roomA, peerA, cts.Token);
+            await SendIsolationAnnounce(wsB, roomB, peerB, cts.Token);
+
+            var respA = await ReceiveOneJsonObject(wsA, cts.Token);
+            var respB = await ReceiveOneJsonObject(wsB, cts.Token);
+            LogStatus($"[Signaling Isolation] A response: {respA}");
+            LogStatus($"[Signaling Isolation] B response: {respB}");
+
+            var docA = System.Text.Json.JsonDocument.Parse(respA);
+            var docB = System.Text.Json.JsonDocument.Parse(respB);
+            var peersA = docA.RootElement.TryGetProperty("peers", out var pA) && pA.ValueKind == System.Text.Json.JsonValueKind.Array
+                ? pA.EnumerateArray().Select(e => e.GetProperty("peer_id").GetString()!).ToArray()
+                : Array.Empty<string>();
+            var peersB = docB.RootElement.TryGetProperty("peers", out var pB) && pB.ValueKind == System.Text.Json.JsonValueKind.Array
+                ? pB.EnumerateArray().Select(e => e.GetProperty("peer_id").GetString()!).ToArray()
+                : Array.Empty<string>();
+
+            if (peersA.Contains(peerB)) throw new Exception($"Room isolation broken: A saw B ({peerB}) in its peer list");
+            if (peersB.Contains(peerA)) throw new Exception($"Room isolation broken: B saw A ({peerA}) in its peer list");
+
+            // Rely on `using var` to tear down the sockets. Explicit CloseAsync here raced
+            // with the server's receive loop and tripped WebSocketException on some runs.
+            LogStatus("[Signaling Isolation] SUCCESS - rooms are isolated");
+        }
+
+        private static async Task SendIsolationAnnounce(System.Net.WebSockets.ClientWebSocket ws, string roomKey, string peerId, CancellationToken ct)
+        {
+            var payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                action = "announce",
+                info_hash = roomKey,
+                peer_id = peerId,
+                uploaded = 0,
+                downloaded = 0,
+                left = 1,
+                @event = "started",
+                numwant = 10,
+            }, new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+            var bytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            await ws.SendAsync(bytes, System.Net.WebSockets.WebSocketMessageType.Text, true, ct);
+        }
+
+        private static async Task<string> ReceiveOneJsonObject(System.Net.WebSockets.ClientWebSocket ws, CancellationToken ct)
+        {
+            var buffer = new byte[16384];
+            using var ms = new MemoryStream();
+            while (true)
+            {
+                var result = await ws.ReceiveAsync(buffer, ct);
+                if (result.MessageType == System.Net.WebSockets.WebSocketMessageType.Close)
+                    throw new Exception("WS closed before announce response arrived");
+                ms.Write(buffer, 0, result.Count);
+                if (result.EndOfMessage) break;
+            }
+            return System.Text.Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         /// <summary>
@@ -866,12 +954,18 @@ namespace PlaywrightMultiTest
 
             var desktopPeerId = NewRandomPeerId();
             await using var desktopClient = new SpawnDev.RTC.Signaling.TrackerSignalingClient(trackerUrl, desktopPeerId);
-            desktopClient.OnConnected += () => LogStatus("[Signaling XPlat] Desktop connected");
+            var desktopConnected = new TaskCompletionSource();
+            desktopClient.OnConnected += () => { LogStatus("[Signaling XPlat] Desktop connected"); desktopConnected.TrySetResult(); };
             desktopClient.OnWarning += w => LogStatus($"[Signaling XPlat] Desktop warning: {w}");
 
             desktopClient.Subscribe(room, handler);
+            // Drive connect + await it — otherwise AnnounceAsync just queues against
+            // an unopened socket, and browser may announce first on localhost.
             await desktopClient.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 5 });
-            await Task.Delay(1000);
+            if (await Task.WhenAny(desktopConnected.Task, Task.Delay(10_000)) != desktopConnected.Task)
+                throw new Exception("Desktop client did not report OnConnected within 10s");
+            // Give the queued announce a moment to flush onto the open socket.
+            await Task.Delay(500);
 
             // Browser peer via raw JS - same wire format as plain WebTorrent tracker clients.
             // The room hash must match how RoomKey.FromString does it: SHA-1 of UTF-8 bytes of the
