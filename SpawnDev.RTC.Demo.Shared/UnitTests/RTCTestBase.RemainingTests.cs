@@ -157,30 +157,26 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         }
 
         /// <summary>
-        /// Verify RTCTrackerClient properties are set after creation.
+        /// Verify <see cref="SpawnDev.RTC.Signaling.TrackerSignalingClient"/> reports its
+        /// configured URL and a 20-byte local peer id. Property-level sanity check; the room
+        /// determinism and key format are covered by the RoomKey_* tests in SignalingTests.
         /// </summary>
         [TestMethod]
-        public async Task TrackerClient_Properties()
+        public async Task TrackerSignalingClient_Properties()
         {
-            using var tracker = new RTCTrackerClient("wss://tracker.openwebtorrent.com", "test-room");
+            var peerId = new byte[20];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(peerId);
 
-            if (string.IsNullOrEmpty(tracker.PeerId))
-            {
-                // PeerId is assigned by constructor
-            }
-            if (string.IsNullOrEmpty(tracker.InfoHash)) throw new Exception("InfoHash is empty");
-            if (tracker.InfoHash.Length != 40) throw new Exception($"InfoHash length: {tracker.InfoHash.Length}, expected 40 hex chars");
-            if (tracker.NumWant < 1) throw new Exception($"NumWant: {tracker.NumWant}");
+            await using var client = new SpawnDev.RTC.Signaling.TrackerSignalingClient("wss://tracker.openwebtorrent.com", peerId);
 
-            // Same room name should produce same InfoHash
-            using var tracker2 = new RTCTrackerClient("wss://tracker.openwebtorrent.com", "test-room");
-            if (tracker.InfoHash != tracker2.InfoHash) throw new Exception("Same room should produce same InfoHash");
-
-            // Different room should produce different InfoHash
-            using var tracker3 = new RTCTrackerClient("wss://tracker.openwebtorrent.com", "other-room");
-            if (tracker.InfoHash == tracker3.InfoHash) throw new Exception("Different rooms should have different InfoHash");
-
-            await Task.CompletedTask;
+            if (client.AnnounceUrl != "wss://tracker.openwebtorrent.com")
+                throw new Exception($"AnnounceUrl: expected wss://tracker.openwebtorrent.com, got {client.AnnounceUrl}");
+            if (client.LocalPeerId.Length != 20)
+                throw new Exception($"LocalPeerId length: expected 20, got {client.LocalPeerId.Length}");
+            // LocalPeerId must be a defensive copy, not the original array.
+            peerId[0] ^= 0xFF;
+            if (client.LocalPeerId[0] == peerId[0])
+                throw new Exception("LocalPeerId aliased the caller's buffer instead of copying.");
         }
 
         /// <summary>

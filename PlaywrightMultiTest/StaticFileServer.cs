@@ -121,7 +121,7 @@ namespace PlaywrightMultiTest
                     }
                 });
 
-                // WebTorrent tracker protocol endpoint (for RTCTrackerClient tests)
+                // WebTorrent tracker protocol endpoint (for TrackerSignalingClient tests)
                 app.Map("/announce", async (HttpContext context) =>
                 {
                     if (!context.WebSockets.IsWebSocketRequest) { context.Response.StatusCode = 400; return; }

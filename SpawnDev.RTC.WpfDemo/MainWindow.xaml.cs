@@ -1,16 +1,18 @@
 using System.Collections.ObjectModel;
 using System.Security.Cryptography;
-using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using MM = SpawnDev.MultiMedia;
+using SpawnDev.RTC.Signaling;
 
 namespace SpawnDev.RTC.WpfDemo
 {
     public partial class MainWindow : Window
     {
-        private RTCTrackerClient? _signal;
+        private TrackerSignalingClient? _signal;
+        private RtcPeerConnectionRoomHandler? _handler;
+        private RoomKey _roomKey;
         private string _roomName = "";
         private bool _micOn;
         private bool _camOn;
@@ -44,7 +46,8 @@ namespace SpawnDev.RTC.WpfDemo
             _roomName = RoomNameInput.Text.Trim();
             if (string.IsNullOrEmpty(_roomName)) return;
 
-            var infoHash = ComputeInfoHash(_roomName);
+            _roomKey = RoomKey.FromString(_roomName);
+            var infoHash = _roomKey.ToHex();
             var signalBase = SignalServerInput.Text.Trim();
 
             JoinPanel.Visibility = Visibility.Collapsed;
@@ -57,9 +60,9 @@ namespace SpawnDev.RTC.WpfDemo
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            _signal = new RTCTrackerClient(signalBase, _roomName, config);
+            _handler = new RtcPeerConnectionRoomHandler(config);
 
-            _signal.OnPeerConnection += (pc, peerId) =>
+            _handler.OnPeerConnection += (pc, peerId) =>
             {
                 Dispatcher.Invoke(() =>
                 {
@@ -68,10 +71,9 @@ namespace SpawnDev.RTC.WpfDemo
                     AddMessage("System", $"{name} connected", false);
                     UpdateSubtitle();
                 });
-
             };
 
-            _signal.OnDataChannel += (channel, peerId) =>
+            _handler.OnDataChannel += (channel, peerId) =>
             {
                 _chatChannels[peerId] = channel;
                 var name = peerId.Length >= 6 ? peerId[..6] : peerId;
@@ -87,18 +89,22 @@ namespace SpawnDev.RTC.WpfDemo
                 });
             };
 
-            _signal.OnPeerDisconnected += peerId =>
+            _handler.OnPeerDisconnected += peerId =>
             {
                 Dispatcher.Invoke(() =>
                 {
                     _chatChannels.Remove(peerId);
                     var peer = _peers.FirstOrDefault(p => p.PeerId == peerId);
                     if (peer != null) _peers.Remove(peer);
-                    var name = peerId.Length >= 6 ? peerId[..6] : peerId;
+                    var name = peerId.Length >= 6 ? peerId[.. 6] : peerId;
                     AddMessage("System", $"{name} left", false);
                     UpdateSubtitle();
                 });
             };
+
+            var localPeerId = new byte[20];
+            RandomNumberGenerator.Fill(localPeerId);
+            _signal = new TrackerSignalingClient(signalBase, localPeerId);
 
             _signal.OnConnected += () => Dispatcher.Invoke(() =>
             {
@@ -111,9 +117,16 @@ namespace SpawnDev.RTC.WpfDemo
                 AddMessage("System", "Disconnected from signal server", false);
             });
 
+            _signal.OnWarning += warn => Dispatcher.Invoke(() =>
+            {
+                AddMessage("Warning", warn, false);
+            });
+
+            _signal.Subscribe(_roomKey, _handler);
+
             try
             {
-                await _signal.JoinAsync();
+                await _signal.AnnounceAsync(_roomKey, new AnnounceOptions { Event = "started", NumWant = 5 });
             }
             catch (Exception ex)
             {
@@ -243,10 +256,14 @@ namespace SpawnDev.RTC.WpfDemo
 
             if (_signal != null)
             {
-                await _signal.LeaveAsync();
-                _signal.Dispose();
+                try { await _signal.AnnounceAsync(_roomKey, new AnnounceOptions { Event = "stopped", NumWant = 0 }); }
+                catch { /* best effort */ }
+                _signal.Unsubscribe(_roomKey);
+                await _signal.DisposeAsync();
                 _signal = null;
             }
+            _handler?.Dispose();
+            _handler = null;
 
             _chatChannels.Clear();
             _peers.Clear();
@@ -307,11 +324,7 @@ namespace SpawnDev.RTC.WpfDemo
         }
 
         private static string ComputeInfoHash(string roomName)
-        {
-            var bytes = Encoding.UTF8.GetBytes(roomName.Trim().ToLowerInvariant());
-            var hash = SHA1.HashData(bytes);
-            return Convert.ToHexString(hash).ToLowerInvariant();
-        }
+            => RoomKey.FromString(roomName.Trim()).ToHex();
     }
 
     public class PeerInfo

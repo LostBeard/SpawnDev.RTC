@@ -1,13 +1,13 @@
 using SpawnDev.RTC;
+using SpawnDev.RTC.Signaling;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace SpawnDev.RTC.DemoConsole
 {
     /// <summary>
     /// Desktop text chat using SpawnDev.RTC.
     /// Joins the same swarms as the browser ChatRoom demo.
-    /// Room name is hashed to an infohash for swarm-style signaling.
+    /// Room name is hashed to a <see cref="RoomKey"/> for swarm-style signaling.
     /// </summary>
     public static class ChatMode
     {
@@ -24,9 +24,9 @@ namespace SpawnDev.RTC.DemoConsole
                 return;
             }
 
-            var infoHash = ComputeInfoHash(roomName);
+            var room = RoomKey.FromString(roomName);
             Console.WriteLine($"Room: {roomName}");
-            Console.WriteLine($"Swarm ID: {infoHash}");
+            Console.WriteLine($"Swarm ID: {room.ToHex()}");
             Console.WriteLine();
 
             var config = new RTCPeerConnectionConfig
@@ -34,38 +34,36 @@ namespace SpawnDev.RTC.DemoConsole
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            using var signal = new RTCTrackerClient(trackerUrl, roomName, config);
-
-            signal.OnPeerConnectionCreated = async (pc, peerId) =>
+            using var handler = new RtcPeerConnectionRoomHandler(config)
             {
-                // Create data channel for text chat
-                var dc = pc.CreateDataChannel("chat");
-                dc.OnOpen += () => Console.WriteLine($"[Connected to {peerId[..6]}]");
-                dc.OnStringMessage += msg => Console.WriteLine($"  {peerId[..6]}: {msg}");
-                await Task.CompletedTask;
+                DataChannelLabel = "chat",
             };
 
-            signal.OnDataChannel += (channel, peerId) =>
+            handler.OnDataChannel += (channel, peerId) =>
             {
+                channel.OnOpen += () => Console.WriteLine($"[Connected to {peerId[..6]}]");
                 channel.OnStringMessage += msg => Console.WriteLine($"  {peerId[..6]}: {msg}");
             };
 
-            signal.OnPeerDisconnected += peerId =>
-            {
-                Console.WriteLine($"[{peerId[..6]} disconnected]");
-            };
+            handler.OnPeerDisconnected += peerId => Console.WriteLine($"[{peerId[..6]} disconnected]");
 
-            signal.OnConnected += () => Console.WriteLine("[Connected to signal server]");
-            signal.OnDisconnected += () => Console.WriteLine("[Disconnected from signal server]");
+            var peerId = new byte[20];
+            RandomNumberGenerator.Fill(peerId);
+            await using var client = new TrackerSignalingClient(trackerUrl, peerId);
+
+            client.OnConnected += () => Console.WriteLine("[Connected to signal server]");
+            client.OnDisconnected += () => Console.WriteLine("[Disconnected from signal server]");
+            client.OnWarning += w => Console.WriteLine($"[Warning] {w}");
+
+            client.Subscribe(room, handler);
 
             try
             {
-                await signal.JoinAsync();
+                await client.AnnounceAsync(room, new AnnounceOptions { Event = "started", NumWant = 5 });
                 Console.WriteLine("[Waiting for peers... Type messages and press Enter to send]");
                 Console.WriteLine("[Type 'quit' to leave]");
                 Console.WriteLine();
 
-                // Read input loop
                 while (true)
                 {
                     var input = Console.ReadLine();
@@ -75,25 +73,18 @@ namespace SpawnDev.RTC.DemoConsole
                     if (string.IsNullOrWhiteSpace(input))
                         continue;
 
-                    // Send to all peers via their data channels
-                    // (RTCTrackerClient manages the peer connections internally,
-                    //  but we need access to the data channels we created)
                     Console.WriteLine($"  You: {input}");
                 }
+
+                await client.AnnounceAsync(room, new AnnounceOptions { Event = "stopped", NumWant = 0 });
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
+            client.Unsubscribe(room);
             Console.WriteLine("[Left room]");
-        }
-
-        private static string ComputeInfoHash(string roomName)
-        {
-            var bytes = Encoding.UTF8.GetBytes(roomName.Trim().ToLowerInvariant());
-            var hash = SHA1.HashData(bytes);
-            return Convert.ToHexString(hash).ToLowerInvariant();
         }
     }
 }

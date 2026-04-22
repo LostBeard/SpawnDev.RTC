@@ -2,10 +2,11 @@
 @page "/chat/{RoomName}"
 @using SpawnDev.RTC
 @using SpawnDev.RTC.Browser
+@using SpawnDev.RTC.Signaling
 @using SpawnDev.BlazorJS
 @using SpawnDev.BlazorJS.JSObjects
 @using SpawnDev.BlazorJS.JSObjects.WebRTC
-@implements IDisposable
+@implements IAsyncDisposable
 @inject BlazorJSRuntime JS
 
 <PageTitle>SpawnDev.RTC - Chat Room</PageTitle>
@@ -242,7 +243,9 @@
     private bool _joined;
     private bool _micMuted;
     private bool _camMuted;
-    private RTCTrackerClient? _tracker;
+    private TrackerSignalingClient? _tracker;
+    private RtcPeerConnectionRoomHandler? _handler;
+    private RoomKey _roomKey;
     private MediaStream? _localStream;
     private readonly Dictionary<string, PeerState> _peers = new();
     private readonly List<ChatMessage> _messages = new();
@@ -293,9 +296,10 @@
                 IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            _tracker = new RTCTrackerClient(_trackerUrl, _roomInput, config);
+            _roomKey = RoomKey.FromString(_roomInput);
+            _handler = new RtcPeerConnectionRoomHandler(config);
 
-            _tracker.OnPeerConnectionCreated = async (pc, peerId) =>
+            _handler.OnPeerConnectionCreated = async (pc, peerId) =>
             {
                 if (pc is BrowserRTCPeerConnection browserPc)
                 {
@@ -324,7 +328,7 @@
                 await Task.CompletedTask;
             };
 
-            _tracker.OnPeerConnection += (pc, peerId) =>
+            _handler.OnPeerConnection += (pc, peerId) =>
             {
                 InvokeAsync(() =>
                 {
@@ -336,7 +340,7 @@
                 });
             };
 
-            _tracker.OnDataChannel += (channel, peerId) =>
+            _handler.OnDataChannel += (channel, peerId) =>
             {
                 // Wire message handler on every data channel we receive
                 channel.OnStringMessage += msg => InvokeAsync(() =>
@@ -361,7 +365,7 @@
                 }
             };
 
-            _tracker.OnPeerDisconnected += peerId => InvokeAsync(() =>
+            _handler.OnPeerDisconnected += peerId => InvokeAsync(() =>
             {
                 if (_peers.TryGetValue(peerId, out var peer))
                 {
@@ -373,13 +377,18 @@
                 StateHasChanged();
             });
 
+            var localPeerId = new byte[20];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(localPeerId);
+            _tracker = new TrackerSignalingClient(_trackerUrl, localPeerId);
+
             _tracker.OnConnected += () => InvokeAsync(() =>
             {
                 AddMessage("System", $"Connected to tracker. Waiting for peers...", false);
                 StateHasChanged();
             });
 
-            await _tracker.JoinAsync();
+            _tracker.Subscribe(_roomKey, _handler);
+            await _tracker.AnnounceAsync(_roomKey, new AnnounceOptions { Event = "started", NumWant = 5 });
         }
         catch (Exception ex)
         {
@@ -435,10 +444,14 @@
     {
         if (_tracker != null)
         {
-            await _tracker.LeaveAsync();
-            _tracker.Dispose();
+            try { await _tracker.AnnounceAsync(_roomKey, new AnnounceOptions { Event = "stopped", NumWant = 0 }); }
+            catch { /* best effort */ }
+            _tracker.Unsubscribe(_roomKey);
+            await _tracker.DisposeAsync();
             _tracker = null;
         }
+        _handler?.Dispose();
+        _handler = null;
 
         if (_localStream != null)
         {
@@ -501,15 +514,17 @@
     }
 
     private static string ComputeInfoHash(string roomName)
-    {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(roomName.Trim().ToLowerInvariant());
-        var hash = System.Security.Cryptography.SHA1.HashData(bytes);
-        return Convert.ToHexString(hash).ToLowerInvariant();
-    }
+        => RoomKey.FromString(roomName.Trim()).ToHex();
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _tracker?.Dispose();
+        if (_tracker != null)
+        {
+            await _tracker.DisposeAsync();
+            _tracker = null;
+        }
+        _handler?.Dispose();
+        _handler = null;
         foreach (var peer in _peers.Values) peer.Dispose();
         _peers.Clear();
         if (_localStream != null)

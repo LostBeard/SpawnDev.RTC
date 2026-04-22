@@ -27,6 +27,24 @@ namespace PlaywrightMultiTest
         /// </summary>
         private ProjectRunner() { }
 
+        /// <summary>
+        /// Matches a filter against a test. Supports exact match on Name, TestTypeName,
+        /// or TestMethodName, plus trailing-* prefix match on TestMethodName
+        /// (e.g. "RoomKey_*" matches every method whose name starts with "RoomKey_").
+        /// </summary>
+        private static bool FilterMatches(string filter, ProjectTest test)
+        {
+            if (test.Name == filter || test.TestTypeName == filter || test.TestMethodName == filter)
+                return true;
+            if (filter.EndsWith("*"))
+            {
+                var prefix = filter.Substring(0, filter.Length - 1);
+                if (test.TestMethodName?.StartsWith(prefix) == true) return true;
+                if (test.TestTypeName?.StartsWith(prefix) == true) return true;
+            }
+            return false;
+        }
+
         private static async Task<int> RunDotnetAsync(string args, string workingDir, int timeoutMs = 300000)
         {
             LogStatus($"RunDotnetAsync: dotnet {args.Split(' ')[0]} (timeout={timeoutMs/1000}s)");
@@ -96,7 +114,10 @@ namespace PlaywrightMultiTest
             LogStatus("Init() started");
 
             string[] args = Environment.GetCommandLineArgs();
-            // Support both --filter=VALUE and --filter VALUE formats
+            // Support both --filter=VALUE and --filter VALUE formats.
+            // dotnet test swallows --filter before it reaches us, so also honor
+            // PLAYWRIGHT_TEST_FILTER env var as the reliable way to pass a filter
+            // through the dotnet test harness.
             var filter = args.LastOrDefault(o => o.StartsWith("--filter="))?.Substring(9);
             if (filter == null)
             {
@@ -109,6 +130,12 @@ namespace PlaywrightMultiTest
                     }
                 }
             }
+            if (string.IsNullOrEmpty(filter))
+            {
+                var envFilter = Environment.GetEnvironmentVariable("PLAYWRIGHT_TEST_FILTER");
+                if (!string.IsNullOrEmpty(envFilter)) filter = envFilter;
+            }
+            LogStatus($"Filter: {(filter ?? "(none — run all)")}");
 
 
             LogStatus("Discovering projects...");
@@ -275,12 +302,9 @@ namespace PlaywrightMultiTest
 
                             var rowTest = new ProjectTest(testableProject, typeName!, methodName!, testPageUrl);
 
-                            if (filter != null)
+                            if (filter != null && !FilterMatches(filter, rowTest))
                             {
-                                if (rowTest.Name != filter && rowTest.TestTypeName != filter && rowTest.TestMethodName != filter)
-                                {
-                                    continue;
-                                }
+                                continue;
                             }
 
                             testableProject.Tests.Add(rowTest);
@@ -332,12 +356,9 @@ namespace PlaywrightMultiTest
                         var methodName = test.Split(".")[1];
 
                         var rowTest = new ProjectTest(testableProject, typeName!, methodName!);
-                        if (filter != null)
+                        if (filter != null && !FilterMatches(filter, rowTest))
                         {
-                            if (rowTest.Name != filter && rowTest.TestTypeName != filter && rowTest.TestMethodName != filter)
-                            {
-                                continue;
-                            }
+                            continue;
                         }
                         testableProject.Tests.Add(rowTest);
 
@@ -427,25 +448,27 @@ namespace PlaywrightMultiTest
                     break;
                 }
             }
-            // Tracker client tests (desktop peers, no 30s UnitTestRunner limit)
+            // Generic-signaling client tests: TrackerSignalingClient + RtcPeerConnectionRoomHandler.
+            // Prove SpawnDev.RTC consumers can do serverless WebRTC signaling with zero WebTorrent
+            // references. Desktop peers, no 30s UnitTestRunner limit.
             foreach (var testableProject in TestableProjects)
             {
                 if (testableProject is TestableBlazorWasm blazor2)
                 {
-                    yield return new TestCaseData(new ProjectTest(blazor2, "Tracker", "Embedded_TwoPeers")
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Signaling", "Embedded_TwoPeers")
                     {
-                        TestFunc = async (_) => await TrackerEmbeddedTest(blazor2),
-                    }).SetName("Tracker.Embedded_TwoPeers").SetCategory("Tracker");
+                        TestFunc = async (_) => await SignalingEmbeddedTest(blazor2),
+                    }).SetName("Signaling.Embedded_TwoPeers").SetCategory("Signaling");
 
-                    yield return new TestCaseData(new ProjectTest(blazor2, "Tracker", "Live_OpenWebTorrent")
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Signaling", "Live_OpenWebTorrent")
                     {
-                        TestFunc = async (_) => await TrackerLiveTest(),
-                    }).SetName("Tracker.Live_OpenWebTorrent").SetCategory("Tracker");
+                        TestFunc = async (_) => await SignalingLiveTest(),
+                    }).SetName("Signaling.Live_OpenWebTorrent").SetCategory("Signaling");
 
-                    yield return new TestCaseData(new ProjectTest(blazor2, "Tracker", "CrossPlatform_BrowserDesktop")
+                    yield return new TestCaseData(new ProjectTest(blazor2, "Signaling", "CrossPlatform_BrowserDesktop")
                     {
-                        TestFunc = async (page) => await TrackerCrossPlatformTest(page, blazor2),
-                    }).SetName("Tracker.CrossPlatform_BrowserDesktop").SetCategory("Tracker");
+                        TestFunc = async (page) => await SignalingCrossPlatformTest(page, blazor2),
+                    }).SetName("Signaling.CrossPlatform_BrowserDesktop").SetCategory("Signaling");
 
                     break;
                 }
@@ -677,140 +700,182 @@ namespace PlaywrightMultiTest
             return "OK:" + await messageReceived.Task;
         }
 
+        // ============================================================
+        // Signaling.* tests - exercise the new TrackerSignalingClient +
+        // RtcPeerConnectionRoomHandler surface (zero WebTorrent refs).
+        // ============================================================
+
         /// <summary>
-        /// This is called after tests have been enumerated bu before they are run. You can use this to start up any services or infrastructure needed for the tests.
+        /// Two desktop peers using <see cref="SpawnDev.RTC.Signaling.TrackerSignalingClient"/>
+        /// and <see cref="SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler"/> announce to the
+        /// same <see cref="SpawnDev.RTC.Signaling.RoomKey"/> on the embedded tracker, exchange
+        /// offer/answer, open a data channel, and pass messages both directions.
         /// </summary>
-        /// <returns></returns>
-        /// <summary>
-        /// Two desktop peers connect via the embedded WebTorrent tracker and exchange data channel messages.
-        /// </summary>
-        private static async Task TrackerEmbeddedTest(TestableBlazorWasm blazorProj)
+        private static async Task SignalingEmbeddedTest(TestableBlazorWasm blazorProj)
         {
             var trackerUrl = blazorProj.Server!.Url.TrimEnd('/').Replace("https://", "wss://") + "/announce";
-            var room = "embedded-test-" + Guid.NewGuid().ToString("N")[..6];
-            LogStatus($"[Tracker Embedded] URL: {trackerUrl}, Room: {room}");
+            var room = SpawnDev.RTC.Signaling.RoomKey.FromString("signaling-embedded-" + Guid.NewGuid().ToString("N")[..6]);
+            LogStatus($"[Signaling Embedded] URL: {trackerUrl}, Room: {room.ToHex()[..8]}...");
 
             var config = new SpawnDev.RTC.RTCPeerConnectionConfig
             {
                 IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
+            var peerIdA = NewRandomPeerId();
+            var peerIdB = NewRandomPeerId();
+
             var msgFromB = new TaskCompletionSource<string>();
-            using var tA = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
-            tA.OnDataChannel += (ch, id) =>
+            var handlerA = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handlerA.OnDataChannel += (ch, id) =>
             {
-                LogStatus($"[Tracker Embedded] A got dc '{ch.Label}' state={ch.ReadyState}");
-                ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] A got: {m}"); msgFromB.TrySetResult(m); };
-                ch.OnOpen += () => { LogStatus("[Tracker Embedded] A dc open"); };
-                // Send after a short delay to ensure both sides have wired handlers
-                Task.Run(async () => { await Task.Delay(500); ch.Send("from A"); LogStatus("[Tracker Embedded] A sent"); });
+                LogStatus($"[Signaling Embedded] A got dc '{ch.Label}' state={ch.ReadyState}");
+                ch.OnStringMessage += m => { LogStatus($"[Signaling Embedded] A got: {m}"); msgFromB.TrySetResult(m); };
+                ch.OnOpen += () => { LogStatus("[Signaling Embedded] A dc open"); };
+                Task.Run(async () => { await Task.Delay(500); ch.Send("from A"); LogStatus("[Signaling Embedded] A sent"); });
             };
-            tA.OnConnected += () => LogStatus("[Tracker Embedded] A connected");
-            tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] A peer: {id[..8]}");
+            handlerA.OnPeerConnection += (_, id) => LogStatus($"[Signaling Embedded] A peer: {id[..8]}");
 
             var msgFromA = new TaskCompletionSource<string>();
-            using var tB = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
-            tB.OnDataChannel += (ch, id) =>
+            var handlerB = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handlerB.OnDataChannel += (ch, id) =>
             {
-                LogStatus($"[Tracker Embedded] B got dc '{ch.Label}' state={ch.ReadyState}");
-                ch.OnStringMessage += m => { LogStatus($"[Tracker Embedded] B got: {m}"); msgFromA.TrySetResult(m); };
-                ch.OnOpen += () => { LogStatus("[Tracker Embedded] B dc open"); };
-                Task.Run(async () => { await Task.Delay(500); ch.Send("from B"); LogStatus("[Tracker Embedded] B sent"); });
+                LogStatus($"[Signaling Embedded] B got dc '{ch.Label}' state={ch.ReadyState}");
+                ch.OnStringMessage += m => { LogStatus($"[Signaling Embedded] B got: {m}"); msgFromA.TrySetResult(m); };
+                ch.OnOpen += () => { LogStatus("[Signaling Embedded] B dc open"); };
+                Task.Run(async () => { await Task.Delay(500); ch.Send("from B"); LogStatus("[Signaling Embedded] B sent"); });
             };
-            tB.OnConnected += () => LogStatus("[Tracker Embedded] B connected");
-            tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Embedded] B peer: {id[..8]}");
+            handlerB.OnPeerConnection += (_, id) => LogStatus($"[Signaling Embedded] B peer: {id[..8]}");
 
-            await tA.JoinAsync();
+            await using var clientA = new SpawnDev.RTC.Signaling.TrackerSignalingClient(trackerUrl, peerIdA);
+            await using var clientB = new SpawnDev.RTC.Signaling.TrackerSignalingClient(trackerUrl, peerIdB);
+
+            clientA.OnConnected += () => LogStatus("[Signaling Embedded] A connected");
+            clientB.OnConnected += () => LogStatus("[Signaling Embedded] B connected");
+            clientA.OnWarning += w => LogStatus($"[Signaling Embedded] A warning: {w}");
+            clientB.OnWarning += w => LogStatus($"[Signaling Embedded] B warning: {w}");
+
+            clientA.Subscribe(room, handlerA);
+            clientB.Subscribe(room, handlerB);
+
+            await clientA.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 5 });
             await Task.Delay(1000);
-            await tB.JoinAsync();
+            await clientB.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 5 });
 
             var rA = await Task.WhenAny(msgFromB.Task, Task.Delay(25000));
             var rB = await Task.WhenAny(msgFromA.Task, Task.Delay(25000));
 
-            if (rA != msgFromB.Task) throw new Exception("A did not receive from B");
-            if (rB != msgFromA.Task) throw new Exception("B did not receive from A");
-            LogStatus($"[Tracker Embedded] A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
+            handlerA.Dispose();
+            handlerB.Dispose();
+
+            if (rA != msgFromB.Task) throw new Exception("A did not receive from B via new signaling client");
+            if (rB != msgFromA.Task) throw new Exception("B did not receive from A via new signaling client");
+            LogStatus($"[Signaling Embedded] SUCCESS - A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
         }
 
         /// <summary>
-        /// Two desktop peers connect via the live openwebtorrent tracker.
+        /// Two desktop peers using <see cref="SpawnDev.RTC.Signaling.TrackerSignalingClient"/>
+        /// meet via the live <c>wss://tracker.openwebtorrent.com</c> tracker, exchange offer/answer,
+        /// and pass messages both directions. Proves the new client is wire-compatible with the
+        /// public tracker fleet.
         /// </summary>
-        private static async Task TrackerLiveTest()
+        private static async Task SignalingLiveTest()
         {
-            var room = "live-test-" + Guid.NewGuid().ToString("N")[..8];
-            LogStatus($"[Tracker Live] Room: {room}");
+            const string trackerUrl = "wss://tracker.openwebtorrent.com";
+            var room = SpawnDev.RTC.Signaling.RoomKey.FromString("signaling-live-" + Guid.NewGuid().ToString("N")[..8]);
+            LogStatus($"[Signaling Live] Tracker: {trackerUrl}, Room: {room.ToHex()[..8]}...");
 
             var config = new SpawnDev.RTC.RTCPeerConnectionConfig
             {
                 IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
+            var peerIdA = NewRandomPeerId();
+            var peerIdB = NewRandomPeerId();
+
             var msgFromB = new TaskCompletionSource<string>();
-            using var tA = new SpawnDev.RTC.RTCTrackerClient("wss://tracker.openwebtorrent.com", room, config);
-            tA.OnDataChannel += (ch, _) =>
+            var handlerA = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handlerA.OnDataChannel += (ch, _) =>
             {
-                LogStatus($"[Tracker Live] A got dc '{ch.Label}' state={ch.ReadyState}");
-                ch.OnStringMessage += m => { LogStatus($"[Tracker Live] A got: {m}"); msgFromB.TrySetResult(m); };
-                ch.OnOpen += () => LogStatus("[Tracker Live] A dc open");
-                Task.Run(async () => { await Task.Delay(500); ch.Send("live A"); LogStatus("[Tracker Live] A sent"); });
+                ch.OnStringMessage += m => { LogStatus($"[Signaling Live] A got: {m}"); msgFromB.TrySetResult(m); };
+                ch.OnOpen += () => LogStatus("[Signaling Live] A dc open");
+                Task.Run(async () => { await Task.Delay(500); ch.Send("live A"); LogStatus("[Signaling Live] A sent"); });
             };
-            tA.OnConnected += () => LogStatus("[Tracker Live] A connected to openwebtorrent");
-            tA.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] A peer: {id[..8]}");
+            handlerA.OnPeerConnection += (_, id) => LogStatus($"[Signaling Live] A peer: {id[..8]}");
 
             var msgFromA = new TaskCompletionSource<string>();
-            using var tB = new SpawnDev.RTC.RTCTrackerClient("wss://tracker.openwebtorrent.com", room, config);
-            tB.OnDataChannel += (ch, _) =>
+            var handlerB = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handlerB.OnDataChannel += (ch, _) =>
             {
-                LogStatus($"[Tracker Live] B got dc '{ch.Label}' state={ch.ReadyState}");
-                ch.OnStringMessage += m => { LogStatus($"[Tracker Live] B got: {m}"); msgFromA.TrySetResult(m); };
-                ch.OnOpen += () => LogStatus("[Tracker Live] B dc open");
-                Task.Run(async () => { await Task.Delay(500); ch.Send("live B"); LogStatus("[Tracker Live] B sent"); });
+                ch.OnStringMessage += m => { LogStatus($"[Signaling Live] B got: {m}"); msgFromA.TrySetResult(m); };
+                ch.OnOpen += () => LogStatus("[Signaling Live] B dc open");
+                Task.Run(async () => { await Task.Delay(500); ch.Send("live B"); LogStatus("[Signaling Live] B sent"); });
             };
-            tB.OnConnected += () => LogStatus("[Tracker Live] B connected to openwebtorrent");
-            tB.OnPeerConnection += (_, id) => LogStatus($"[Tracker Live] B peer: {id[..8]}");
+            handlerB.OnPeerConnection += (_, id) => LogStatus($"[Signaling Live] B peer: {id[..8]}");
 
-            await tA.JoinAsync();
+            await using var clientA = new SpawnDev.RTC.Signaling.TrackerSignalingClient(trackerUrl, peerIdA);
+            await using var clientB = new SpawnDev.RTC.Signaling.TrackerSignalingClient(trackerUrl, peerIdB);
+
+            clientA.OnConnected += () => LogStatus("[Signaling Live] A connected");
+            clientB.OnConnected += () => LogStatus("[Signaling Live] B connected");
+
+            clientA.Subscribe(room, handlerA);
+            clientB.Subscribe(room, handlerB);
+
+            await clientA.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 5 });
             await Task.Delay(2000);
-            await tB.JoinAsync();
+            await clientB.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 5 });
 
             var rA = await Task.WhenAny(msgFromB.Task, Task.Delay(45000));
             var rB = await Task.WhenAny(msgFromA.Task, Task.Delay(45000));
 
+            handlerA.Dispose();
+            handlerB.Dispose();
+
             if (rA != msgFromB.Task) throw new Exception("A did not receive from B via live tracker");
             if (rB != msgFromA.Task) throw new Exception("B did not receive from A via live tracker");
-            LogStatus($"[Tracker Live] SUCCESS - A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
+            LogStatus($"[Signaling Live] SUCCESS - A got: {await msgFromB.Task}, B got: {await msgFromA.Task}");
         }
 
         /// <summary>
-        /// Cross-platform tracker test: desktop peer + browser peer connect
-        /// via embedded WebTorrent tracker and exchange data channel messages.
+        /// Cross-platform signaling test: desktop peer uses <see cref="SpawnDev.RTC.Signaling.TrackerSignalingClient"/>;
+        /// browser peer speaks the raw WebTorrent tracker wire protocol from JavaScript. Proves the new
+        /// signaling client's wire format is byte-compatible with any plain JS WebTorrent peer.
         /// </summary>
-        private static async Task TrackerCrossPlatformTest(IPage browserPage, TestableBlazorWasm blazorProj)
+        private static async Task SignalingCrossPlatformTest(IPage browserPage, TestableBlazorWasm blazorProj)
         {
             var trackerUrl = blazorProj.Server!.Url.TrimEnd('/').Replace("https://", "wss://") + "/announce";
-            var room = "xplat-tracker-" + Guid.NewGuid().ToString("N")[..6];
-            LogStatus($"[Tracker XPlat] URL: {trackerUrl}, Room: {room}");
+            var roomName = "xplat-signaling-" + Guid.NewGuid().ToString("N")[..6];
+            var room = SpawnDev.RTC.Signaling.RoomKey.FromString(roomName);
+            LogStatus($"[Signaling XPlat] URL: {trackerUrl}, Room: {room.ToHex()[..8]}...");
 
             var config = new SpawnDev.RTC.RTCPeerConnectionConfig
             {
                 IceServers = new[] { new SpawnDev.RTC.RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
             };
 
-            // Desktop peer in background
+            // Desktop peer using the new API.
             var desktopMsg = new TaskCompletionSource<string>();
-            using var desktopTracker = new SpawnDev.RTC.RTCTrackerClient(trackerUrl, room, config);
-            desktopTracker.OnDataChannel += (ch, _) =>
+            var handler = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handler.OnDataChannel += (ch, _) =>
             {
-                ch.OnStringMessage += m => { LogStatus($"[Tracker XPlat] Desktop got: {m}"); desktopMsg.TrySetResult(m); };
-                Task.Run(async () => { await Task.Delay(500); ch.Send("from desktop"); LogStatus("[Tracker XPlat] Desktop sent"); });
+                ch.OnStringMessage += m => { LogStatus($"[Signaling XPlat] Desktop got: {m}"); desktopMsg.TrySetResult(m); };
+                Task.Run(async () => { await Task.Delay(500); ch.Send("from desktop"); LogStatus("[Signaling XPlat] Desktop sent"); });
             };
-            desktopTracker.OnConnected += () => LogStatus("[Tracker XPlat] Desktop connected");
-            desktopTracker.OnPeerConnection += (_, id) => LogStatus($"[Tracker XPlat] Desktop peer: {id[..8]}");
+            handler.OnPeerConnection += (_, id) => LogStatus($"[Signaling XPlat] Desktop peer: {id[..8]}");
 
-            await desktopTracker.JoinAsync();
+            var desktopPeerId = NewRandomPeerId();
+            await using var desktopClient = new SpawnDev.RTC.Signaling.TrackerSignalingClient(trackerUrl, desktopPeerId);
+            desktopClient.OnConnected += () => LogStatus("[Signaling XPlat] Desktop connected");
+            desktopClient.OnWarning += w => LogStatus($"[Signaling XPlat] Desktop warning: {w}");
+
+            desktopClient.Subscribe(room, handler);
+            await desktopClient.AnnounceAsync(room, new SpawnDev.RTC.Signaling.AnnounceOptions { Event = "started", NumWant = 5 });
             await Task.Delay(1000);
 
-            // Browser peer via JS
+            // Browser peer via raw JS - same wire format as plain WebTorrent tracker clients.
+            // The room hash must match how RoomKey.FromString does it: SHA-1 of UTF-8 bytes of the
+            // room name with NO normalization (no .trim(), no .toLowerCase()).
             var wsUrl = trackerUrl;
             var browserResult = await browserPage.EvaluateAsync<string>($@"
                 async () => {{
@@ -824,7 +889,7 @@ namespace PlaywrightMultiTest
 
                         const peerId = '-BR0100-' + Math.random().toString(36).substr(2, 12);
                         const infoHashBytes = new Uint8Array(await crypto.subtle.digest('SHA-1',
-                            new TextEncoder().encode('{room}'.trim().toLowerCase())));
+                            new TextEncoder().encode('{roomName}')));
                         const infoHash = String.fromCharCode(...infoHashBytes);
 
                         const pc = new RTCPeerConnection({{ iceServers: [{{ urls: 'stun:stun.l.google.com:19302' }}] }});
@@ -850,27 +915,37 @@ namespace PlaywrightMultiTest
                             offers: [{{ offer: {{ type: 'offer', sdp: offer.sdp }}, offer_id: offerId }}]
                         }}));
 
-                        // Wait for offer from desktop peer
-                        const msg = await new Promise((resolve, reject) => {{
-                            ws.onmessage = e => resolve(JSON.parse(e.data));
-                            setTimeout(() => reject('no offer'), 15000);
-                        }});
-
-                        if (msg.offer) {{
-                            await pc.setRemoteDescription({{ type: 'offer', sdp: msg.offer.sdp }});
-                            const answer = await pc.createAnswer();
-                            await pc.setLocalDescription(answer);
-                            ws.send(JSON.stringify({{
-                                action: 'announce',
-                                info_hash: infoHash,
-                                peer_id: peerId,
-                                to_peer_id: msg.peer_id,
-                                answer: {{ type: 'answer', sdp: answer.sdp }},
-                                offer_id: msg.offer_id
-                            }}));
-                        }} else if (msg.answer) {{
-                            await pc.setRemoteDescription({{ type: 'answer', sdp: msg.answer.sdp }});
-                        }}
+                        // Persistent handler loop: the WebTorrent tracker relays MANY messages per
+                        // announce (desktop's NumWant=5 pushes up to 5 offers to us, plus the 1 answer
+                        // to our own offer). Single-shot ws.onmessage drops everything after the first
+                        // message. We loop until our DC opens or a timeout fires.
+                        // Incoming offers are answered on fresh RTCPeerConnections (one per offer_id)
+                        // so our original pc's state isn't disturbed. Incoming answers matching our
+                        // offerId complete the handshake on pc.
+                        const peerPCs = new Map();
+                        ws.onmessage = async (e) => {{
+                            try {{
+                                const m = JSON.parse(e.data);
+                                if (m.answer && m.offer_id === offerId) {{
+                                    await pc.setRemoteDescription({{ type: 'answer', sdp: m.answer.sdp }});
+                                }} else if (m.offer && !peerPCs.has(m.offer_id)) {{
+                                    const pc2 = new RTCPeerConnection({{ iceServers: [{{ urls: 'stun:stun.l.google.com:19302' }}] }});
+                                    pc2.onicecandidate = () => {{}};
+                                    peerPCs.set(m.offer_id, pc2);
+                                    await pc2.setRemoteDescription({{ type: 'offer', sdp: m.offer.sdp }});
+                                    const ans = await pc2.createAnswer();
+                                    await pc2.setLocalDescription(ans);
+                                    ws.send(JSON.stringify({{
+                                        action: 'announce',
+                                        info_hash: infoHash,
+                                        peer_id: peerId,
+                                        to_peer_id: m.peer_id,
+                                        answer: {{ type: 'answer', sdp: ans.sdp }},
+                                        offer_id: m.offer_id
+                                    }}));
+                                }}
+                            }} catch (err) {{ console.error('ws msg loop:', err); }}
+                        }};
 
                         await Promise.race([dcOpen, new Promise((_, r) => setTimeout(() => r('dc timeout'), 15000))]);
                         dc.send('from browser');
@@ -884,16 +959,25 @@ namespace PlaywrightMultiTest
                 }}
             ");
 
-            LogStatus($"[Tracker XPlat] Browser result: {browserResult}");
+            LogStatus($"[Signaling XPlat] Browser result: {browserResult}");
 
             var dr = await Task.WhenAny(desktopMsg.Task, Task.Delay(20000));
             var desktopResult = dr == desktopMsg.Task ? "OK:" + await desktopMsg.Task : "TIMEOUT";
-            LogStatus($"[Tracker XPlat] Desktop result: {desktopResult}");
+            LogStatus($"[Signaling XPlat] Desktop result: {desktopResult}");
+
+            handler.Dispose();
 
             if (!browserResult.StartsWith("OK:")) throw new Exception($"Browser: {browserResult}");
             if (!desktopResult.StartsWith("OK:")) throw new Exception($"Desktop: {desktopResult}");
 
-            LogStatus("[Tracker XPlat] SUCCESS - Browser and desktop exchanged messages via WebTorrent tracker!");
+            LogStatus("[Signaling XPlat] SUCCESS - Browser and desktop exchanged messages via new signaling client!");
+        }
+
+        private static byte[] NewRandomPeerId()
+        {
+            var buf = new byte[20];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(buf);
+            return buf;
         }
 
         public async Task StartUp()
