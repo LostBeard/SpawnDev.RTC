@@ -304,6 +304,29 @@ SipSorcery 10.0.3+ ships a completely rewritten DTLS/SRTP stack ("SharpSRTP") th
 
 SpawnDev.RTC maintains a fork that preserves the proven DTLS/SRTP interop while incorporating upstream improvements to ICE, SDP, SCTP, and data channel handling.
 
+## Developing / Releasing
+
+### Git submodule gotcha - push the SipSorcery fork separately
+
+The `Src/sipsorcery/` directory is a git submodule pointing at the [`LostBeard/sipsorcery`](https://github.com/LostBeard/sipsorcery) fork. **Commits made inside the submodule are not pushed by the outer repo's `git push`.** If you commit a fix inside `Src/sipsorcery/` and then push SpawnDev.RTC, CI (GitHub Pages deploy, anyone cloning with `--recurse-submodules`) will fail with:
+
+```
+fatal: remote error: upload-pack: not our ref <sha>
+fatal: Fetched in submodule path 'Src/sipsorcery', but it did not contain <sha>.
+```
+
+...because the pinned commit lives only in your local submodule working copy.
+
+**Before tagging a release or triggering the GitHub Pages deploy, always run from the repo root:**
+
+```bash
+git submodule foreach 'git push origin HEAD'
+```
+
+This pushes every submodule's current branch to its own remote. Only then does the outer `git push` result in a fully fetchable repo on GitHub.
+
+If you're on a detached HEAD inside the submodule (common after `git submodule update`), use `git push origin HEAD:master` to push to the fork's master branch.
+
 ## Acknowledgments
 
 SpawnDev.RTC would not be possible without the incredible work of the [SipSorcery](https://github.com/sipsorcery-org/sipsorcery) project by **Aaron Clauson** and its many contributors. SipSorcery is the only pure C# WebRTC implementation for .NET - no native wrappers, no C++ dependencies - and it provides the complete ICE, DTLS, SCTP, and data channel stack that powers SpawnDev.RTC on desktop platforms.
