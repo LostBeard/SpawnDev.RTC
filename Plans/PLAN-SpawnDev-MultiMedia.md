@@ -422,17 +422,27 @@ Copy SpawnDev.RTC's PlaywrightMultiTest setup:
 5. WPF demo with mic level meter + playback
 6. Desktop audio tests passing
 
-### Phase 4: SpawnDev.RTC Integration (Week 3)
-1. SpawnDev.RTC references SpawnDev.MultiMedia
-2. RTCMediaDevices.GetUserMedia delegates to MediaDevices.GetUserMedia
-3. DesktopRTCPeerConnection.AddTrack wires OnFrame to SipSorcery
-4. Cross-platform video call test (browser camera -> desktop display)
+### Phase 4: SpawnDev.RTC Integration
 
-### Phase 5: Linux + macOS (Week 4+)
-1. V4L2 video capture for Linux
-2. PulseAudio capture/playback for Linux
-3. AVFoundation video capture for macOS
-4. CoreAudio capture/playback for macOS
+**Phase 4a (audio) - SHIPPED 2026-04-23** in SpawnDev.RTC commit `45e5f24`:
+1. [x] SpawnDev.RTC references SpawnDev.MultiMedia via conditional sibling-repo ProjectReference (same pattern as the sipsorcery submodule).
+2. [x] `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` + `AddTrack(MultiMediaAudioSource)` overloads wire `IAudioTrack.OnFrame` into SipSorcery's RTP audio encoder (Opus via Concentus by default for browser interop; PCMU/PCMA/G722 available).
+3. [x] `MultiMediaAudioSource` bridge: Float32 -> PCM16 conversion via `AudioFormatConverter`, 20 ms framing, strict sample-rate/channel-count validation with clear `NotSupportedException` on mismatches.
+4. [x] `EncodedFrameCount` / `EncodedByteCount` diagnostic properties on the bridge so tests and consumers can distinguish "encoder never ran" from "RTP did not deliver."
+5. [x] End-to-end test `RTCTestBase.Phase4MediaTests.cs` - two `DesktopRTCPeerConnection` instances negotiate a 48 kHz stereo synthetic sine wave, assert OnTrack fires, SDP contains m=audio + opus, and pc2 receives >= 5 non-empty encoded Opus RTP frames within 20 s. Zero regressions on the 259 pre-existing RTC tests (full suite 261/0/0).
+6. [x] SipSorcery fork fix: inverted ternary in `SortMediaCapability` priority-track selection fixed in-fork and filed upstream as PR [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558).
+
+**Phase 4b (video) - NOT YET STARTED** (planned):
+1. Windows MediaFoundation H.264 encoder via P/Invoke in SpawnDev.MultiMedia.
+2. `AddTrack(IVideoTrack)` overload on `DesktopRTCPeerConnection`, same pattern as the audio bridge.
+3. Browser WebRTC already supports H.264 end-to-end (native stack); desktop<->browser video call test rounds it out.
+4. Cross-platform video call test (browser camera -> desktop display + vice versa).
+
+### Phase 5: Linux + macOS (future)
+
+1. Linux: V4L2 video + PulseAudio. MF H.264 encoder replaced by VAAPI for hardware encoding where available.
+2. macOS: AVFoundation video + CoreAudio. MF H.264 encoder replaced by VideoToolbox.
+3. Same `AddTrack(IAudioTrack)` / `AddTrack(IVideoTrack)` API on all platforms.
 
 ---
 
