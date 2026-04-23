@@ -235,6 +235,17 @@
 @code {
     [Parameter] public string? RoomName { get; set; }
 
+    // Query-param test hooks - let an iframe/child-window drive the page without human interaction
+    // so we can write automated round-trip tests for the actual Blazor component wiring
+    // (not just the library layer). See ChatRoomTests.
+    [SupplyParameterFromQuery(Name = "room")] public string? RoomFromQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "tracker")] public string? TrackerOverride { get; set; }
+    [SupplyParameterFromQuery(Name = "noMedia")] public bool NoMedia { get; set; }
+    [SupplyParameterFromQuery(Name = "autoJoin")] public bool AutoJoin { get; set; }
+    [SupplyParameterFromQuery(Name = "autoSend")] public string? AutoSend { get; set; }
+    [SupplyParameterFromQuery(Name = "autoReply")] public string? AutoReply { get; set; }
+    [SupplyParameterFromQuery(Name = "testId")] public string? TestId { get; set; }
+
     private ElementReference _localVideoRef;
     private ElementReference _chatMessagesRef;
     private string _roomInput = "";
@@ -250,13 +261,49 @@
     private readonly Dictionary<string, PeerState> _peers = new();
     private readonly List<ChatMessage> _messages = new();
     private readonly Dictionary<IRTCPeerConnection, MediaStreamTrack> _pendingVideoTracks = new();
+    private bool _autoSent;
 
     protected override void OnInitialized()
     {
-        if (!string.IsNullOrEmpty(RoomName))
+        if (!string.IsNullOrEmpty(RoomName)) _roomInput = RoomName;
+        if (!string.IsNullOrEmpty(RoomFromQuery)) _roomInput = RoomFromQuery;
+        if (!string.IsNullOrEmpty(TrackerOverride)) _trackerUrl = TrackerOverride;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoJoin && !_joined && !string.IsNullOrWhiteSpace(_roomInput))
         {
-            _roomInput = RoomName;
+            await JoinRoom();
         }
+    }
+
+    // Exposes component state to window.chatRoomState so parent/opener pages (tests) can
+    // observe the real wiring end-to-end: peer count, open-channel count, incoming messages.
+    private void PublishTestState()
+    {
+        try
+        {
+            var openChannels = _peers.Values.Count(p => p.ChatChannel?.ReadyState == "open");
+            var state = new
+            {
+                joined = _joined,
+                peerCount = _peers.Count,
+                openChannels,
+                lastIncoming = _messages.Where(m => !m.IsLocal && m.Sender != "System" && m.Sender != "Error").Select(m => m.Text).LastOrDefault(),
+                incomingCount = _messages.Count(m => !m.IsLocal && m.Sender != "System" && m.Sender != "Error"),
+                messages = _messages.Select(m => new { m.Sender, m.Text, m.IsLocal }).ToList()
+            };
+            JS.Set("chatRoomState", state);
+            // Also publish to the parent window so an iframe-embedded instance is observable
+            // from the outer test page. When not in an iframe, window.parent === window, so
+            // this is a harmless duplicate write.
+            if (!string.IsNullOrEmpty(TestId))
+            {
+                JS.Set($"parent.chatRoomState_{TestId}", state);
+            }
+        }
+        catch { /* window may not be available during teardown */ }
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
@@ -280,15 +327,18 @@
 
         try
         {
-            // Get local media
-            using var navigator = JS.Get<Navigator>("navigator");
-            using var mediaDevices = navigator.MediaDevices;
-            _localStream = await mediaDevices.GetUserMedia(new { audio = true, video = true });
+            // Skip camera/mic if the caller opted out (tests, signaling-only use)
+            if (!NoMedia)
+            {
+                using var navigator = JS.Get<Navigator>("navigator");
+                using var mediaDevices = navigator.MediaDevices;
+                _localStream = await mediaDevices.GetUserMedia(new { audio = true, video = true });
 
-            // Attach local camera to video element
-            await Task.Delay(100); // Let Blazor render the video element
-            using var localVideo = new HTMLVideoElement(_localVideoRef);
-            localVideo.SrcObject = _localStream;
+                // Attach local camera to video element
+                await Task.Delay(100); // Let Blazor render the video element
+                using var localVideo = new HTMLVideoElement(_localVideoRef);
+                localVideo.SrcObject = _localStream;
+            }
 
             // Connect to tracker (WebTorrent protocol - serverless signaling)
             var config = new RTCPeerConnectionConfig
@@ -344,6 +394,7 @@
                     AddMessage("System", $"{name} connected", false);
                     StateHasChanged();
                     AttachPendingVideoTracks();
+                    PublishTestState();
                     Console.WriteLine($"[ChatRoom] _peers count now {_peers.Count}, peer {name} Connection={(peer.Connection != null ? "set" : "null")}");
                 });
             };
@@ -359,6 +410,12 @@
                     AddMessage(name, msg, false);
                     StateHasChanged();
                     ScrollChat();
+                    PublishTestState();
+                    // Auto-reply (test harness) - echoes a canned string back on every received message
+                    if (!string.IsNullOrEmpty(AutoReply) && channel.ReadyState == "open")
+                    {
+                        try { channel.Send(AutoReply); } catch { }
+                    }
                 });
 
                 channel.OnOpen += () => InvokeAsync(() =>
@@ -367,6 +424,13 @@
                     var name = peerId.Length >= 8 ? peerId[..8] : peerId;
                     AddMessage("System", $"Chat ready with {name}", false);
                     StateHasChanged();
+                    PublishTestState();
+                    // Auto-send-after-connect (test harness) - fires once when the first channel opens
+                    if (!_autoSent && !string.IsNullOrEmpty(AutoSend))
+                    {
+                        _autoSent = true;
+                        try { channel.Send(AutoSend); AddMessage("You", AutoSend, true); StateHasChanged(); } catch { }
+                    }
                 });
 
                 // Associate the channel with the peer via the UI-thread context so we share
@@ -381,6 +445,7 @@
                         _peers[peerId] = peerState;
                     }
                     peerState.ChatChannel = channel;
+                    PublishTestState();
                     Console.WriteLine($"[ChatRoom] stored ChatChannel on peer {peerId[..Math.Min(8, peerId.Length)]} (Connection={(peerState.Connection != null ? "set" : "null")})");
                 });
             };
