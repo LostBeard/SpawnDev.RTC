@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased (master at commit `45e5f24`, 2026-04-23)
+
+### Phase 4a - SpawnDev.MultiMedia audio bridge + SipSorcery fork codec-priority fix
+
+- New `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` overload. A SpawnDev.MultiMedia `IAudioTrack` (e.g. WASAPI microphone capture) feeds straight into SipSorcery's RTP sender. Default path encodes Opus (WebRTC browser-native codec) via Concentus; explicit encoder overrides supported via `AddTrack(MultiMediaAudioSource)`.
+- New `SpawnDev.RTC/Desktop/MultiMediaAudioSource.cs` (internal bridge class, also usable directly for advanced codec control). Handles Float32 -> PCM16 conversion, 20 ms framing, per-codec sample-rate/channel validation with clear NotSupportedException on mismatches (no silent-garbage audio).
+- Conditional sibling-repo `ProjectReference` for `SpawnDev.MultiMedia` added to `SpawnDev.RTC.csproj` (mirrors the existing sipsorcery submodule pattern). External consumers fall back to a PackageReference once the MultiMedia package ships.
+- SipSorcery fork fix: `src/SIPSorcery/net/RTP/RTPSession.cs:1221` had an inverted ternary in the `SortMediaCapability` priority-track selection. Symptom: two peers with identical multi-codec audio format lists negotiated *different* selected formats from the same offer/answer (offerer saw PCMU, answerer saw Opus). Fixed in the fork; same fix filed as an upstream PR: [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558).
+- New end-to-end test `RTCTestBase.Phase4MediaTests.cs` - two `DesktopRTCPeerConnection` instances negotiate a 48 kHz stereo synthetic sine wave, assert `OnTrack(audio)` fires, SDP contains `m=audio` + `opus`, and pc2 receives >= 5 non-empty encoded Opus RTP frames within 20 s. Covers both signaling AND real RTP delivery.
+- Full RTC PlaywrightMultiTest suite: **261/0/0** with the Phase 4a tests included, zero regressions on the previous 259.
+
+### Phase 4b (upcoming)
+
+- Windows MediaFoundation H.264 encoder via P/Invoke in SpawnDev.MultiMedia, then `AddTrack(IVideoTrack)` bridge on the same shape as the audio bridge. Scoped in `Plans/PLAN-SpawnDev-MultiMedia.md` Phase 4.
+
 ## 1.1.0-rc.4 (2026-04-22)
 
 ### Desktop GetStats + stronger test coverage

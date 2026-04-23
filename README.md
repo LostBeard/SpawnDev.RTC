@@ -17,6 +17,7 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 - **Browser-style API** - Mirrors the W3C WebRTC specification so web developers feel at home
 - **Data channels** - Reliable and unreliable data channels with full DCEP support
 - **Media streams** - Audio and video capture, tracks, and stream management
+- **Desktop audio bridge** - `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` wires a [SpawnDev.MultiMedia](https://github.com/LostBeard/SpawnDev.MultiMedia) WASAPI microphone straight into SipSorcery's RTP encoder (Opus via Concentus, PCMU/PCMA/G722 via the built-in audio encoder). Browser audio goes through the native WebRTC stack; the same API works on both sides. Video bridge (Windows MediaFoundation H.264) is tracked as Phase 4b.
 - **ICE with STUN/TURN** - Full ICE candidate gathering, connectivity checks, and relay fallback
 - **SCTP** - Complete SCTP implementation for data channel transport
 - **WebTorrent-compatible signaling** - [`SpawnDev.RTC.Signaling`](Docs/signaling-overview.md) speaks the WebTorrent tracker wire protocol. Public trackers (`wss://tracker.openwebtorrent.com`) work out of the box; no server to host for the default case.
