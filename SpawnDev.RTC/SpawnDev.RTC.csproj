@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.2-rc.1</Version>
+		<Version>1.1.2-rc.2</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,9 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.2-rc.1: Fix RtcPeerConnectionRoomHandler serializing offer/answer SDPs before ICE gathering completes. The WebTorrent tracker wire protocol does not support trickle-ICE, so the full SDP with candidates must be in the announce payload. On Browser (and most Desktop stacks) CreateOffer/CreateAnswer return before gathering finishes, so peers received each other's SDPs with no candidates and could never establish a data channel. Handler now waits up to 5s for IceGatheringState == "complete" after SetLocalDescription and serializes pc.LocalDescription.Sdp (which has the candidates). Fixes the chat demo and any live TrackerSignalingClient consumer. Also: pack-time PrivateAssets condition so the nuspec suppresses the fork SIPSorcery dep for external consumers without breaking in-repo dev builds.
+		<PackageReleaseNotes>v1.1.2-rc.2: Proper fix for the SIPSorcery fork packaging - no more workarounds. The fork's PackageId is renamed from "SIPSorcery 10.0.4-pre" (which collided with upstream and couldn't be published) to "SpawnDev.SIPSorcery 10.0.4-local.1", published as a first-class nuget package. SpawnDev.RTC now declares a normal PackageReference to SpawnDev.SIPSorcery - no hidden bundling, no PrivateAssets tricks, no SuppressForkDep flag, no explicit transitive PackageRefs. Deletes 4 workarounds: SuppressForkDep property, conditional PrivateAssets, AddProjectReferencesToPackage target, manually-declared SIPSorcery transitive deps. Ships on the same ICE-gathering fix as rc.1 (RtcPeerConnectionRoomHandler waits for gathering before serializing SDP to the tracker - real reason text chat never worked through the signaling flow).
+
+v1.1.2-rc.1: Fix RtcPeerConnectionRoomHandler serializing offer/answer SDPs before ICE gathering completes. The WebTorrent tracker wire protocol does not support trickle-ICE, so the full SDP with candidates must be in the announce payload. On Browser (and most Desktop stacks) CreateOffer/CreateAnswer return before gathering finishes, so peers received each other's SDPs with no candidates and could never establish a data channel. Handler now waits up to 5s for IceGatheringState == "complete" after SetLocalDescription and serializes pc.LocalDescription.Sdp (which has the candidates). Fixes the chat demo and any live TrackerSignalingClient consumer. Also: pack-time PrivateAssets condition so the nuspec suppresses the fork SIPSorcery dep for external consumers without breaking in-repo dev builds.
 
 v1.1.1: Packaging fix - fork SIPSorcery.dll + SIPSorceryMedia.Abstractions.dll are now bundled inside lib/net10.0/ of this nupkg (ILGPU pattern: PrivateAssets="All" + AddProjectReferencesToPackage target). Previously the nuspec declared a dependency on SIPSorcery 10.0.4-pre which is our fork and not on nuget.org, breaking CI / GitHub Pages consumers who PackageReference SpawnDev.RTC. No code change from 1.1.0.
 
@@ -37,54 +39,25 @@ v1.1.0: New SpawnDev.RTC.Signaling namespace - WebTorrent-independent signaling 
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
 		<PackageReference Include="SpawnDev.BlazorJS" Version="3.5.3" />
 		<PackageReference Include="SpawnDev.BlazorJS.Cryptography" Version="3.2.0" />
-		<!-- SIPSorcery fork's transitive runtime dependencies. Fork DLLs themselves
-		     (SIPSorcery.dll + SIPSorceryMedia.Abstractions.dll) are bundled inside
-		     this nupkg's lib/ folder via the AddProjectReferencesToPackage target below.
-		     These PackageReferences declare the public nuget.org deps the fork needs at runtime.
-		     (System.Net.WebSockets.Client + System.Net.Security are part of the .NET 10 BCL
-		     and SIPSorcery.WebSocketSharp bundles its own websocket impl, so we don't re-declare.) -->
-		<PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-		<PackageReference Include="Concentus" Version="2.2.2" />
-		<PackageReference Include="DnsClient" Version="1.8.0" />
-		<PackageReference Include="SIPSorcery.WebSocketSharp" Version="0.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="SpawnDev.RTC.Server" />
 	</ItemGroup>
 
-	<!-- Desktop: reference SipSorcery fork for WebRTC stack.
-	     Opt-in PrivateAssets="All" via $(SuppressForkDep) property:
-	       * When publishing to nuget.org (via _publish-nuget*.bat, which passes
-	         `-p:SuppressForkDep=true`): PrivateAssets=all suppresses the fork
-	         from the emitted nuspec - otherwise external consumers would see a
-	         dep on SIPSorcery 10.0.4-pre which doesn't exist on nuget.org.
-	         The fork DLLs are bundled into lib/ via the AddProjectReferencesToPackage
-	         target below, so consumers still get the fork at runtime.
-	       * During normal build / PlaywrightMultiTest / dev: PrivateAssets is unset,
-	         so transitive packages (SIPSorcery.WebSocketSharp, BouncyCastle, etc.)
-	         flow through the ProjectReference chain to in-repo consumers (SpawnDev.RTC.Demo etc),
-	         ensuring Blazor WASM's publisher can include websocket-sharp in
-	         wwwroot/_framework. Without this, type metadata resolution fails
-	         at runtime with "Could not load file or assembly 'SIPSorcery ...'". -->
-	<ItemGroup>
-		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj">
-			<PrivateAssets Condition="'$(SuppressForkDep)' == 'true'">all</PrivateAssets>
-		</ProjectReference>
+	<!-- SpawnDev.SIPSorcery is our fork of SIPSorcery (namespace + AssemblyName identical
+	     to upstream for drop-in compatibility). Conditional wiring:
+	       * In-repo builds where the submodule sibling exists: use ProjectReference for
+	         hot-iteration. Transitive deps (BouncyCastle, Concentus, etc.) flow normally.
+	       * External / standalone builds: use PackageReference so NuGet resolves the
+	         fork package from the feed (local or nuget.org).
+	     Standard .NET ecosystem conditional pattern (ASP.NET Core uses it). -->
+	<ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
+		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
 	</ItemGroup>
-
-	<PropertyGroup>
-		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddProjectReferencesToPackage</TargetsForTfmSpecificContentInPackage>
-	</PropertyGroup>
-
-	<Target Name="AddProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
-		<ItemGroup>
-			<TfmSpecificPackageFile Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' or '%(ReferenceCopyLocalPaths.Extension)' == '.xml'">
-				<PackagePath>lib\$(TargetFramework)</PackagePath>
-			</TfmSpecificPackageFile>
-		</ItemGroup>
-	</Target>
+	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
+		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.4-local.1" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="Assets\icon-128.png" Pack="true" PackagePath="\" />
