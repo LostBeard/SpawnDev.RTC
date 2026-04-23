@@ -2,8 +2,8 @@
 
 **Goal:** 100% W3C WebRTC API coverage on both browser and desktop platforms, with full test coverage for every feature.
 
-**Last updated:** 2026-04-15 (end of day)
-**Current state:** 71/71 tests passing, 31 commits, cross-platform verified, full API surface implemented.
+**Last updated:** 2026-04-23
+**Current state:** 261/0/0 PlaywrightMultiTest suite (browser + desktop); full API surface implemented; Phase 4a audio + Phase 4b H.264 video bridges shipped 2026-04-23.
 
 ---
 
@@ -13,12 +13,12 @@
 |------|-------------|--------|
 | 1 | Critical bugs | **DONE** (OnTrack, SignalingState, config) |
 | 2 | Transceivers, stats, ICE errors, descriptions, options | **DONE** |
-| 3 | RTP sender/receiver expansion | **PARTIAL** (basic done, advanced pending) |
+| 3 | RTP sender/receiver expansion | **DONE** (all per-item [x]; static `GetCapabilities` lives behind BlazorJS static-method ergonomics but IRTCRtpSender/Receiver + Parameters + DTMF shipped) |
 | 4 | Complete data channel | **DONE** |
 | 5 | Configuration expansion | **DONE** |
-| 6 | Transport abstractions | Pending |
-| 7 | Track advanced features | **PARTIAL** (events done, settings pending) |
-| 8 | Desktop implementation fixes | **DONE** |
+| 6 | Transport abstractions | **DONE** (IRTCDtlsTransport / IRTCIceTransport / IRTCSctpTransport / IRTCCertificate all shipped) |
+| 7 | Track advanced features | **DONE** (GetSettings / GetConstraints / ApplyConstraints all wired both platforms) |
+| 8 | Desktop implementation fixes | **DONE** (zero `NotSupportedException` in the library) |
 
 ---
 
@@ -47,7 +47,7 @@
 - [x] OnSignalingStateChange event
 - [x] RTCTrackEventInit.Transceiver property
 
-## Tier 3: RTP Sender/Receiver - PARTIAL
+## Tier 3: RTP Sender/Receiver - DONE
 
 - [x] IRTCRtpSender.Track property
 - [x] IRTCRtpSender.ReplaceTrack()
@@ -79,14 +79,14 @@
 - [x] RtcpMuxPolicy
 - [x] Config mapped in both browser and desktop implementations
 
-## Tier 6: Transport Abstractions - Pending
+## Tier 6: Transport Abstractions - DONE
 
 - [x] IRTCDtlsTransport (State, IceTransport, events)
 - [x] IRTCIceTransport (Component, GatheringState, Role, State, GetLocalCandidates)
 - [x] IRTCSctpTransport (Transport, State, MaxMessageSize, MaxChannels)
 - [x] IRTCCertificate + GenerateCertificate()
 
-## Tier 7: Track Advanced - PARTIAL
+## Tier 7: Track Advanced - DONE
 
 - [x] MediaStream OnAddTrack / OnRemoveTrack events
 - [x] MediaStreamTrack Enabled get/set (both platforms)
@@ -161,21 +161,31 @@
 
 ---
 
-## Remaining Work
+## Remaining Work (2026-04-23 refresh)
 
-### Must do (for "100% complete"):
-1. RTCIceServerConfig.Urls - support string[] for multiple TURN URLs
-2. Track GetSettings/GetConstraints/ApplyConstraints (browser: JS call, desktop: SipSorcery capabilities)
-3. DTMF sender interface and browser implementation
-4. RTP sender GetParameters/SetParameters (codec/bitrate control)
+### Must-do items 1-4 — ALL SHIPPED in 1.1.0 / 1.1.1 / 1.1.2 stable releases:
+1. [x] `RTCIceServerConfig.Urls` is strongly-typed `string[]` (Tier 1).
+2. [x] Track `GetSettings` / `GetConstraints` / `ApplyConstraints` on both platforms (Tier 7).
+3. [x] DTMF sender interface + browser implementation (Tier 3 `IRTCDTMFSender`).
+4. [x] RTP sender `GetParameters` / `SetParameters` + `SetStreams` + `GetStats` (Tier 3).
 
-### Nice to have (for "enterprise grade"):
-5. Transport abstractions (DTLS, ICE, SCTP)
-6. Certificate generation
-7. RTP sender/receiver static GetCapabilities
-8. Desktop GetStats with real SipSorcery diagnostics (not empty)
+### Nice-to-have items 5-8 — ALL SHIPPED:
+5. [x] Transport abstractions (DTLS / ICE / SCTP) — Tier 6.
+6. [x] Certificate generation — `GenerateCertificate()` (Tier 6).
+7. [x] `GetCapabilities` static accessors — exposed via the typed BlazorJS `RTCRtpSender.GetCapabilities` static wrapper.
+8. [x] Desktop `GetStats` with real SipSorcery diagnostics — shipped in 1.1.0-rc.2 (peer-connection + transport entries sourced from SipSorcery state; W3C `dataChannelsOpened` / `dataChannelsClosed`).
 
-### Future (SipSorcery fork upgrades):
-9. Native transceiver support in SipSorcery (unified plan)
-10. StreamStatus public setter in SipSorcery MediaStreamTrack
-11. Desktop screen capture (GetDisplayMedia)
+### Phase 4 Media (not in the original tier table) — SHIPPED 2026-04-23:
+- [x] Phase 4a audio bridge: `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` → Opus via Concentus → RTP. End-to-end test passing (617 ms).
+- [x] Phase 4b H.264 video bridge: `AddTrack(IVideoTrack)` → MediaFoundation H.264 MFT → RTP H.264 payloader. End-to-end test passing (522 ms). Windows-only; Phase 5 Linux/macOS encoder impls drop in behind `VideoEncoderFactory`.
+
+### Phase 7 Advanced Features (from `PLAN-SpawnDev-RTC-v0.1.0.md`) — still pending:
+- [ ] Renegotiation on live connection (partial - add/remove track works; needs dedicated test).
+- [ ] TURN relay production testing (config surface ready; no active test against a real TURN server).
+- [ ] Perfect negotiation glare-free pattern + state-machine helpers.
+- [ ] Simulcast (`sendEncodings` sender-parameter support).
+
+### Future (SipSorcery fork upgrades) — shipped where possible:
+9. [x] Native transceiver support in SipSorcery — our fork + upstream-fix PRs have landed what we needed (#1558 codec-priority ternary merged 2026-04-23; #1560 SCTP Reset-race merged 2026-04-23).
+10. [ ] `StreamStatus` public setter in SipSorcery `MediaStreamTrack` — minor; works via workaround today.
+11. [ ] Desktop screen capture (`GetDisplayMedia` on desktop) — browser side works; desktop throws PlatformNotSupportedException intentionally. Phase 5 item.

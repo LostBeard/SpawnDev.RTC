@@ -4,6 +4,9 @@
 
 **Success criteria:** Desktop .NET and browser Blazor WASM peers connect and exchange data channel messages, audio tracks, and video tracks bidirectionally. Verified by PlaywrightMultiTest. API mirrors the W3C WebRTC specification.
 
+> **Status (2026-04-23): v0.1.0 superseded — we're on v1.1.3-rc.1.** Phases 1-6 + 8 + 9 all shipped; Phase 4a (audio bridge) and Phase 4b (H.264 video bridge via MediaFoundation MFT) both landed 2026-04-23. Only Phase 7 (advanced WebRTC features: renegotiation on live connection, simulcast, perfect-negotiation pattern, TURN) remains. Test count: 261 end-to-end via PlaywrightMultiTest, across browser + desktop. See `PLAN-Full-WebRTC-Coverage.md` for per-item status + `Docs/audio-tracks.md` / `Docs/video-tracks.md` for consumer-facing integration guides.
+
+
 ---
 
 ## Phase 1: SipSorcery Fork Setup - DONE
@@ -41,70 +44,50 @@
 - [x] `Loopback_DataChannel_Bidirectional` - ping/pong both directions
 - [x] **Result: 16/16 pass (browser + desktop)** in 7 seconds
 
-## Phase 4: Media Streams and Tracks
+## Phase 4: Media Streams and Tracks — SHIPPED
 
-Add full audio/video/media stream support to the abstraction:
+- [x] `IRTCMediaStream` / `IRTCMediaStreamTrack` / `AddTrack` / `RemoveTrack` / `OnTrack` / `GetSenders` / `GetReceivers` — browser (BlazorJS wrap) + desktop (SipSorcery wrap).
+- [x] Media capture: `GetUserMedia` + `GetDisplayMedia` (browser), `SpawnDev.MultiMedia.MediaDevices` on desktop.
+- [x] Phase 4a audio bridge (2026-04-23): `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` + `MultiMediaAudioSource` -> SipSorcery RTP audio encoder (Opus default). See `Docs/audio-tracks.md`.
+- [x] Phase 4b video bridge (2026-04-23): `AddTrack(IVideoTrack)` + `MultiMediaVideoSource` -> H.264 via MediaFoundation MFT -> SipSorcery RTP. See `Docs/video-tracks.md`.
 
-- [ ] `IRTCMediaStream` - Represents a media stream (audio + video tracks)
-- [ ] `IRTCMediaStreamTrack` - Individual audio or video track
-- [ ] `AddTrack(IRTCMediaStreamTrack track)` on `IRTCPeerConnection`
-- [ ] `RemoveTrack(IRTCRtpSender sender)` on `IRTCPeerConnection`
-- [ ] `OnTrack` event on `IRTCPeerConnection` - fires when remote peer adds a track
-- [ ] `GetSenders()` / `GetReceivers()` on `IRTCPeerConnection`
-- [ ] Browser implementation: wraps BlazorJS `MediaStream`, `MediaStreamTrack`
-- [ ] Desktop implementation: wraps SipSorcery media tracks
+## Phase 5: RTP/RTCP and Transceivers — SHIPPED
 
-### Media Capture
+- [x] `IRTCRtpSender` / `IRTCRtpReceiver` / `IRTCRtpTransceiver` (full browser + desktop).
+- [x] `AddTransceiver(string kind)` + `AddTransceiver(track)` + `GetTransceivers()` on both platforms.
+- [x] Codec negotiation + preference: `RTCRtpCodecInfo`, `IRTCRtpSender.GetParameters`/`SetParameters`.
+- [x] DTMF: `IRTCDTMFSender` interface + browser impl.
+- See `PLAN-Full-WebRTC-Coverage.md` Tier 2 + Tier 3 for per-item test coverage.
 
-- [ ] `GetUserMedia(constraints)` - Camera/microphone capture (browser native, SipSorcery sources on desktop)
-- [ ] `GetDisplayMedia(constraints)` - Screen capture (browser only, throw on desktop)
-- [ ] Audio track constraints: sampleRate, channelCount, echoCancellation, noiseSuppression
-- [ ] Video track constraints: width, height, frameRate, facingMode
+## Phase 6: Statistics and Diagnostics — SHIPPED
 
-### Media Playback
+- [x] `GetStats()` on `IRTCPeerConnection` with `IRTCStatsReport` (browser full, desktop emits peer-connection + transport entries sourced from SipSorcery state).
+- [x] W3C-standard stats: `dataChannelsOpened` / `dataChannelsClosed`, `connectionState`, `signalingState`, `iceGatheringState`, `iceConnectionState`.
+- [x] Per-track + per-candidate-pair stats via RTPSender.GetStats on browser.
 
-- [ ] Attach incoming tracks to HTML elements in WASM (video/audio elements)
-- [ ] Desktop: route to SipSorcery media endpoints or raw frame callbacks
+## Phase 7: Advanced Features — PENDING
 
-## Phase 5: RTP/RTCP and Transceivers
+- [ ] **Renegotiation** - Add/remove tracks on live connection (partially works today; explicit test needed).
+- [x] **ICE restart** - `CreateOffer(RTCOfferOptions)` with `IceRestart = true` (browser + desktop).
+- [ ] **TURN relay** - Full TURN support (config surface exists via `RTCIceServerConfig`; production TURN testing deferred).
+- [x] **Trickle ICE** - `OnIceCandidate` + `AddIceCandidate` on both platforms; `CanTrickleIceCandidates` property exposed.
+- [ ] **Perfect negotiation** - parameterless `SetLocalDescription()` shipped; full glare-free pattern + state-machine helpers not yet documented.
+- [ ] **Simulcast** - Multiple quality layers for video (future; needs `sendEncodings` sender-parameter support).
 
-- [ ] `IRTCRtpSender` - Sends media tracks
-- [ ] `IRTCRtpReceiver` - Receives media tracks
-- [ ] `IRTCRtpTransceiver` - Unified send/receive with direction control
-- [ ] `AddTransceiver(trackOrKind)` on `IRTCPeerConnection`
-- [ ] Codec negotiation and preference setting
-- [ ] DTMF support via `IRTCDTMFSender`
+## Phase 8: SipSorcery DTLS Browser Interop — SHIPPED
 
-## Phase 6: Statistics and Diagnostics
+- [x] Fork restricts SRTP profiles to browser-compatible set (AEAD_AES_128_GCM, AEAD_AES_256_GCM, AES128_CM_HMAC_SHA1_80).
+- [x] BouncyCastle DTLS stack preserved (the proven path from SpawnDev.RTLink); SharpSRTP rewrite bypassed.
+- [x] Desktop peer connects to Chrome, Firefox, Edge; Captain manually verified via chat demo + hub.spawndev.com.
+- [x] Data channel + media stream interop verified end-to-end (Phase 4a audio test passes, Phase 4b video test passes).
+- [x] SipSorcery fork codec-priority fix (`SortMediaCapability` inverted ternary) — PR [#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558) merged upstream 2026-04-23.
+- [x] SipSorcery fork SCTP Reset-race fix (60× loopback throughput win) — PR [#1560](https://github.com/sipsorcery-org/sipsorcery/pull/1560) merged upstream 2026-04-23.
 
-- [ ] `GetStats()` on `IRTCPeerConnection` - Connection quality metrics
-- [ ] Bandwidth estimation, packet loss, round-trip time
-- [ ] Per-track and per-candidate-pair stats
+## Phase 9: Integration with Consumers — SHIPPED
 
-## Phase 7: Advanced Features
-
-- [ ] **Renegotiation** - Add/remove tracks on live connection
-- [ ] **ICE restart** - `RestartIce()` for connectivity recovery
-- [ ] **TURN relay** - Full TURN support for NAT traversal
-- [ ] **Trickle ICE** - Progressive candidate exchange
-- [ ] **Perfect negotiation** - Glare-free offer/answer pattern
-- [ ] **Simulcast** - Multiple quality layers for video
-
-## Phase 8: SipSorcery DTLS Browser Interop
-
-Fix the desktop-to-browser WebRTC connection issue:
-
-- [ ] Compare SipSorcery 10.0.3 SDP output vs JS reference from WebTorrent research docs
-- [ ] Test SRTP profile restriction fix
-- [ ] If SharpSRTP DTLS is fundamentally broken, port old v6.0.11 DTLS to new BouncyCastle 2.x API
-- [ ] Verify desktop peer connects to Chrome, Firefox, Edge browser peers
-- [ ] Verify data channel and media stream interop
-
-## Phase 9: Integration with Consumers
-
-- [ ] **SpawnDev.WebTorrent** - Replace dual transport with SpawnDev.RTC
-- [ ] **SpawnDev.ILGPU.P2P** - Use SpawnDev.RTC for distributed GPU compute
-- [ ] **SpawnDev.RTLink** - Migrate from bundled SipSorcery to SpawnDev.RTC
+- [x] **SpawnDev.WebTorrent** — consumes `SpawnDev.RTC 1.1.3-rc.1` via `RtcPeer` (replaces the prior split `BrowserPeer` + `SipSorceryPeer`). Tracker migration to `SpawnDev.RTC.Server` also done (see `PLAN-Tracker-Signaling-Migration.md`).
+- [x] **SpawnDev.ILGPU.P2P** — consumes `SpawnDev.WebTorrent 3.1.3-rc.1` transitively (Geordi verified real-WebRTC test backfill + multi-MB tensor transfer path).
+- [ ] **SpawnDev.RTLink** — migration from bundled SipSorcery to SpawnDev.RTC not yet started; low priority (RTLink already works).
 
 ---
 

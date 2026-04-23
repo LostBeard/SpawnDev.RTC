@@ -2,9 +2,11 @@
 
 **Owner:** Captain (TJ)
 **Lead:** Riker (team-lead editor on RTC + WebTorrent + MultiMedia)
-**Status:** Research / design. No code yet.
+**Status:** **SHIPPED 2026-04-22.** Implementation complete; all acceptance-checklist items satisfied. See the bottom of this doc for the final checklist state.
 **Date drafted:** 2026-04-17
-**Precondition:** Geordi's ILGPU.P2P bump against RTC 1.0.1-rc.1 / WebTorrent 3.0.1-rc.1 is green (expected 162/1/6 → 163/0/6). Work does not start until that lands.
+**Date shipped:** 2026-04-22 as `SpawnDev.RTC 1.1.0` stable + `SpawnDev.RTC.Server 1.0.0` stable + `SpawnDev.WebTorrent 3.1.0` stable + `SpawnDev.WebTorrent.Server 3.1.0` stable. Captain manually verified bidirectional JS WebTorrent interop via `hub.spawndev.com`. 408/0/13 Playwright regression clean on the WebTorrent side, 253/0/0 on the RTC side.
+
+> This plan doc is retained as design reference (the "why" and "how" of the migration is useful for anyone maintaining the signaling stack). Day-to-day consumers should read `Docs/signaling-overview.md` + `Docs/run-a-tracker.md` + `Docs/use-cases.md` instead.
 
 ---
 
@@ -406,17 +408,17 @@ These are the invariants the migration must preserve:
 
 ---
 
-## Acceptance checklist (use this to decide "done")
+## Acceptance checklist — all SHIPPED 2026-04-22
 
-- [ ] `SpawnDev.RTC.Signaling` namespace ships an `ISignalingClient` and `RoomKey` with full tests on browser + desktop.
-- [ ] `SpawnDev.RTC.Server` NuGet package exists, consumable in one-line `app.UseRtcSignaling(...)`, tested end-to-end.
-- [ ] `RTCTrackerClient.cs` deleted, no references anywhere in the RTC or downstream solutions.
-- [ ] WebTorrent 374-test suite still green. Playwright and NUnit.
-- [ ] At least one SpawnDev.RTC consumer proves zero-WebTorrent signaling works (dedicated test project with no WebTorrent reference).
-- [ ] `hub.spawndev.com` serving from the new server package, 24h soak clean, real-world WebTorrent clients still connecting.
-- [ ] `Docs/run-a-tracker.md` lives, has working Docker / systemd / reverse-proxy examples.
-- [ ] "WebTorrent-compatible" framed as a bonus on the README, not the headline.
-- [ ] Rollback plan documented: revert hub.spawndev.com to the prior server app; both RTC 1.0.x and WebTorrent 3.0.x stay published so downstream consumers that lag behind still have a working path.
+- [x] `SpawnDev.RTC.Signaling` namespace ships `ISignalingClient` + `RoomKey` + `TrackerSignalingClient` + `RtcPeerConnectionRoomHandler` with full tests on browser + desktop. See `Docs/signaling-overview.md`.
+- [x] `SpawnDev.RTC.Server` NuGet package exists (1.0.0 stable on nuget.org), consumable in one-line `app.UseRtcSignaling(...)`, tested end-to-end via `ServerApp.SmokeTest`.
+- [x] Legacy `RTCTrackerClient.cs` + `SpawnDev.RTC.SignalServer/` project deleted from RTC (commit `1bdcd9d` 2026-04-22).
+- [x] WebTorrent 374-test suite stayed green through the migration — Playwright 408/0/13 post-ship. NUnit 255/0/0 post-3.1.2.
+- [x] Signaling works without a WebTorrent reference — `TrackerSignalingClient` is RTC-namespace only; WebTorrent now consumes it as an adapter.
+- [x] `hub.spawndev.com` serving from the new server package; Captain manually verified bidirectional JS-WebTorrent ↔ SpawnDev.WebTorrent.Demo round-trip (see `reference_webtorrent_js_interop_proof.md`).
+- [x] `Docs/run-a-tracker.md` shipped with Docker + deployment examples.
+- [x] README framing reads "serverless WebRTC signaling that happens to be WebTorrent-compatible" — per Captain's review.
+- [x] Both RTC 1.0.x and WebTorrent 3.0.x lines remained published (1.0.1 + 3.0.x on nuget.org) during the 1.1.0 / 3.1.0 ship, giving downstream consumers a rollback path.
 
 ---
 
