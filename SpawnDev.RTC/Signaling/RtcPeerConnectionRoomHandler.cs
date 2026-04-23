@@ -89,12 +89,17 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
             var offer = await pc.CreateOffer().ConfigureAwait(false);
             await pc.SetLocalDescription(offer).ConfigureAwait(false);
 
+            // The WebTorrent tracker protocol does not support trickle-ICE - the full SDP
+            // (with candidates) must be in the announce payload. On Browser and most Desktop
+            // stacks, CreateOffer returns before ICE gathering completes, so we must wait.
+            var fullSdp = await WaitForIceGatheringCompleteAsync(pc, offer.Sdp ?? "", ct).ConfigureAwait(false);
+
             var offerIdBytes = new byte[20];
             RandomNumberGenerator.Fill(offerIdBytes);
             var offerIdHex = Convert.ToHexString(offerIdBytes).ToLowerInvariant();
 
             _pendingOffers[offerIdHex] = (pc, dc);
-            offers.Add(new SignalingOffer(offerIdBytes, offer.Sdp ?? ""));
+            offers.Add(new SignalingOffer(offerIdBytes, fullSdp));
         }
         return offers;
     }
@@ -115,9 +120,42 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
         var answer = await pc.CreateAnswer().ConfigureAwait(false);
         await pc.SetLocalDescription(answer).ConfigureAwait(false);
 
+        // Same reason as CreateOffersAsync - WebTorrent tracker protocol doesn't trickle,
+        // so the answer SDP must have candidates embedded before we return it.
+        var fullSdp = await WaitForIceGatheringCompleteAsync(pc, answer.Sdp ?? "", ct).ConfigureAwait(false);
+
         _peers[remoteHex] = pc;
         OnPeerConnection?.Invoke(pc, remoteHex);
-        return answer.Sdp;
+        return fullSdp;
+    }
+
+    /// <summary>
+    /// Waits for ICE gathering on <paramref name="pc"/> to reach <c>complete</c>, then returns
+    /// the current local-description SDP (which will now include the gathered candidates).
+    /// Capped at 5 seconds to avoid hanging on malfunctioning STUN - after the cap we return
+    /// whatever SDP is available.
+    /// </summary>
+    private static async Task<string> WaitForIceGatheringCompleteAsync(IRTCPeerConnection pc, string fallbackSdp, CancellationToken ct)
+    {
+        // Already complete - return the current local description which has candidates.
+        if (pc.IceGatheringState == "complete")
+            return pc.LocalDescription?.Sdp ?? fallbackSdp;
+
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Handler(string state) { if (state == "complete") tcs.TrySetResult(true); }
+        pc.OnIceGatheringStateChange += Handler;
+        try
+        {
+            // Re-check post-subscribe in case the state transitioned between the first check and now.
+            if (pc.IceGatheringState == "complete") return pc.LocalDescription?.Sdp ?? fallbackSdp;
+
+            await Task.WhenAny(tcs.Task, Task.Delay(5000, ct)).ConfigureAwait(false);
+        }
+        finally
+        {
+            pc.OnIceGatheringStateChange -= Handler;
+        }
+        return pc.LocalDescription?.Sdp ?? fallbackSdp;
     }
 
     public virtual async Task HandleAnswerAsync(byte[] remotePeerId, byte[] offerId, string answerSdp, CancellationToken ct)

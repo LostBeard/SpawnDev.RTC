@@ -268,6 +268,12 @@
         if (!string.IsNullOrEmpty(RoomName)) _roomInput = RoomName;
         if (!string.IsNullOrEmpty(RoomFromQuery)) _roomInput = RoomFromQuery;
         if (!string.IsNullOrEmpty(TrackerOverride)) _trackerUrl = TrackerOverride;
+        if (!string.IsNullOrEmpty(TestId))
+        {
+            // Test liveness ping - if this writes, the host loaded AND ChatRoom.OnInitialized ran
+            // AND SupplyParameterFromQuery picked up the testId.
+            PublishToHarness($"chatRoomAlive_{TestId}", DateTime.UtcNow.Ticks);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -276,6 +282,16 @@
         {
             await JoinRoom();
         }
+    }
+
+    // Writes value onto the test harness window (the popup's opener OR the iframe's parent).
+    // Popups: window.opener is the test page; window.parent is the popup itself.
+    // Iframes: window.opener is null; window.parent is the test page.
+    // Writing to both covers both hosting modes; the failing one is a harmless no-op.
+    private void PublishToHarness(string key, object? value)
+    {
+        try { JS.Set($"opener.{key}", value!); } catch { }
+        try { JS.Set($"parent.{key}", value!); } catch { }
     }
 
     // Exposes component state to window.chatRoomState so parent/opener pages (tests) can
@@ -300,7 +316,7 @@
             // this is a harmless duplicate write.
             if (!string.IsNullOrEmpty(TestId))
             {
-                JS.Set($"parent.chatRoomState_{TestId}", state);
+                PublishToHarness($"chatRoomState_{TestId}", state);
             }
         }
         catch { /* window may not be available during teardown */ }
@@ -324,6 +340,11 @@
 
         _joined = true;
         StateHasChanged();
+        PublishTestState();
+        if (!string.IsNullOrEmpty(TestId))
+        {
+            PublishToHarness($"chatRoomJoinStart_{TestId}", DateTime.UtcNow.Ticks);
+        }
 
         try
         {
@@ -467,24 +488,49 @@
             System.Security.Cryptography.RandomNumberGenerator.Fill(localPeerId);
             _tracker = new TrackerSignalingClient(_trackerUrl, localPeerId);
             Console.WriteLine($"[ChatRoom] localPeerId={Convert.ToHexString(localPeerId)[..8]} tracker={_trackerUrl}");
+            if (!string.IsNullOrEmpty(TestId))
+            {
+                PublishToHarness($"chatRoomTrackerUrl_{TestId}", _trackerUrl);
+            }
 
             _tracker.OnConnected += () => InvokeAsync(() =>
             {
                 Console.WriteLine($"[ChatRoom] tracker OnConnected");
                 AddMessage("System", $"Connected to tracker. Waiting for peers...", false);
                 StateHasChanged();
+                if (!string.IsNullOrEmpty(TestId))
+                {
+                    PublishToHarness($"chatRoomTrackerConnected_{TestId}", DateTime.UtcNow.Ticks);
+                }
             });
+            _tracker.OnWarning += w =>
+            {
+                Console.WriteLine($"[ChatRoom] tracker OnWarning: {w}");
+                if (!string.IsNullOrEmpty(TestId))
+                {
+                    PublishToHarness($"chatRoomTrackerWarning_{TestId}", w ?? "");
+                }
+            };
 
             _tracker.Subscribe(_roomKey, _handler);
             Console.WriteLine($"[ChatRoom] Subscribed to room, announcing started...");
             await _tracker.AnnounceAsync(_roomKey, new AnnounceOptions { Event = "started", NumWant = 5 });
             Console.WriteLine($"[ChatRoom] Announce complete");
+            if (!string.IsNullOrEmpty(TestId))
+            {
+                PublishToHarness($"chatRoomAnnounced_{TestId}", DateTime.UtcNow.Ticks);
+            }
+            PublishTestState();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[ChatRoom] JoinRoom EXCEPTION: {ex}");
             AddMessage("Error", ex.Message, false);
             StateHasChanged();
+            if (!string.IsNullOrEmpty(TestId))
+            {
+                PublishToHarness($"chatRoomError_{TestId}", ex.Message);
+            }
         }
     }
 

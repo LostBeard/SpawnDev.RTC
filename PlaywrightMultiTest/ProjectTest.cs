@@ -100,6 +100,17 @@ public class ProjectTest
             }
             page.Console += OnConsole;
 
+            // Also capture HTTP responses with non-2xx status codes (helps debug iframe loads)
+            var httpErrors = new List<string>();
+            void OnResponse(object? sender, IResponse r)
+            {
+                if (r.Status >= 400)
+                {
+                    httpErrors.Add($"{r.Status} {r.Url}");
+                }
+            }
+            page.Response += OnResponse;
+
             // run the test
             var row = page.Locator(rowSelector);
 
@@ -121,8 +132,14 @@ public class ProjectTest
                 return await runButton.IsEnabledAsync();
             });
 
-            // Stop capturing console
+            // Stop capturing console + responses
             page.Console -= OnConsole;
+            page.Response -= OnResponse;
+            if (httpErrors.Count > 0)
+            {
+                Console.Error.WriteLine($"[{Name}] HTTP {httpErrors.Count} failing response(s):");
+                foreach (var he in httpErrors) Console.Error.WriteLine($"  {he}");
+            }
 
             // Only flag a Blazor error if it appeared NEW during this test (wasn't already there)
             string? blazorError = null;

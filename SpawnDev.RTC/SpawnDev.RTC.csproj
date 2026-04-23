@@ -58,7 +58,7 @@ v1.1.0: New SpawnDev.RTC.Signaling namespace - WebTorrent-independent signaling 
 	     which doesn't exist on nuget.org). The fork DLLs are bundled into lib/ via
 	     the AddProjectReferencesToPackage target below. -->
 	<ItemGroup>
-		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" PrivateAssets="All" />
+		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup>
