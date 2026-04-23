@@ -11,6 +11,7 @@ namespace SpawnDev.RTC.Desktop
     public class DesktopRTCPeerConnection : IRTCPeerConnection
     {
         private readonly List<MultiMediaAudioSource> _audioSources = new();
+        private readonly List<MultiMediaVideoSource> _videoSources = new();
 
         /// <summary>
         /// MultiMedia audio sources attached to this peer connection via <see cref="AddTrack(IAudioTrack)"/>.
@@ -19,6 +20,14 @@ namespace SpawnDev.RTC.Desktop
         /// to pause/resume an individual source without stopping the whole peer connection.
         /// </summary>
         public IReadOnlyList<MultiMediaAudioSource> AudioSources => _audioSources;
+
+        /// <summary>
+        /// MultiMedia video sources attached via <see cref="AddTrack(IVideoTrack)"/>. Each one
+        /// bridges a single <see cref="IVideoTrack"/> into the Phase 4b H.264 encoder + RTP
+        /// sender. Exposed for diagnostics (EncodedFrameCount / EncodedByteCount) and for
+        /// bitrate overrides.
+        /// </summary>
+        public IReadOnlyList<MultiMediaVideoSource> VideoSources => _videoSources;
 
 
         /// <summary>
@@ -330,6 +339,54 @@ namespace SpawnDev.RTC.Desktop
             return new DesktopRtpSender(wrappedTrack, NativeConnection);
         }
 
+        /// <summary>
+        /// Attaches a SpawnDev.MultiMedia <see cref="IVideoTrack"/> (real webcam capture) to
+        /// this peer connection. Raw video frames from the track are routed through a
+        /// <see cref="MultiMediaVideoSource"/> bridge that encodes them to H.264 (baseline
+        /// profile, low-latency, CBR at <see cref="MultiMediaVideoSource.BitrateBps"/>) via
+        /// the Windows MediaFoundation H.264 MFT and feeds the encoded NAL units into
+        /// SipSorcery's RTP video sender for RFC 6184 packetization.
+        ///
+        /// Windows-only in Phase 4b. Linux VAAPI + macOS VideoToolbox land as Phase 5 behind
+        /// the same <see cref="VideoEncoderFactory"/> dispatch.
+        /// </summary>
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public IRTCRtpSender AddTrack(SpawnDev.MultiMedia.IVideoTrack videoTrack)
+        {
+            return AddTrack(new MultiMediaVideoSource(videoTrack));
+        }
+
+        /// <summary>
+        /// Overload that accepts a preconstructed <see cref="MultiMediaVideoSource"/>, giving
+        /// the caller explicit control over the source's bitrate / codec format list. Use
+        /// this when a specific bitrate is required or when tests need to pre-subscribe to
+        /// the source's diagnostic counters before frames start flowing.
+        /// </summary>
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public IRTCRtpSender AddTrack(MultiMediaVideoSource source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            _videoSources.Add(source);
+
+            var sipsorceryTrack = new MediaStreamTrack(source.GetVideoSourceFormats());
+            NativeConnection.addTrack(sipsorceryTrack);
+
+            source.OnVideoSourceEncodedSample += NativeConnection.SendVideo;
+            NativeConnection.OnVideoFormatsNegotiated += negotiated =>
+            {
+                if (negotiated != null && negotiated.Count > 0)
+                {
+                    source.SetVideoSourceFormat(negotiated[0]);
+                }
+            };
+
+            _ = source.StartVideo();
+
+            var wrappedTrack = new DesktopRTCMediaStreamTrack(sipsorceryTrack);
+            return new DesktopRtpSender(wrappedTrack, NativeConnection);
+        }
+
         public void RemoveTrack(IRTCRtpSender sender)
         {
             if (sender is DesktopRtpSender desktopSender && desktopSender.Track is DesktopRTCMediaStreamTrack desktopTrack)
@@ -446,6 +503,11 @@ namespace SpawnDev.RTC.Desktop
                 try { src.Dispose(); } catch { }
             }
             _audioSources.Clear();
+            foreach (var vs in _videoSources)
+            {
+                try { vs.Dispose(); } catch { }
+            }
+            _videoSources.Clear();
             NativeConnection.onicecandidate -= HandleIceCandidate;
             NativeConnection.ondatachannel -= HandleDataChannel;
             NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;

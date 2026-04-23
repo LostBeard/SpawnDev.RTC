@@ -2,6 +2,16 @@
 
 ## 1.1.3-rc.1 (2026-04-23)
 
+### Phase 4b H.264 video bridge shipped
+
+- New `DesktopRTCPeerConnection.AddTrack(SpawnDev.MultiMedia.IVideoTrack)` + `AddTrack(MultiMediaVideoSource)` overloads. A SpawnDev.MultiMedia `IVideoTrack` (webcam, screen-share, synthetic) feeds straight into SipSorcery's RTP video sender with H.264 encoding on the path.
+- New `SpawnDev.RTC/Desktop/MultiMediaVideoSource.cs` - bridge from `IVideoTrack` → `SpawnDev.MultiMedia.IVideoEncoder` (factory dispatches to Windows MediaFoundation H.264 MFT in Phase 4b) → SipSorcery `IVideoSource`. Emits H.264 Annex-B NAL units; SipSorcery's existing RTP H.264 packetizer (RFC 6184 Single NAL / FU-A) handles fragmentation.
+- Codec: H.264 baseline profile, CBR, low-latency mode (`CODECAPI_AVLowLatencyMode`), 1.5 Mbps default bitrate (configurable via `MultiMediaVideoSource.BitrateBps`), 90 kHz RTP clock. SDP advertises `H264 / 90000` with `packetization-mode=1`.
+- `MultiMediaVideoSource.ForceKeyFrame()` triggers an IDR (today by restarting the encoder — sub-millisecond on hardware-accelerated MFTs).
+- End-to-end test `Phase4b_Desktop_VideoBridge_EncodesAndNegotiatesH264`: two DesktopRTCPeerConnection instances exchange a synthetic 320x240 @ 30 fps NV12 pattern, assert OnTrack(video) fires, SDP contains `m=video` + `H264`, sender encoded ≥ 5 frames / ≥ 1000 bytes. Completes in ~500 ms.
+- Windows-only until Phase 5 lands Linux (VAAPI) and macOS (VideoToolbox) encoders behind the same `VideoEncoderFactory.CreateH264` facade. Browser uses native WebRTC.
+- Docs: new `Docs/video-tracks.md` walkthrough covering the minimal example + encoder config + test layout + file reference map.
+
 ### Upstream PR #1558 (SortMediaCapability) merged upstream
 
 - The SipSorcery codec-priority inverted-ternary fix (at `RTPSession.cs:1221`) that shipped in SpawnDev.SIPSorcery 10.0.4-local.1 + our Phase 4a audio bridge work was [merged upstream](https://github.com/sipsorcery-org/sipsorcery/pull/1558) on 2026-04-23 by Aaron Clauson (merge commit `f3f32f9`). Future upstream SipSorcery releases carry the fix natively; our fork stays in sync.

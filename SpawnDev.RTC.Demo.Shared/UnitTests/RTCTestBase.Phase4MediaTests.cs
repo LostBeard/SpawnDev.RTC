@@ -295,5 +295,208 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
                 _pumpTask = null;
             }
         }
+
+        /// <summary>
+        /// Phase 4b - desktop H.264 video bridge end-to-end. Generates a synthetic NV12 pattern
+        /// (moving gradient, no real camera), drives it through <see cref="MultiMediaVideoSource"/>'s
+        /// ExternalVideoSourceRawSample path at 30 fps, negotiates with a second
+        /// DesktopRTCPeerConnection over loopback DTLS/SRTP, and asserts:
+        /// (1) pc2's OnTrack fires with Kind=="video", (2) pc1's SDP contains m=video and H264
+        /// codec line, (3) the sender-side MultiMediaVideoSource encoded > 0 frames - proving
+        /// the Windows MediaFoundation H.264 MFT actually produced NAL units inside the RTP
+        /// pipeline. Windows-only; skipped on browsers (which use native WebRTC video).
+        /// </summary>
+        [TestMethod]
+        public async Task Phase4b_Desktop_VideoBridge_EncodesAndNegotiatesH264()
+        {
+            if (OperatingSystem.IsBrowser()) return;
+            if (!OperatingSystem.IsWindows()) return; // MFT is Windows-only until Phase 5
+
+            const int Width = 320;
+            const int Height = 240;
+            const int Fps = 30;
+
+            var config = new RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+            };
+
+            using var pc1 = RTCPeerConnectionFactory.Create(config);
+            using var pc2 = RTCPeerConnectionFactory.Create(config);
+
+            pc1.OnIceCandidate += c => _ = pc2.AddIceCandidate(c);
+            pc2.OnIceCandidate += c => _ = pc1.AddIceCandidate(c);
+
+            var desktopPc1 = (DesktopRTCPeerConnection)pc1;
+            var desktopPc2 = (DesktopRTCPeerConnection)pc2;
+
+            // Build the video source directly (no IVideoTrack - we drive frames with
+            // ExternalVideoSourceRawSample from the test loop).
+            using var source = new StubVideoTrack(Width, Height, Fps);
+            var videoSender = desktopPc1.AddTrack(source);
+
+            // pc2 also attaches a stub so the negotiation is video-video on both sides
+            // (mirrors the Phase 4a audio test's symmetric pattern).
+            using var sinkSource = new StubVideoTrack(Width, Height, Fps);
+            desktopPc2.AddTrack(sinkSource);
+
+            // DataChannel to keep the PC alive through signaling (matches the audio test).
+            pc1.CreateDataChannel("signal");
+            pc2.OnDataChannel += _ => { };
+
+            var videoTrackReceived = new TaskCompletionSource<RTCTrackEventInit>();
+            pc2.OnTrack += e =>
+            {
+                if (e.Track.Kind == "video") videoTrackReceived.TrySetResult(e);
+            };
+
+            var offer = await pc1.CreateOffer();
+            await pc1.SetLocalDescription(offer);
+            await pc2.SetRemoteDescription(offer);
+            var answer = await pc2.CreateAnswer();
+            await pc2.SetLocalDescription(answer);
+            await pc1.SetRemoteDescription(answer);
+
+            // Pump frames into the sender-side source at ~30 fps for up to 20 s or until we
+            // see the track event + enough encoded frames.
+            var senderBridge = desktopPc1.VideoSources.First();
+            var pumpCts = new CancellationTokenSource();
+            var pumpTask = Task.Run(async () =>
+            {
+                int frameIdx = 0;
+                while (!pumpCts.IsCancellationRequested)
+                {
+                    var nv12 = BuildMovingPatternNV12(Width, Height, frameIdx++);
+                    try
+                    {
+                        senderBridge.ExternalVideoSourceRawSample(
+                            durationMilliseconds: 33,
+                            width: Width,
+                            height: Height,
+                            sample: nv12,
+                            pixelFormat: VideoPixelFormatsEnum.NV12);
+                    }
+                    catch { /* bridge errors are collected via OnVideoSourceError below */ }
+                    await Task.Delay(33, pumpCts.Token).ContinueWith(_ => { });
+                }
+            });
+
+            string? bridgeError = null;
+            senderBridge.OnVideoSourceError += msg => bridgeError = msg;
+
+            var completed = await Task.WhenAny(videoTrackReceived.Task, Task.Delay(20000));
+            if (completed != videoTrackReceived.Task)
+            {
+                pumpCts.Cancel();
+                throw new Exception(
+                    $"Timed out waiting for OnTrack(video) on pc2. Sender bridge encoded " +
+                    $"{senderBridge.EncodedFrameCount} frame(s) / {senderBridge.EncodedByteCount} bytes. " +
+                    $"Bridge error = {bridgeError ?? "(none)"}. " +
+                    $"pc1 connection state = {pc1.ConnectionState}, pc2 = {pc2.ConnectionState}.");
+            }
+
+            var trackEvent = await videoTrackReceived.Task;
+            if (trackEvent.Track.Kind != "video")
+                throw new Exception($"Expected video track, got '{trackEvent.Track.Kind}'");
+
+            var localSdp = pc1.LocalDescription?.Sdp ?? "";
+            if (!localSdp.Contains("m=video"))
+                throw new Exception($"pc1 local SDP missing m=video. SDP:\n{localSdp}");
+            if (!localSdp.Contains("H264", StringComparison.OrdinalIgnoreCase))
+                throw new Exception($"pc1 local SDP missing H264 codec. SDP:\n{localSdp}");
+
+            // Wait up to a few more seconds for the sender to have encoded a handful of
+            // frames. The H.264 MFT emits every frame in low-latency mode so this should
+            // happen nearly immediately once pumping starts.
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (senderBridge.EncodedFrameCount < 5 && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(100);
+            }
+
+            pumpCts.Cancel();
+            try { await pumpTask; } catch { }
+
+            if (senderBridge.EncodedFrameCount < 5)
+                throw new Exception(
+                    $"Sender-side MultiMediaVideoSource only encoded {senderBridge.EncodedFrameCount} frame(s) " +
+                    $"in ~5 s of pumping. Expected >= 5. Bridge error = {bridgeError ?? "(none)"}.");
+
+            if (senderBridge.EncodedByteCount < 1000)
+                throw new Exception(
+                    $"Sender-side encoder produced only {senderBridge.EncodedByteCount} bytes. Encoder is emitting suspiciously small output.");
+        }
+
+        private static byte[] BuildMovingPatternNV12(int width, int height, int frameIndex)
+        {
+            int ySize = width * height;
+            int uvSize = width * height / 2;
+            var data = new byte[ySize + uvSize];
+            int offset = (frameIndex * 8) % 256;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    data[y * width + x] = (byte)((x + y + offset) & 0xFF);
+            for (int i = ySize; i < ySize + uvSize; i++) data[i] = 128;
+            return data;
+        }
+
+        /// <summary>
+        /// Test-only stub <see cref="IVideoTrack"/>. Does not generate frames on its own (the
+        /// test pumps frames via ExternalVideoSourceRawSample); its job is to satisfy the
+        /// DesktopRTCPeerConnection.AddTrack(IVideoTrack) overload and provide FrameRate +
+        /// geometry metadata.
+        /// </summary>
+        private sealed class StubVideoTrack : IVideoTrack
+        {
+            public StubVideoTrack(int width, int height, double frameRate)
+            {
+                Width = width;
+                Height = height;
+                FrameRate = frameRate;
+            }
+
+            public string Id { get; } = Guid.NewGuid().ToString();
+            public string Label { get; } = "stub-video";
+            public string Kind => "video";
+            public bool Enabled { get; set; } = true;
+            public bool Muted => false;
+            public string ReadyState { get; private set; } = "live";
+            public string ContentHint { get; set; } = "";
+
+            public int Width { get; }
+            public int Height { get; }
+            public double FrameRate { get; }
+            public VideoPixelFormat Format => VideoPixelFormat.NV12;
+
+#pragma warning disable CS0067
+            public event Action<VideoFrame>? OnFrame;
+            public event Action? OnMute;
+            public event Action? OnUnmute;
+            public event Action? OnEnded;
+#pragma warning restore CS0067
+
+            public void Stop()
+            {
+                if (ReadyState == "ended") return;
+                ReadyState = "ended";
+                OnEnded?.Invoke();
+            }
+
+            public IMediaStreamTrack Clone() => new StubVideoTrack(Width, Height, FrameRate);
+
+            public MediaTrackSettings GetSettings() => new MediaTrackSettings
+            {
+                Width = Width,
+                Height = Height,
+                FrameRate = FrameRate,
+                PixelFormat = Format,
+            };
+
+            public SpawnDev.MultiMedia.MediaTrackConstraints GetConstraints() => new SpawnDev.MultiMedia.MediaTrackConstraints();
+
+            public Task ApplyConstraints(SpawnDev.MultiMedia.MediaTrackConstraints constraints) => Task.CompletedTask;
+
+            public void Dispose() => Stop();
+        }
     }
 }

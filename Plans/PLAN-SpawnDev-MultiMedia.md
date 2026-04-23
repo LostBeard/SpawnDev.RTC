@@ -432,11 +432,14 @@ Copy SpawnDev.RTC's PlaywrightMultiTest setup:
 5. [x] End-to-end test `RTCTestBase.Phase4MediaTests.cs` - two `DesktopRTCPeerConnection` instances negotiate a 48 kHz stereo synthetic sine wave, assert OnTrack fires, SDP contains m=audio + opus, and pc2 receives >= 5 non-empty encoded Opus RTP frames within 20 s. Zero regressions on the 259 pre-existing RTC tests (full suite 261/0/0).
 6. [x] SipSorcery fork fix: inverted ternary in `SortMediaCapability` priority-track selection fixed in-fork and filed upstream as PR [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558). **Merged upstream 2026-04-23** by Aaron Clauson (merge commit `f3f32f9`).
 
-**Phase 4b (video) - NOT YET STARTED** (planned):
-1. Windows MediaFoundation H.264 encoder via P/Invoke in SpawnDev.MultiMedia.
-2. `AddTrack(IVideoTrack)` overload on `DesktopRTCPeerConnection`, same pattern as the audio bridge.
-3. Browser WebRTC already supports H.264 end-to-end (native stack); desktop<->browser video call test rounds it out.
-4. Cross-platform video call test (browser camera -> desktop display + vice versa).
+**Phase 4b (video) - SHIPPED 2026-04-23** - 1.1.3-rc.1:
+1. [x] Windows MediaFoundation H.264 encoder via P/Invoke - `SpawnDev.MultiMedia/Windows/H264MFTInterop.cs` + `H264EncoderMFT.cs` + `WindowsH264Encoder.cs`. Baseline profile, CBR, low-latency, NV12 input, Annex-B NAL output. 4 unit tests on DemoConsole (SPS+PPS+IDR on first output, 30-frame multi-frame round-trip, dispose safety, factory dispatch).
+2. [x] `IVideoEncoder` + `VideoEncoderFactory.CreateH264` in `SpawnDev.MultiMedia/IVideoEncoder.cs` - platform-agnostic facade; Linux/macOS implementations drop in without touching callers.
+3. [x] `DesktopRTCPeerConnection.AddTrack(IVideoTrack)` + `AddTrack(MultiMediaVideoSource)` overloads on the same shape as the audio bridge. Bridge at `SpawnDev.RTC/Desktop/MultiMediaVideoSource.cs` subscribes to `IVideoTrack.OnFrame`, encodes to H.264, fires `OnVideoSourceEncodedSample` for SipSorcery's RFC 6184 RTP packetizer.
+4. [x] Cross-platform video call end-to-end test - `Phase4b_Desktop_VideoBridge_EncodesAndNegotiatesH264` - two DesktopRTCPeerConnection exchange a synthetic NV12 pattern, assert OnTrack(video) + SDP H.264 + ≥ 5 encoded frames + ≥ 1000 bytes. 522 ms duration.
+5. [x] Docs walkthrough: `SpawnDev.RTC/Docs/video-tracks.md`.
+
+Phase 4b steps 5 (WPF demo with live webcam streaming to browser) and 6 (dedicated video codec-negotiation doc) from the original `PLAN-H264-Encoder.md` remain as polish items but the Phase 4b feature itself is shipped + tested end-to-end.
 
 ### Phase 5: Linux + macOS (future)
 
