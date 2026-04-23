@@ -1,5 +1,6 @@
 using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
+using SpawnDev.MultiMedia;
 
 namespace SpawnDev.RTC.Desktop
 {
@@ -9,6 +10,17 @@ namespace SpawnDev.RTC.Desktop
     /// </summary>
     public class DesktopRTCPeerConnection : IRTCPeerConnection
     {
+        private readonly List<MultiMediaAudioSource> _audioSources = new();
+
+        /// <summary>
+        /// MultiMedia audio sources attached to this peer connection via <see cref="AddTrack(IAudioTrack)"/>.
+        /// Each one bridges a single <see cref="IAudioTrack"/> into SipSorcery's RTP audio encoder
+        /// path. Exposed for diagnostics (encoded-frame counters) and for consumer code that needs
+        /// to pause/resume an individual source without stopping the whole peer connection.
+        /// </summary>
+        public IReadOnlyList<MultiMediaAudioSource> AudioSources => _audioSources;
+
+
         /// <summary>
         /// Direct access to the underlying SipSorcery RTCPeerConnection.
         /// Use this for advanced SipSorcery features not exposed through the abstraction.
@@ -276,6 +288,48 @@ namespace SpawnDev.RTC.Desktop
             throw new ArgumentException("Track must be a DesktopRTCMediaStreamTrack on desktop.");
         }
 
+        /// <summary>
+        /// Attaches a SpawnDev.MultiMedia <see cref="IAudioTrack"/> (real microphone capture)
+        /// to this peer connection. Raw PCM frames from the track are routed through a
+        /// <see cref="MultiMediaAudioSource"/> bridge that encodes them (Opus by default for
+        /// browser WebRTC interop) and feeds the encoded packets into SipSorcery's RTP sender.
+        /// </summary>
+        public IRTCRtpSender AddTrack(IAudioTrack audioTrack)
+        {
+            return AddTrack(new MultiMediaAudioSource(audioTrack));
+        }
+
+        /// <summary>
+        /// Overload that accepts a preconstructed <see cref="MultiMediaAudioSource"/>, giving the
+        /// caller explicit control over the set of advertised codecs (via the SipSorcery
+        /// <see cref="AudioEncoder"/> passed into the source ctor). Use this when a specific
+        /// codec restriction is required - for example in tests that want to lock negotiation
+        /// onto Opus so peer-side codec preference quirks cannot pick a different format.
+        /// </summary>
+        public IRTCRtpSender AddTrack(MultiMediaAudioSource source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            _audioSources.Add(source);
+
+            var sipsorceryTrack = new MediaStreamTrack(source.GetAudioSourceFormats());
+            NativeConnection.addTrack(sipsorceryTrack);
+
+            source.OnAudioSourceEncodedSample += NativeConnection.SendAudio;
+            NativeConnection.OnAudioFormatsNegotiated += negotiated =>
+            {
+                if (negotiated != null && negotiated.Count > 0)
+                {
+                    source.SetAudioSourceFormat(negotiated[0]);
+                }
+            };
+
+            _ = source.StartAudio();
+
+            var wrappedTrack = new DesktopRTCMediaStreamTrack(sipsorceryTrack);
+            return new DesktopRtpSender(wrappedTrack, NativeConnection);
+        }
+
         public void RemoveTrack(IRTCRtpSender sender)
         {
             if (sender is DesktopRtpSender desktopSender && desktopSender.Track is DesktopRTCMediaStreamTrack desktopTrack)
@@ -387,6 +441,11 @@ namespace SpawnDev.RTC.Desktop
         {
             if (_disposed) return;
             _disposed = true;
+            foreach (var src in _audioSources)
+            {
+                try { src.Dispose(); } catch { }
+            }
+            _audioSources.Clear();
             NativeConnection.onicecandidate -= HandleIceCandidate;
             NativeConnection.ondatachannel -= HandleDataChannel;
             NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;

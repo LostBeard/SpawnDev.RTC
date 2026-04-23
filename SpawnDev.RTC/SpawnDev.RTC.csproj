@@ -59,6 +59,17 @@ v1.1.0: New SpawnDev.RTC.Signaling namespace - WebTorrent-independent signaling 
 		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.4" />
 	</ItemGroup>
 
+	<!-- SpawnDev.MultiMedia supplies cross-platform IAudioTrack / IVideoTrack abstractions
+	     that Phase 4 wires into SipSorcery's RTP encoder on desktop. Same conditional pattern
+	     as the SIPSorcery fork: sibling-repo ProjectReference when present (dev iteration),
+	     otherwise PackageReference from the feed. -->
+	<ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj')">
+		<ProjectReference Include="..\..\..\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\..\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj')">
+		<PackageReference Include="SpawnDev.MultiMedia" Version="0.1.0-rc.1" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<None Include="Assets\icon-128.png" Pack="true" PackagePath="\" />
 		<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
