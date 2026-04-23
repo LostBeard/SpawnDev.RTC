@@ -25,7 +25,7 @@ Versions prior to `SpawnDev.SIPSorcery 10.0.5-rc.1` had a producer-consumer lost
 
 **60× speedup.** Loopback-limited by SCTP bookkeeping, not by the burst timer anymore.
 
-Upstream PR pending after downstream verification; fix lands in the fork today and in any SpawnDev.RTC build that consumes `SpawnDev.SIPSorcery ≥ 10.0.5-rc.1` (SpawnDev.RTC `1.1.3-rc.1` and later).
+Fix lands in the fork (`SpawnDev.SIPSorcery ≥ 10.0.5-rc.1`) and in any SpawnDev.RTC build ≥ `1.1.3-rc.1`. **Merged upstream 2026-04-23** as [sipsorcery-org/sipsorcery#1560](https://github.com/sipsorcery-org/sipsorcery/pull/1560); Aaron Clauson merged within hours, no comment. Future upstream releases carry the fix natively.
 
 ## Is the ceiling still reached?
 
