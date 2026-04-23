@@ -38,7 +38,7 @@ The adapter at `SpawnDev.RTC.Desktop/MultiMediaAudioSource.cs` implements SipSor
 2. Pushes raw PCM frames into the SipSorcery encoder at the negotiated format (Opus 48 kHz stereo when both peers support it; falls back to PCMU 8 kHz when talking to a plain PSTN-profile peer).
 3. Exposes `EncodedFrameCount` and `EncodedByteCount` diagnostic properties so integration tests can assert real RTP frames were emitted, not just that the connection opened.
 
-Codec negotiation uses SipSorcery's `SortMediaCapability`. Both peers landing on the SAME selected format was broken in upstream SipSorcery 10.0.4 due to an inverted ternary at `RTPSession.cs:1221` (PR [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558)); the fix is in the `LostBeard/sipsorcery` fork and is shipped via SpawnDev.SIPSorcery ≥ 10.0.4-local.1.
+Codec negotiation uses SipSorcery's `SortMediaCapability`. Both peers landing on the SAME selected format was broken in upstream SipSorcery 10.0.4 due to an inverted ternary at `RTPSession.cs:1221`. Fixed in the `LostBeard/sipsorcery` fork + shipped via SpawnDev.SIPSorcery ≥ 10.0.4-local.1; **merged upstream 2026-04-23** as [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558) (merge commit `f3f32f9`, thanks @sipsorcery / Aaron Clauson). Future upstream releases carry the fix natively.
 
 ## Cross-platform: browser ↔ desktop audio call
 

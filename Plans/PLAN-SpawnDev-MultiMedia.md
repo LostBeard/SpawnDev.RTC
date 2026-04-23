@@ -430,7 +430,7 @@ Copy SpawnDev.RTC's PlaywrightMultiTest setup:
 3. [x] `MultiMediaAudioSource` bridge: Float32 -> PCM16 conversion via `AudioFormatConverter`, 20 ms framing, strict sample-rate/channel-count validation with clear `NotSupportedException` on mismatches.
 4. [x] `EncodedFrameCount` / `EncodedByteCount` diagnostic properties on the bridge so tests and consumers can distinguish "encoder never ran" from "RTP did not deliver."
 5. [x] End-to-end test `RTCTestBase.Phase4MediaTests.cs` - two `DesktopRTCPeerConnection` instances negotiate a 48 kHz stereo synthetic sine wave, assert OnTrack fires, SDP contains m=audio + opus, and pc2 receives >= 5 non-empty encoded Opus RTP frames within 20 s. Zero regressions on the 259 pre-existing RTC tests (full suite 261/0/0).
-6. [x] SipSorcery fork fix: inverted ternary in `SortMediaCapability` priority-track selection fixed in-fork and filed upstream as PR [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558).
+6. [x] SipSorcery fork fix: inverted ternary in `SortMediaCapability` priority-track selection fixed in-fork and filed upstream as PR [sipsorcery-org/sipsorcery#1558](https://github.com/sipsorcery-org/sipsorcery/pull/1558). **Merged upstream 2026-04-23** by Aaron Clauson (merge commit `f3f32f9`).
 
 **Phase 4b (video) - NOT YET STARTED** (planned):
 1. Windows MediaFoundation H.264 encoder via P/Invoke in SpawnDev.MultiMedia.

@@ -2,6 +2,10 @@
 
 ## 1.1.3-rc.1 (2026-04-23)
 
+### Upstream PR #1558 (SortMediaCapability) merged upstream
+
+- The SipSorcery codec-priority inverted-ternary fix (at `RTPSession.cs:1221`) that shipped in SpawnDev.SIPSorcery 10.0.4-local.1 + our Phase 4a audio bridge work was [merged upstream](https://github.com/sipsorcery-org/sipsorcery/pull/1558) on 2026-04-23 by Aaron Clauson (merge commit `f3f32f9`). Future upstream SipSorcery releases carry the fix natively; our fork stays in sync.
+
 ### SCTP sender throughput fix (via SpawnDev.SIPSorcery 10.0.5-rc.1)
 
 - Dep-bump to `SpawnDev.SIPSorcery 10.0.5-rc.1` which fixes the `SctpDataSender` producer-consumer lost-wakeup race. `_senderMre.Reset()` moved from AFTER the send work to the TOP of the `DoSend` loop so any `Set()` fired by SACK arrival during the send is preserved for the next `Wait(burstPeriod)` instead of being wiped.
