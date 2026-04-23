@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.3-rc.1</Version>
+		<Version>1.1.3-rc.2</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.3-rc.1: Picks up SpawnDev.SIPSorcery 10.0.5-rc.1 which fixes the SctpDataSender lost-wakeup race that capped data-channel throughput at ~100 KB/s on localhost loopback. Measured 60x speedup on the regression test (89.8 KB/s -> 5.4 MB/s). No SpawnDev.RTC source changes - pure dep bump.
+		<PackageReleaseNotes>v1.1.3-rc.2: Dep-bump to SpawnDev.SIPSorcery 10.0.5-rc.2 which exposes per-association SCTP burst tunables (`SctpAssociation.MaxBurst` + `SctpAssociation.BurstPeriodMilliseconds`). RFC 4960 §7.2.2 defaults (4 chunks / 50 ms) preserved for WAN. Consumers that know their link is loopback / LAN can raise MaxBurst (e.g. 32) via `DesktopRTCPeerConnection.NativeConnection.sctp.RTCSctpAssociation.MaxBurst = 32` to recover the throughput the RFC default was leaving on the table. Expected impact at MaxBurst=32 on sub-10ms RTT: ~8x end-to-end throughput improvement over rc.1. No SpawnDev.RTC source changes. v1.1.3-rc.1: Picks up SpawnDev.SIPSorcery 10.0.5-rc.1 which fixes the SctpDataSender lost-wakeup race (60x on zero-RTT benchmark; real-world still RTT-bound until MaxBurst tuning arrives in rc.2).
 
 v1.1.2-rc.2: Proper fix for the SIPSorcery fork packaging - no more workarounds. The fork's PackageId is renamed from "SIPSorcery 10.0.4-pre" (which collided with upstream and couldn't be published) to "SpawnDev.SIPSorcery 10.0.4-local.1", published as a first-class nuget package. SpawnDev.RTC now declares a normal PackageReference to SpawnDev.SIPSorcery - no hidden bundling, no PrivateAssets tricks, no SuppressForkDep flag, no explicit transitive PackageRefs. Deletes 4 workarounds: SuppressForkDep property, conditional PrivateAssets, AddProjectReferencesToPackage target, manually-declared SIPSorcery transitive deps. Ships on the same ICE-gathering fix as rc.1 (RtcPeerConnectionRoomHandler waits for gathering before serializing SDP to the tracker - real reason text chat never worked through the signaling flow).
 
@@ -58,7 +58,7 @@ v1.1.0: New SpawnDev.RTC.Signaling namespace - WebTorrent-independent signaling 
 		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
-		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.5-rc.1" />
+		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.5-rc.2" />
 	</ItemGroup>
 
 	<!-- SpawnDev.MultiMedia supplies cross-platform IAudioTrack / IVideoTrack abstractions

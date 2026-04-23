@@ -19,8 +19,8 @@
 ### SCTP sender throughput fix (via SpawnDev.SIPSorcery 10.0.5-rc.1)
 
 - Dep-bump to `SpawnDev.SIPSorcery 10.0.5-rc.1` which fixes the `SctpDataSender` producer-consumer lost-wakeup race. `_senderMre.Reset()` moved from AFTER the send work to the TOP of the `DoSend` loop so any `Set()` fired by SACK arrival during the send is preserved for the next `Wait(burstPeriod)` instead of being wiped.
-- **Measured 60x speedup** on the new `SctpDataSenderUnitTest.Throughput_FastSackWake_ExceedsBurstCeiling` regression test (504 KB, synchronous SACK delivery over loopback): pre-fix 5613 ms / 89.8 KB/s → post-fix 94 ms / 5.4 MB/s.
-- Unblocks SpawnDev.ILGPU.P2P's multi-MB tensor transfer path that was capped at ~77 KB/s on local WebRTC per Geordi's 2026-04-23 handoff. Downstream consumers pick up the fix transitively via `SpawnDev.WebTorrent 3.1.3-rc.1`.
+- **60x speedup on the synthetic zero-RTT benchmark** (`SctpDataSenderUnitTest.Throughput_FastSackWake_ExceedsBurstCeiling`, 504 KB with same-thread SACK delivery): pre-fix 5613 ms / 89.8 KB/s → post-fix 94 ms / 5.4 MB/s. That number IS the upper bound the sender thread can produce when SACKs don't have to leave the host.
+- **Real-world WebRTC loopback is still RTT-bound at `MAX_BURST × MTU / RTT ≈ 186 KB/s`** (Geordi measured ~0.15–0.19 MB/s end-to-end through a real DesktopRTCPeerConnection regardless of buffer size). The Reset-race fix is correct but not the dominant bottleneck once a real DTLS/UDP SACK RTT is in the loop. See `Docs/sctp-tuning.md` for the full analysis + the separate per-association `MAX_BURST` / `BURST_PERIOD` tunables shipping in 1.1.3-rc.2 that unlock the remaining throughput.
 - Zero source changes in SpawnDev.RTC itself — pure dep swap. Submodule pointer bump to `LostBeard/sipsorcery 2c4bf7714`.
 - Added `Docs/audio-tracks.md` (Phase 4a walkthrough) and `Docs/sctp-tuning.md` (the SCTP fix documented for consumers).
 - Upstream PR to sipsorcery-org pending after downstream verification.
