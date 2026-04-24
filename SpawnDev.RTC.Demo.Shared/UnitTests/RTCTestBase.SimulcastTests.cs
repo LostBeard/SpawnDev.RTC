@@ -116,5 +116,81 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             try { await sender.SetParameters(parameters); }
             catch (Exception) when (OperatingSystem.IsBrowser()) { /* browser rejection is expected */ }
         }
+
+        /// <summary>
+        /// Browser-only: initial-simulcast test via <see cref="IRTCPeerConnection.AddTransceiver(string, RTCRtpTransceiverInit)"/>.
+        /// Creates a transceiver with 3 sendEncodings (h/m/l with distinct RIDs +
+        /// bitrate scales), creates an offer, and parses the SDP to confirm the
+        /// simulcast layers actually made it onto the wire format:
+        ///   <c>a=simulcast:send h;m;l</c> + <c>a=rid:h send</c>, <c>a=rid:m send</c>, <c>a=rid:l send</c>
+        ///
+        /// RFC 8853 locks RIDs at transceiver-creation time - this is the ONLY path
+        /// that exercises real simulcast negotiation. Closes the RTC v0.1.0 plan
+        /// gap documented as "Simulcast sendEncodings not yet exposed on the
+        /// cross-platform API". Proves the new
+        /// <see cref="IRTCPeerConnection.AddTransceiver(string, RTCRtpTransceiverInit)"/>
+        /// overload round-trips to the browser's native addTransceiver.
+        /// </summary>
+        [TestMethod(Timeout = 20000)]
+        public async Task RtpSender_InitSimulcast_SdpOfferContainsSimulcastAndRidLines()
+        {
+            if (!OperatingSystem.IsBrowser())
+                throw new UnsupportedTestException("SipSorcery does not implement real simulcast (no RID/sendEncodings negotiation). Browser-only.");
+
+            using var pc = RTCPeerConnectionFactory.Create();
+
+            // 3-layer simulcast config - standard h/m/l nomenclature with bitrate/scale per layer.
+            var transceiver = pc.AddTransceiver("video", new RTCRtpTransceiverInit
+            {
+                Direction = "sendonly",
+                SendEncodings = new[]
+                {
+                    new RTCRtpEncoding { Rid = "h", Active = true, MaxBitrate = 2_500_000, ScaleResolutionDownBy = 1.0 },
+                    new RTCRtpEncoding { Rid = "m", Active = true, MaxBitrate = 500_000,   ScaleResolutionDownBy = 2.0 },
+                    new RTCRtpEncoding { Rid = "l", Active = true, MaxBitrate = 150_000,   ScaleResolutionDownBy = 4.0 },
+                },
+            });
+            if (transceiver == null) throw new Exception("AddTransceiver returned null");
+
+            var offer = await pc.CreateOffer();
+            if (string.IsNullOrEmpty(offer.Sdp))
+                throw new Exception("Offer had empty SDP - can't verify simulcast negotiation");
+
+            // Verify the three RID lines are present in send direction.
+            foreach (var rid in new[] { "h", "m", "l" })
+            {
+                var needle = $"a=rid:{rid} send";
+                if (!offer.Sdp.Contains(needle, StringComparison.Ordinal))
+                    throw new Exception($"SDP offer missing `{needle}`. Browser simulcast negotiation did not pick up sendEncodings[Rid={rid}]. SDP:\n{offer.Sdp}");
+            }
+
+            // Verify the simulcast announce line - browsers emit either `h;m;l` (semi-colon
+            // separated, the RFC 8853 canonical form) or equivalent spacings. Just look for
+            // all three RIDs in any simulcast:send line.
+            var simLineIndex = offer.Sdp.IndexOf("a=simulcast:send", StringComparison.Ordinal);
+            if (simLineIndex < 0)
+                throw new Exception("SDP offer missing `a=simulcast:send` line. sendEncodings did not translate to simulcast negotiation. SDP:\n" + offer.Sdp);
+
+            var simLineEnd = offer.Sdp.IndexOf('\n', simLineIndex);
+            var simLine = simLineEnd > simLineIndex ? offer.Sdp.Substring(simLineIndex, simLineEnd - simLineIndex) : offer.Sdp.Substring(simLineIndex);
+            foreach (var rid in new[] { "h", "m", "l" })
+            {
+                if (!simLine.Contains(rid, StringComparison.Ordinal))
+                    throw new Exception($"simulcast:send line '{simLine.Trim()}' does not contain RID '{rid}'. Full SDP:\n{offer.Sdp}");
+            }
+
+            // Bonus: sender.getParameters() should report 3 encodings with matching RIDs.
+            var sender = transceiver.Sender;
+            if (sender == null) throw new Exception("Transceiver had no sender after AddTransceiver");
+            var parameters = sender.GetParameters();
+            if (parameters.Encodings == null || parameters.Encodings.Length != 3)
+                throw new Exception($"sender.GetParameters() returned {parameters.Encodings?.Length ?? 0} encodings, expected 3");
+            var rids = parameters.Encodings.Select(e => e.Rid).ToArray();
+            foreach (var expected in new[] { "h", "m", "l" })
+            {
+                if (!rids.Contains(expected))
+                    throw new Exception($"Expected RID '{expected}' in sender.GetParameters().Encodings, got [{string.Join(",", rids)}]");
+            }
+        }
     }
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.5 (2026-04-24)
+
+### Simulcast sendEncodings + TURN data-path E2E tests
+
+Additive API surface closing two audit-punch-list gaps.
+
+**`IRTCPeerConnection.AddTransceiver(string kind, RTCRtpTransceiverInit init)`** (and `(IRTCMediaStreamTrack, RTCRtpTransceiverInit)` overload) — initial-simulcast configuration. Per RFC 8853 / W3C WebRTC, RIDs must be set at transceiver creation time; `SetParameters` cannot change them afterwards (browsers throw `InvalidModificationError: Read-only field modified`). The new `RTCRtpTransceiverInit` DTO exposes `Direction` + `SendEncodings`, reusing the existing cross-platform `RTCRtpEncoding` shape. Browser path translates to native `RTCRtpTransceiverOptions` + `RTCMediaEncoding[]`; desktop path accepts the options but ignores `SendEncodings` (SipSorcery has no native simulcast). New `RtpSender_InitSimulcast_SdpOfferContainsSimulcastAndRidLines` verifies the browser's SDP offer contains `a=simulcast:send` + three `a=rid:* send` lines when 3 encodings are passed at `AddTransceiver` time.
+
+**TURN RFC 5766 §10 data-path E2E**: two new tests in `DesktopTurnAuthTests` exercising the actual relay forwarding (not just Allocate auth):
+- `TurnRelay_E2E_SendIndicationForwardsDataToRawPeer` - Client → TURN `SendIndication` → raw UDP peer receives exact bytes.
+- `TurnRelay_E2E_DataIndicationDeliversPeerPayloadToClient` - Raw peer UDP → TURN relay socket → `DataIndication` → client extracts exact bytes.
+
+PlaywrightMultiTest full sweep: **322 pass / 0 fail / 3 skip** in 2m 10s. Closes RTC `PLAN-Full-WebRTC-Coverage.md:184+186` and `PLAN-SpawnDev-RTC-v0.1.0.md:72+75` — all Phase 7 items now shipped.
+
 ## 1.1.4 (2026-04-24)
 
 ### Browser `RTCRtpSender.SetParameters` fix

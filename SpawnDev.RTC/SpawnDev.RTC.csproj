@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.4</Version>
+		<Version>1.1.5</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.4 patch: Fixes browser-side `IRTCRtpSender.SetParameters` which threw `TypeError: Failed to read the 'codecs' property from 'RTCRtpParameters': Required member is undefined` on every call in 1.1.3. Root cause: our cross-platform DTO -> BlazorJS native translation dropped `codecs` / `headerExtensions` / `rtcp` (which are required-present per W3C spec even when read-only). Fix: cache the native `getParameters` object per-sender and mutate only the mutable fields on `setParameters`, preserving the required-present fields. 2 browser simulcast tests that were failing on 1.1.3 now pass. Desktop path unchanged. Consumers of SpawnDev.RTC 1.1.3 via SpawnDev.WebTorrent 3.1.3 pick up the fix on next `dotnet restore` via the >= 1.1.3 transitive pin; no WebTorrent bump required unless consumers lock-file the exact 1.1.3 version.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.5: Additive API surface closing the RTC v0.1.0 plan "real simulcast sendEncodings" gap. New overloads on `IRTCPeerConnection`: `AddTransceiver(string kind, RTCRtpTransceiverInit init)` + `AddTransceiver(IRTCMediaStreamTrack track, RTCRtpTransceiverInit init)`. `RTCRtpTransceiverInit` (new cross-platform DTO) exposes `Direction` + `SendEncodings` - per RFC 8853 / W3C, simulcast RIDs must be set at transceiver creation (not via SetParameters). Browser path round-trips to native `addTransceiver`; desktop path accepts the options but ignores SendEncodings (SipSorcery has no native simulcast). New integration test `RtpSender_InitSimulcast_SdpOfferContainsSimulcastAndRidLines` parses the generated SDP offer to verify `a=simulcast:send` + three `a=rid:* send` lines land on the wire. Also ships two new TURN data-path E2E tests (`TurnRelay_E2E_SendIndicationForwardsDataToRawPeer` + `TurnRelay_E2E_DataIndicationDeliversPeerPayloadToClient`) covering RFC 5766 §10 forward + reverse directions. PlaywrightMultiTest full sweep 322 pass, 0 fail, 3 skip in 2m 10s.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>

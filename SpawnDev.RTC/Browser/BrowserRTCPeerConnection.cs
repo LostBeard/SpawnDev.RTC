@@ -174,6 +174,37 @@ namespace SpawnDev.RTC.Browser
             throw new ArgumentException("Track must be a BrowserRTCMediaStreamTrack in WASM.");
         }
 
+        public IRTCRtpTransceiver AddTransceiver(string kind, RTCRtpTransceiverInit init)
+        {
+            var opts = ToNativeOptions(init);
+            return new BrowserRTCRtpTransceiver(NativeConnection.AddTransceiver(kind, opts));
+        }
+
+        public IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track, RTCRtpTransceiverInit init)
+        {
+            if (track is not BrowserRTCMediaStreamTrack browserTrack)
+                throw new ArgumentException("Track must be a BrowserRTCMediaStreamTrack in WASM.");
+            var opts = ToNativeOptions(init);
+            return new BrowserRTCRtpTransceiver(NativeConnection.AddTransceiver(browserTrack.NativeTrack, opts));
+        }
+
+        private static SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpTransceiverOptions ToNativeOptions(RTCRtpTransceiverInit init)
+        {
+            return new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpTransceiverOptions
+            {
+                Direction = init.Direction,
+                SendEncodings = init.SendEncodings?.Select(e => new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCMediaEncoding
+                {
+                    Rid = e.Rid,
+                    Active = e.Active,
+                    MaxBitrate = e.MaxBitrate is uint m ? (int?)m : null,
+                    MaxFramerate = e.MaxFramerate is double f ? (int?)f : null,
+                    ScaleResolutionDownBy = e.ScaleResolutionDownBy is double d ? (float?)d : null,
+                    Priority = e.Priority,
+                }).ToArray(),
+            };
+        }
+
         public IRTCRtpSender AddTrack(IRTCMediaStreamTrack track, params IRTCMediaStream[] streams)
         {
             var browserTrack = track as BrowserRTCMediaStreamTrack

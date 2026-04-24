@@ -280,6 +280,29 @@ namespace SpawnDev.RTC.Desktop
             throw new ArgumentException("Track must be a DesktopRTCMediaStreamTrack on desktop.");
         }
 
+        /// <summary>
+        /// SipSorcery doesn't implement real simulcast (no sendEncodings / RID /
+        /// per-layer bitrate), so <see cref="RTCRtpTransceiverInit.SendEncodings"/>
+        /// is accepted but ignored here. Direction is applied via the created
+        /// transceiver's NativeTrack.StreamStatus if set to a recognised value.
+        /// Consumers using simulcast targeting browser peers should still call
+        /// this overload so their code is platform-agnostic - it just falls back
+        /// to single-encoding on the desktop side.
+        /// </summary>
+        public IRTCRtpTransceiver AddTransceiver(string kind, RTCRtpTransceiverInit init)
+        {
+            var transceiver = AddTransceiver(kind);
+            // init.Direction / init.SendEncodings both ignored on desktop - SipSorcery
+            // handles direction via MediaStreamTrack.StreamStatus and has no simulcast path.
+            return transceiver;
+        }
+
+        /// <summary>See <see cref="AddTransceiver(string, RTCRtpTransceiverInit)"/>.</summary>
+        public IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track, RTCRtpTransceiverInit init)
+        {
+            return AddTransceiver(track);
+        }
+
         private readonly List<IRTCRtpTransceiver> _transceivers = new();
 
         public void RestartIce()

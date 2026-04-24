@@ -72,7 +72,7 @@
 - [x] **TURN relay** - Shipped 2026-04-24. Beyond client-side config via `RTCIceServerConfig`, `SpawnDev.RTC.Server 1.0.3+` ships a full embedded RFC 5766 TURN server (`AddRtcStunTurn(...)` hosted service) with long-term + ephemeral (TURN REST API) + tracker-gated + period-rotating credential modes, Origin allowlist, and NAT relay-port-range support. 24 integration tests in `DesktopTurnAuthTests` including full forward + reverse RFC 5766 §10 relay data-path E2E. Production-validated at hub.spawndev.com. See `Docs/stun-turn-server.md`.
 - [x] **Trickle ICE** - `OnIceCandidate` + `AddIceCandidate` on both platforms; `CanTrickleIceCandidates` property exposed.
 - [x] **Perfect negotiation** - parameterless `SetLocalDescription()` shipped in 1.1.0; glare-free `PerfectNegotiator` helper shipped in 1.1.3-rc.5 with 8 unit tests. Wraps an `IRTCPeerConnection` + two signaling callbacks; implements polite/impolite glare resolution per the W3C spec.
-- [ ] **Simulcast** - Multiple quality layers for video (future; needs `sendEncodings` sender-parameter support).
+- [x] **Simulcast** - Shipped 2026-04-24 in 1.1.5. New `IRTCPeerConnection.AddTransceiver(string, RTCRtpTransceiverInit)` overload accepts `SendEncodings` at transceiver-creation time (RFC 8853 / W3C: RIDs cannot be changed later via SetParameters). Test `RtpSender_InitSimulcast_SdpOfferContainsSimulcastAndRidLines` verifies the SDP offer contains `a=simulcast:send` + `a=rid:h send` / `a=rid:m send` / `a=rid:l send` for a 3-layer config. Browser supports real multi-layer encoding; desktop accepts the options and stubs single-encoding (SipSorcery has no native simulcast).
 
 ## Phase 8: SipSorcery DTLS Browser Interop — SHIPPED
 

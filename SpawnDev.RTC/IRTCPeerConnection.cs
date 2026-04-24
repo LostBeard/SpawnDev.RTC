@@ -50,6 +50,27 @@ namespace SpawnDev.RTC
         IRTCRtpTransceiver AddTransceiver(string kind);
         IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track);
 
+        /// <summary>
+        /// Create a transceiver with initial direction + simulcast encodings.
+        /// Per W3C WebRTC / RFC 8853, simulcast RIDs must be set at transceiver
+        /// creation - they cannot be changed later via
+        /// <see cref="IRTCRtpSender.SetParameters(RTCRtpSendParameters)"/>.
+        /// <para>
+        /// Desktop note: SipSorcery has no real simulcast support, so
+        /// <see cref="RTCRtpTransceiverInit.SendEncodings"/> is accepted but ignored
+        /// on the desktop path (single-encoding behavior). The browser implements
+        /// real simulcast and the SDP offer reflects the configured layers.
+        /// </para>
+        /// </summary>
+        IRTCRtpTransceiver AddTransceiver(string kind, RTCRtpTransceiverInit init);
+
+        /// <summary>
+        /// Create a transceiver bound to an existing track with initial direction +
+        /// simulcast encodings. See <see cref="AddTransceiver(string, RTCRtpTransceiverInit)"/>
+        /// for semantics.
+        /// </summary>
+        IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track, RTCRtpTransceiverInit init);
+
         // --- Statistics ---
         Task<IRTCStatsReport> GetStats();
 
