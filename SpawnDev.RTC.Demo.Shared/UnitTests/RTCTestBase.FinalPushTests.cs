@@ -83,6 +83,89 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         }
 
         /// <summary>
+        /// Phase 7 renegotiation-on-live-connection (browser path). Mirror of
+        /// Renegotiation_AddTrackAfterConnect_Desktop for the browser WebRTC stack. Uses
+        /// RTCMediaDevices.GetUserMedia to source the track (Playwright runs with
+        /// --use-fake-device-for-media-stream so this works headlessly). If getUserMedia
+        /// denies access (rare in test rigs), skip gracefully.
+        /// </summary>
+        [TestMethod]
+        public async Task Renegotiation_AddTrackAfterConnect_Browser()
+        {
+            if (!OperatingSystem.IsBrowser()) return; // Browser-only; desktop has its own test.
+
+            IRTCMediaStream? stream = null;
+            try
+            {
+                try
+                {
+                    stream = await RTCMediaDevices.GetUserMedia(new MediaStreamConstraints { Audio = true });
+                }
+                catch (Exception ex) when (ex.Message.Contains("NotAllowedError") || ex.Message.Contains("NotFoundError"))
+                {
+                    throw new UnsupportedTestException($"Mic / fake-device not available: {ex.Message}");
+                }
+
+                var config = new RTCPeerConnectionConfig
+                {
+                    IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+                };
+
+                using var pc1 = RTCPeerConnectionFactory.Create(config);
+                using var pc2 = RTCPeerConnectionFactory.Create(config);
+
+                pc1.OnIceCandidate += c => _ = pc2.AddIceCandidate(c);
+                pc2.OnIceCandidate += c => _ = pc1.AddIceCandidate(c);
+
+                // Initial negotiation with data channel only.
+                using var dc = pc1.CreateDataChannel("signal");
+                var dcOpen = new TaskCompletionSource<bool>();
+                dc.OnOpen += () => dcOpen.TrySetResult(true);
+                pc2.OnDataChannel += _ => { };
+
+                var offer1 = await pc1.CreateOffer();
+                await pc1.SetLocalDescription(offer1);
+                await pc2.SetRemoteDescription(offer1);
+                var answer1 = await pc2.CreateAnswer();
+                await pc2.SetLocalDescription(answer1);
+                await pc1.SetRemoteDescription(answer1);
+
+                var firstOpen = await Task.WhenAny(dcOpen.Task, Task.Delay(15000));
+                if (firstOpen != dcOpen.Task) throw new Exception("Data channel never opened; can't test renegotiation on a live connection");
+
+                // Connection LIVE. Add the audio track and re-negotiate.
+                var audioTrackEvent = new TaskCompletionSource<RTCTrackEventInit>();
+                pc2.OnTrack += e =>
+                {
+                    if (e.Track.Kind == "audio") audioTrackEvent.TrySetResult(e);
+                };
+
+                pc1.AddTrack(stream.GetAudioTracks()[0]);
+
+                var offer2 = await pc1.CreateOffer();
+                await pc1.SetLocalDescription(offer2);
+                await pc2.SetRemoteDescription(offer2);
+                var answer2 = await pc2.CreateAnswer();
+                await pc2.SetLocalDescription(answer2);
+                await pc1.SetRemoteDescription(answer2);
+
+                var sdp = pc1.LocalDescription?.Sdp ?? "";
+                if (!sdp.Contains("m=audio")) throw new Exception($"Renegotiated offer SDP missing m=audio:\n{sdp}");
+
+                var received = await Task.WhenAny(audioTrackEvent.Task, Task.Delay(15000));
+                if (received != audioTrackEvent.Task)
+                    throw new Exception("pc2.OnTrack never fired for the track added after connection was live; browser renegotiation broken");
+
+                var ev = await audioTrackEvent.Task;
+                if (ev.Track.Kind != "audio") throw new Exception($"Expected audio, got '{ev.Track.Kind}'");
+            }
+            finally
+            {
+                stream?.Dispose();
+            }
+        }
+
+        /// <summary>
         /// Perfect negotiation: use implicit SetLocalDescription (no args)
         /// for the full offer/answer exchange.
         /// </summary>

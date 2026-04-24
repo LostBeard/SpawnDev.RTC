@@ -67,7 +67,7 @@
 
 ## Phase 7: Advanced Features — PARTIAL
 
-- [x] **Renegotiation** - Add/remove tracks on live connection. Browser covered by `Event_NegotiationNeeded_FiresOnAddTrack` + `Renegotiation_AddChannelAfterConnect`; desktop covered by `Renegotiation_AddTrackAfterConnect_Desktop` (2026-04-23, commit `119aa5e`) - post-connect `AddTrack` + manual second offer/answer exchange → pc2.OnTrack fires in 706 ms. The SipSorcery DCEP-ACK timeout on desktop `createDataChannel` post-connect is a known SipSorcery issue tracked separately; track-add path works around it.
+- [x] **Renegotiation** - Add/remove tracks on live connection. **Both platforms verified via PlaywrightMultiTest (135/0/0 post-2026-04-23):** `Renegotiation_AddTrackAfterConnect_Desktop` (post-connect AddTrack + manual second offer/answer → pc2.OnTrack fires in 706 ms) and its browser mirror `Renegotiation_AddTrackAfterConnect_Browser` (same scenario via getUserMedia + fake-device-for-media-stream). The earlier browser-side `Event_NegotiationNeeded_FiresOnAddTrack` tests only the event; these new tests cover the full round-trip. Desktop `createDataChannel` post-connect still hits a SipSorcery DCEP-ACK timeout (tracked separately; track-add works around it).
 - [x] **ICE restart** - `CreateOffer(RTCOfferOptions)` with `IceRestart = true` (browser + desktop).
 - [ ] **TURN relay** - Full TURN support (config surface exists via `RTCIceServerConfig`; production TURN testing deferred).
 - [x] **Trickle ICE** - `OnIceCandidate` + `AddIceCandidate` on both platforms; `CanTrickleIceCandidates` property exposed.
