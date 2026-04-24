@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.3-rc.3</Version>
+		<Version>1.0.3-rc.4</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>WebRTC;Signaling;Tracker;WebTorrent;P2P;Server;AspNetCore;DataChannel;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.0.3-rc.3: Adds `StunTurnServerOptions.RelayPortRangeStart` / `RelayPortRangeEnd` - constrains per-allocation TURN relay-socket ports to a configured range instead of the OS ephemeral pool. Required for NAT port-forwarding deployments where only a bounded UDP range is forwarded from the router to the TURN host. Dep-bump to SpawnDev.SIPSorcery 10.0.5-rc.4 which carries the underlying `TurnServerConfig.RelayPortRangeStart/End` fork change. New `RTC__StunTurn__RelayPortRangeStart/End` env vars on `SpawnDev.RTC.ServerApp`. New integration test `RelayPortRange_Allocate_BindsWithinRange` proves the Allocate returns a relay port inside the configured range. 24 total tests pass. See CHANGELOG.md for full version history.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.0.3-rc.4: WebSocket disconnect hygiene fix. `TrackerSignalingServer.HandleWebSocketAsync` now catches `WebSocketException` / `ConnectionResetException` / `IOException` from the receive loop when a peer drops TCP uncleanly or aborts the close handshake. These are normal on public-internet deployments (mobile clients, proxies, flaky links) but previously bubbled up as "unhandled application exception" fail-level entries in Kestrel's log. Swallowed with a debug log to the consumer-configured logger; peer cleanup in the finally block still runs. No functional change - pure log hygiene. No test change (existing 24 still pass).</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsPackable>true</IsPackable>
 		<LangVersion>latest</LangVersion>

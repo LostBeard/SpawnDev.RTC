@@ -110,6 +110,26 @@ public sealed class TrackerSignalingServer
         {
             await ReceiveLoopAsync(peer);
         }
+        catch (WebSocketException wsex)
+        {
+            // Client dropped the connection uncleanly (TCP RST) or the close handshake
+            // was aborted mid-flight. Normal in public-internet deployments - mobile
+            // clients, proxies, flaky links all cause this. Log at debug-level (via the
+            // consumer's configured logger) rather than letting Kestrel surface it as
+            // an "unhandled application exception" in the fail log stream.
+            _options.Log?.Invoke($"[RTC.Server] WebSocket receive aborted from {peer.RemoteAddress}: {wsex.Message}");
+        }
+        catch (Microsoft.AspNetCore.Connections.ConnectionResetException)
+        {
+            // Peer TCP reset - same story as above, just surfaced with a Kestrel-specific
+            // exception type. Expected on public endpoints; swallow.
+            _options.Log?.Invoke($"[RTC.Server] Connection reset by {peer.RemoteAddress}");
+        }
+        catch (IOException ioex)
+        {
+            // Underlying socket read failed. Treat as a peer disconnect.
+            _options.Log?.Invoke($"[RTC.Server] IO error on peer {peer.RemoteAddress}: {ioex.Message}");
+        }
         finally
         {
             foreach (var room in _rooms.Values)

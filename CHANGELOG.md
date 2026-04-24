@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3-rc.14 (2026-04-24)
+
+### Tracker WebSocket disconnect hygiene fix
+
+`SpawnDev.RTC.Server 1.0.3-rc.4` catches `WebSocketException` / `ConnectionResetException` / `IOException` from the tracker's WebSocket receive loop when a peer drops TCP uncleanly. Without the catch, these bubbled up as "unhandled application exception" fail-level entries in Kestrel's log, which on public-internet deployments (mobile clients, lossy networks, browser tab closes) fill the journal with alarming-looking but functionally harmless stack traces. Now swallowed with a debug-level log to the consumer-configured logger; peer cleanup in the finally block is unchanged.
+
+Pure log hygiene. No functional change. 24 tests still pass.
+
 ## 1.1.3-rc.13 (2026-04-24)
 
 ### Relay port range for NAT deployments
