@@ -71,7 +71,7 @@
 - [x] **ICE restart** - `CreateOffer(RTCOfferOptions)` with `IceRestart = true` (browser + desktop).
 - [ ] **TURN relay** - Full TURN support (config surface exists via `RTCIceServerConfig`; production TURN testing deferred).
 - [x] **Trickle ICE** - `OnIceCandidate` + `AddIceCandidate` on both platforms; `CanTrickleIceCandidates` property exposed.
-- [ ] **Perfect negotiation** - parameterless `SetLocalDescription()` shipped; full glare-free pattern + state-machine helpers not yet documented.
+- [x] **Perfect negotiation** - parameterless `SetLocalDescription()` shipped in 1.1.0; glare-free `PerfectNegotiator` helper shipped in 1.1.3-rc.5 with 8 unit tests. Wraps an `IRTCPeerConnection` + two signaling callbacks; implements polite/impolite glare resolution per the W3C spec.
 - [ ] **Simulcast** - Multiple quality layers for video (future; needs `sendEncodings` sender-parameter support).
 
 ## Phase 8: SipSorcery DTLS Browser Interop — SHIPPED

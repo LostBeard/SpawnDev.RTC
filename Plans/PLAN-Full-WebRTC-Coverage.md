@@ -182,7 +182,7 @@
 ### Phase 7 Advanced Features (from `PLAN-SpawnDev-RTC-v0.1.0.md`):
 - [x] Renegotiation on live connection — dedicated tests `Renegotiation_AddTrackAfterConnect_Desktop` + `Renegotiation_AddTrackAfterConnect_Browser` in `RTCTestBase.FinalPushTests.cs` shipped 2026-04-23, both pass under PlaywrightMultiTest.
 - [ ] TURN relay production testing (config surface ready; no active test against a real TURN server).
-- [ ] Perfect negotiation glare-free pattern + state-machine helpers.
+- [x] Perfect negotiation glare-free pattern + state-machine helpers — `SpawnDev.RTC.PerfectNegotiator` shipped in 1.1.3-rc.5. Wraps `IRTCPeerConnection` + two signaling callbacks, implements polite/impolite glare resolution, works on both Browser and Desktop. 8 unit tests cover contract + auto-offer on `needsNegotiation`.
 - [ ] Simulcast (`sendEncodings` sender-parameter support).
 
 ### Future (SipSorcery fork upgrades) — shipped where possible:
