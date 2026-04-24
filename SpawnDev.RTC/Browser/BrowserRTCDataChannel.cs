@@ -129,8 +129,47 @@ namespace SpawnDev.RTC.Browser
 
         private void HandleError(RTCErrorEvent e)
         {
-            var message = e.JSRef?.Get<string?>("message") ?? "Unknown error";
-            OnError?.Invoke(message);
+            // RTCErrorEvent wraps an RTCError in its .error property — the useful
+            // diagnostics (message, errorDetail, sctpCauseCode, etc.) live THERE,
+            // not on the event itself. Reading .message on the event always returns
+            // nothing useful; this surfaces the real details so consumers can actually
+            // diagnose data-channel failures instead of being told "Unknown error".
+            // Spec: https://www.w3.org/TR/webrtc/#dom-rtcerror
+            if (e.JSRef == null)
+            {
+                OnError?.Invoke("Unknown error (null RTCErrorEvent.JSRef)");
+                return;
+            }
+
+            var name = e.JSRef.Get<string?>("error.name");
+            var detail = e.JSRef.Get<string?>("error.errorDetail");
+            var msg = e.JSRef.Get<string?>("error.message");
+            var sctpCause = e.JSRef.Get<int?>("error.sctpCauseCode");
+            var sdpLine = e.JSRef.Get<int?>("error.sdpLineNumber");
+            var httpStatus = e.JSRef.Get<int?>("error.httpRequestStatusCode");
+            var recvAlert = e.JSRef.Get<int?>("error.receivedAlert");
+            var sentAlert = e.JSRef.Get<int?>("error.sentAlert");
+
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(detail)) parts.Add(detail!);
+            if (!string.IsNullOrEmpty(msg)) parts.Add(msg!);
+            if (!string.IsNullOrEmpty(name)) parts.Add($"name={name}");
+            if (sctpCause.HasValue) parts.Add($"sctpCauseCode={sctpCause}");
+            if (sdpLine.HasValue) parts.Add($"sdpLineNumber={sdpLine}");
+            if (httpStatus.HasValue) parts.Add($"httpStatus={httpStatus}");
+            if (recvAlert.HasValue) parts.Add($"receivedAlert={recvAlert}");
+            if (sentAlert.HasValue) parts.Add($"sentAlert={sentAlert}");
+
+            // Last-resort fallback so we never silently swallow the error.
+            if (parts.Count == 0)
+            {
+                var topMsg = e.JSRef.Get<string?>("message");
+                parts.Add(!string.IsNullOrEmpty(topMsg)
+                    ? topMsg!
+                    : "RTCErrorEvent with no message/errorDetail/name fields");
+            }
+
+            OnError?.Invoke(string.Join(" | ", parts));
         }
 
         public void Dispose()
