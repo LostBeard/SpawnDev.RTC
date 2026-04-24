@@ -179,8 +179,8 @@
 - [x] Phase 4a audio bridge: `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` → Opus via Concentus → RTP. End-to-end test passing (617 ms).
 - [x] Phase 4b H.264 video bridge: `AddTrack(IVideoTrack)` → MediaFoundation H.264 MFT → RTP H.264 payloader. End-to-end test passing (522 ms). Windows-only; Phase 5 Linux/macOS encoder impls drop in behind `VideoEncoderFactory`.
 
-### Phase 7 Advanced Features (from `PLAN-SpawnDev-RTC-v0.1.0.md`) — still pending:
-- [ ] Renegotiation on live connection (partial - add/remove track works; needs dedicated test).
+### Phase 7 Advanced Features (from `PLAN-SpawnDev-RTC-v0.1.0.md`):
+- [x] Renegotiation on live connection — dedicated tests `Renegotiation_AddTrackAfterConnect_Desktop` + `Renegotiation_AddTrackAfterConnect_Browser` in `RTCTestBase.FinalPushTests.cs` shipped 2026-04-23, both pass under PlaywrightMultiTest.
 - [ ] TURN relay production testing (config surface ready; no active test against a real TURN server).
 - [ ] Perfect negotiation glare-free pattern + state-machine helpers.
 - [ ] Simulcast (`sendEncodings` sender-parameter support).
