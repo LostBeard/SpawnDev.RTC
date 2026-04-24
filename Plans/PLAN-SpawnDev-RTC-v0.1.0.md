@@ -65,9 +65,9 @@
 - [x] W3C-standard stats: `dataChannelsOpened` / `dataChannelsClosed`, `connectionState`, `signalingState`, `iceGatheringState`, `iceConnectionState`.
 - [x] Per-track + per-candidate-pair stats via RTPSender.GetStats on browser.
 
-## Phase 7: Advanced Features — PENDING
+## Phase 7: Advanced Features — PARTIAL
 
-- [ ] **Renegotiation** - Add/remove tracks on live connection (partially works today; explicit test needed).
+- [x] **Renegotiation** - Add/remove tracks on live connection. Browser covered by `Event_NegotiationNeeded_FiresOnAddTrack` + `Renegotiation_AddChannelAfterConnect`; desktop covered by `Renegotiation_AddTrackAfterConnect_Desktop` (2026-04-23, commit `119aa5e`) - post-connect `AddTrack` + manual second offer/answer exchange → pc2.OnTrack fires in 706 ms. The SipSorcery DCEP-ACK timeout on desktop `createDataChannel` post-connect is a known SipSorcery issue tracked separately; track-add path works around it.
 - [x] **ICE restart** - `CreateOffer(RTCOfferOptions)` with `IceRestart = true` (browser + desktop).
 - [ ] **TURN relay** - Full TURN support (config surface exists via `RTCIceServerConfig`; production TURN testing deferred).
 - [x] **Trickle ICE** - `OnIceCandidate` + `AddIceCandidate` on both platforms; `CanTrickleIceCandidates` property exposed.
