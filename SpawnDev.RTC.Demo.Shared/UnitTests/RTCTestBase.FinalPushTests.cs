@@ -6,6 +6,83 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
     public abstract partial class RTCTestBase
     {
         /// <summary>
+        /// Phase 7 renegotiation-on-live-connection (desktop): build a connected peer with
+        /// just a data channel, then add an audio track after the connection is live and
+        /// run a second offer/answer exchange. Verifies pc2.OnTrack fires with audio kind
+        /// after the renegotiation and the SDP picks up the new m=audio line. Browser path
+        /// is covered by Event_NegotiationNeeded_FiresOnAddTrack in FullCoverageTests;
+        /// this test proves the desktop SipSorcery fork handles the track-add-post-connect
+        /// flow the same way.
+        /// </summary>
+        [TestMethod]
+        public async Task Renegotiation_AddTrackAfterConnect_Desktop()
+        {
+            if (OperatingSystem.IsBrowser()) return; // Desktop-only; browser has its own test.
+
+            var config = new RTCPeerConnectionConfig
+            {
+                IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } }
+            };
+
+            using var pc1 = RTCPeerConnectionFactory.Create(config);
+            using var pc2 = RTCPeerConnectionFactory.Create(config);
+
+            pc1.OnIceCandidate += c => _ = pc2.AddIceCandidate(c);
+            pc2.OnIceCandidate += c => _ = pc1.AddIceCandidate(c);
+
+            // Initial negotiation with data channel only.
+            using var dc = pc1.CreateDataChannel("signal");
+            var dcOpen = new TaskCompletionSource<bool>();
+            dc.OnOpen += () => dcOpen.TrySetResult(true);
+            pc2.OnDataChannel += _ => { };
+
+            var offer1 = await pc1.CreateOffer();
+            await pc1.SetLocalDescription(offer1);
+            await pc2.SetRemoteDescription(offer1);
+            var answer1 = await pc2.CreateAnswer();
+            await pc2.SetLocalDescription(answer1);
+            await pc1.SetRemoteDescription(answer1);
+
+            var firstOpen = await Task.WhenAny(dcOpen.Task, Task.Delay(15000));
+            if (firstOpen != dcOpen.Task) throw new Exception("Data channel never opened; can't test renegotiation on a live connection");
+
+            // Connection is LIVE. Now add an audio track and renegotiate.
+            var audioTrackEvent = new TaskCompletionSource<RTCTrackEventInit>();
+            pc2.OnTrack += e =>
+            {
+                if (e.Track.Kind == "audio") audioTrackEvent.TrySetResult(e);
+            };
+
+            // Synthetic sine-wave audio track (shared test helper in this file's SineWaveAudioTrack).
+            using var audioTrack = new SineWaveAudioTrack(frequencyHz: 440.0, sampleRateHz: 48000, channels: 2);
+            var desktopPc1 = (SpawnDev.RTC.Desktop.DesktopRTCPeerConnection)pc1;
+            desktopPc1.AddTrack(audioTrack);
+
+            // Run the second offer/answer exchange. Some platforms fire OnNegotiationNeeded;
+            // SipSorcery's desktop doesn't consistently, so we trigger the exchange manually.
+            var offer2 = await pc1.CreateOffer();
+            await pc1.SetLocalDescription(offer2);
+            await pc2.SetRemoteDescription(offer2);
+            var answer2 = await pc2.CreateAnswer();
+            await pc2.SetLocalDescription(answer2);
+            await pc1.SetRemoteDescription(answer2);
+
+            // SDP on the renegotiated peer must include m=audio.
+            var sdp = pc1.LocalDescription?.Sdp ?? "";
+            if (!sdp.Contains("m=audio")) throw new Exception($"Renegotiated offer SDP missing m=audio:\n{sdp}");
+
+            // pc2's OnTrack must fire for the newly-added audio track.
+            var received = await Task.WhenAny(audioTrackEvent.Task, Task.Delay(15000));
+            if (received != audioTrackEvent.Task)
+                throw new Exception("pc2.OnTrack never fired for the track added after connection was live; desktop renegotiation broken");
+
+            var ev = await audioTrackEvent.Task;
+            if (ev.Track.Kind != "audio") throw new Exception($"Expected audio, got '{ev.Track.Kind}'");
+
+            audioTrack.Stop();
+        }
+
+        /// <summary>
         /// Perfect negotiation: use implicit SetLocalDescription (no args)
         /// for the full offer/answer exchange.
         /// </summary>
