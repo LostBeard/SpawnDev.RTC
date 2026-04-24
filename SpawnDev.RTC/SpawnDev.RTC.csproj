@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.3-rc.9</Version>
+		<Version>1.1.3-rc.10</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.3-rc.9: Embedded STUN/TURN server in `SpawnDev.RTC.Server`. New `StunTurnServerHostedService` + `StunTurnServerOptions` + `AddRtcStunTurn()` DI extension wrap SipSorcery's RFC 5766 TurnServer as an ASP.NET Core hosted service. Wire into any ASP.NET Core host alongside the existing `app.UseRtcSignaling("/announce")` - one box runs WebSocket signaling + STUN binding + TURN relay. Opt-in (Enabled=false by default so existing consumers don't open UDP 3478 unexpectedly). 1 new loopback test proves STUN Binding Request -> XOR-MAPPED-ADDRESS round-trip. See CHANGELOG.md for full version history.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.3-rc.10: Simulcast control surface on `IRTCRtpSender`. New `GetParameters()` + `SetParameters(RTCRtpSendParameters)` on the interface. `RTCRtpSendParameters` + `RTCRtpEncoding` cross-platform DTOs mirror the W3C WebRTC spec (encodings array, transactionId round-trip, per-encoding rid/maxBitrate/scaleResolutionDownBy/scalabilityMode/active/priority). Browser impl threads the call through BlazorJS 3.5.6's new typed `RTCRtpSendParameters`. Desktop impl returns a single-encoding default with a deterministic transactionId counter; SipSorcery has no native simulcast so SetParameters is a no-op beyond the transactionId guard. 4 new unit tests cover shape + round-trip + stale-transactionId rejection + simulcast layering DTO shape. Closes the last open Phase 7 plan item (`Simulcast sendEncodings`). See CHANGELOG.md for full version history.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>
@@ -31,7 +31,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
-		<PackageReference Include="SpawnDev.BlazorJS" Version="3.5.5" />
+		<PackageReference Include="SpawnDev.BlazorJS" Version="3.5.6" />
 		<PackageReference Include="SpawnDev.BlazorJS.Cryptography" Version="3.2.0" />
 	</ItemGroup>
 

@@ -118,6 +118,60 @@ namespace SpawnDev.RTC.Desktop
             // SipSorcery doesn't have per-sender stream association
             // Streams are managed at the track/session level
         }
+
+        // Desktop-side transactionId counter for the getParameters/setParameters
+        // token dance. SipSorcery doesn't natively enforce this, but we produce a
+        // monotonic token so consumers that round-trip it see consistent behavior
+        // with the browser implementation.
+        private static long _transactionCounter;
+        private string _lastTransactionId = "";
+
+        /// <summary>
+        /// Returns minimal send parameters for the desktop backend. SipSorcery does
+        /// NOT implement simulcast (single encoding per track), so <c>Encodings</c>
+        /// is a single-entry array representing the current track. The browser
+        /// simulcast knobs (maxBitrate, scaleResolutionDownBy, scalabilityMode)
+        /// are all unset — applying them via <see cref="SetParameters"/> has no
+        /// effect today; this is documented as a Phase 5 gap in the library plan.
+        /// </summary>
+        public RTCRtpSendParameters GetParameters()
+        {
+            _lastTransactionId = System.Threading.Interlocked.Increment(ref _transactionCounter).ToString("D");
+            return new RTCRtpSendParameters
+            {
+                TransactionId = _lastTransactionId,
+                Encodings = new[] { new RTCRtpEncoding { Active = true } },
+                // SipSorcery's codec info could be populated from the PC's negotiated
+                // SDP; leaving null for now — the in-scope simulcast consumer doesn't
+                // need it, and desktop SetCodecPreferences is the proper codec API.
+                Codecs = null,
+            };
+        }
+
+        /// <summary>
+        /// Desktop SetParameters is a no-op today. SipSorcery doesn't expose per-encoding
+        /// simulcast control — the single RTP track handles everything. Validates the
+        /// transactionId matches the most recent GetParameters (mirroring browser
+        /// behavior) so consumers get consistent error reporting across platforms.
+        /// </summary>
+        public Task SetParameters(RTCRtpSendParameters parameters)
+        {
+            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+            if (!string.IsNullOrEmpty(parameters.TransactionId)
+                && !string.IsNullOrEmpty(_lastTransactionId)
+                && parameters.TransactionId != _lastTransactionId)
+            {
+                throw new InvalidOperationException(
+                    $"SetParameters transactionId mismatch: expected {_lastTransactionId}, got {parameters.TransactionId}. " +
+                    "Call GetParameters first, modify the returned object, then pass it to SetParameters unchanged except for the fields you want to change.");
+            }
+            // SipSorcery doesn't natively support simulcast, so the encoding knobs
+            // (maxBitrate, scaleResolutionDownBy, scalabilityMode) are accepted but
+            // ignored today. Multi-encoding arrays that would turn on simulcast on
+            // the browser side are a no-op here. See the class-level remark on
+            // GetParameters for the longer context.
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>

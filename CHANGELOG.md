@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.3-rc.10 (2026-04-24)
+
+### Simulcast control surface on IRTCRtpSender
+
+Closes the last open Phase 7 plan item. `IRTCRtpSender` now exposes `GetParameters()` + `SetParameters(RTCRtpSendParameters)` with a cross-platform DTO shape:
+
+- `RTCRtpSendParameters` — TransactionId (opaque round-trip token), Encodings array, Codecs array.
+- `RTCRtpEncoding` — per-layer: Rid, Active, MaxBitrate, MaxFramerate, ScaleResolutionDownBy, ScalabilityMode, Priority, NetworkPriority.
+
+Browser impl threads the call through BlazorJS 3.5.6's new typed `RTCRtpSendParameters` (7 new WebRTC dictionary wrappers in BlazorJS this version). Desktop impl returns a single-encoding default with a deterministic transactionId counter; SipSorcery has no native simulcast so SetParameters is a no-op beyond the transactionId-mismatch guard. The typed API is consistent across platforms even though real multi-layer behavior only activates on browser. Moves RTC from "simulcast not supported" to "simulcast API shipped; desktop impl pending Phase 5 SipSorcery native support."
+
+4 new unit tests — shape, transactionId round-trip, stale-transactionId rejection (desktop-only), 3-layer simulcast DTO round-trip.
+
 ## 1.1.3-rc.9 (2026-04-24)
 
 ### Embedded STUN/TURN server in SpawnDev.RTC.Server

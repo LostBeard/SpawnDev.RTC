@@ -168,6 +168,23 @@ namespace SpawnDev.RTC
         Task ReplaceTrack(IRTCMediaStreamTrack? track);
         void SetStreams(params IRTCMediaStream[] streams);
         Task<IRTCStatsReport> GetStats();
+
+        /// <summary>
+        /// Returns the current send parameters: per-encoding simulcast layers,
+        /// negotiated codec info, and the transactionId that must be round-tripped
+        /// on subsequent <see cref="SetParameters"/> calls.
+        /// </summary>
+        RTCRtpSendParameters GetParameters();
+
+        /// <summary>
+        /// Apply changes to the sender parameters (most commonly the encodings
+        /// array for simulcast layer control). Call <see cref="GetParameters"/>
+        /// first, modify what you want, pass the whole object back — untouched
+        /// fields must round-trip verbatim. The <see cref="RTCRtpSendParameters.TransactionId"/>
+        /// prevents concurrent get/set races; the platform rejects the call if
+        /// it doesn't match the most recent getParameters result.
+        /// </summary>
+        Task SetParameters(RTCRtpSendParameters parameters);
     }
 
     /// <summary>
