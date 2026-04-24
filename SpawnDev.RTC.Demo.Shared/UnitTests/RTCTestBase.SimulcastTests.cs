@@ -104,14 +104,17 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
                 new RTCRtpEncoding { Rid = "l", Active = true, MaxBitrate = 150_000, ScaleResolutionDownBy = 4.0 },
             };
 
-            // On desktop this is a no-op and won't throw. On browser, RID changes
-            // after the offer are rejected - but we added the transceiver FRESH so
-            // there's no offer yet; setParameters-with-different-RIDs should be
-            // accepted (browser accepts initial encodings on first setParameters).
-            // If the browser rejects anyway we swallow - the point of this test is
-            // the DTO shape survives round-trip, not real browser simulcast behavior.
+            // On desktop this is a no-op and won't throw. On browser, modifying
+            // RIDs after getParameters is rejected with DOM `InvalidModificationError`
+            // ("Read-only field modified in setParameters()") - encodings[i].rid is
+            // treated as a read-only field once the transceiver exists. The browser
+            // surfaces this through our BlazorJS wrapper as a plain `Exception`
+            // rather than a typed JSException (the message starts with the DOM
+            // error name). The point of this test is that the DTO shape survives
+            // round-trip, not that real browser simulcast reconfig works - swallow
+            // ANY exception on the browser path. Desktop stays narrow.
             try { await sender.SetParameters(parameters); }
-            catch (Microsoft.JSInterop.JSException) { /* browser may reject RID changes; OK */ }
+            catch (Exception) when (OperatingSystem.IsBrowser()) { /* browser rejection is expected */ }
         }
     }
 }

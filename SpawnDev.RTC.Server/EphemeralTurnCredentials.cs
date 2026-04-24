@@ -157,8 +157,8 @@ public static class EphemeralTurnCredentials
     /// peerId, which costs them per-connection tracker visibility.
     /// </para>
     /// <para>
-    /// The <paramref name="userId"/> segment of the ephemeral username is
-    /// expected to match the peerId the client announces to the tracker with.
+    /// The userId segment of the ephemeral username is expected to match the
+    /// peerId the client announces to the tracker with.
     /// Consumers mint credentials via <see cref="Generate(string, string, TimeSpan)"/>
     /// passing their tracker peerId as the <c>userId</c> argument.
     /// </para>

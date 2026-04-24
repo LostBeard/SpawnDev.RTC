@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.1.4 (2026-04-24)
+
+### Browser `RTCRtpSender.SetParameters` fix
+
+Regression in 1.1.3: on the browser path, `IRTCRtpSender.SetParameters(GetParameters())` threw
+
+```
+TypeError: Failed to execute 'setParameters' on 'RTCRtpSender':
+Failed to read the 'codecs' property from 'RTCRtpParameters':
+Required member is undefined.
+```
+
+on every call - my cross-platform-DTO-to-BlazorJS-native translation only copied the mutable fields (TransactionId + Encodings) across, so `codecs` / `headerExtensions` / `rtcp` arrived at the browser as undefined. Per W3C WebRTC spec those members are required-present (even though read-only from the app's perspective) when passing a parameters object into `setParameters`.
+
+Fix: `BrowserRtpSender` caches the native BlazorJS `RTCRtpSendParameters` from the most recent `GetParameters()` call, and on `SetParameters()` mutates that cached object in place (setting TransactionId + Encodings from the DTO) before passing it to the native API. Codecs / HeaderExtensions / Rtcp round-trip unchanged, matching the spec-intended "modify-then-write" flow.
+
+Surfaced by `RtpSender_SetParameters_TransactionIdRoundTrip_Succeeds` + `RtpSender_EncodingShape_SimulcastLayeringRoundTrips` in the WASM test runtime. Both pass on 1.1.4. Desktop path unchanged (SipSorcery's single-encoding stub doesn't route through this translation).
+
+No consumer-facing API change. Consumers of SpawnDev.RTC 1.1.3 via SpawnDev.WebTorrent 3.1.3 pick up the fix on next `dotnet restore` via the >= 1.1.3 transitive pin (no WebTorrent re-release required).
+
 ## 1.1.3-rc.14 (2026-04-24)
 
 ### Tracker WebSocket disconnect hygiene fix
