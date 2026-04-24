@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.3-rc.7 (2026-04-24)
+
+### Consume BlazorJS 3.5.5 typed RTCSctpTransport
+
+- `BrowserRTCSctpTransport` reads `NativeTransport.State` / `Transport` / `MaxMessageSize` / `MaxChannels` directly instead of the rc.4 `JSRef.Get<T>()` plumbing (Data shipped the typed properties on the underlying BlazorJS wrapper in 3.5.5). Zero behavior change, cleaner code.
+
+## 1.1.3-rc.5 (2026-04-24)
+
+### PerfectNegotiator helper
+
+- First public release of `SpawnDev.RTC.PerfectNegotiator`. (See the rc.6 entry below for full details - rc.6 includes a race fix and is the recommended version; consumers should skip rc.5.)
+
 ## 1.1.3-rc.6 (2026-04-24)
 
 ### PerfectNegotiator: glare-free renegotiation helper + HasNegotiated race fix
