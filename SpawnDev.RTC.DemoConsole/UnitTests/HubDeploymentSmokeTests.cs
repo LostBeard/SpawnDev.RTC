@@ -114,6 +114,27 @@ namespace SpawnDev.RTC.DemoConsole.UnitTests
             // Remote cert validation can still be tightened by leaving the default in place
             // when the hub uses a real cert; this smoke test is meant to work in both cases.
             ws.Options.RemoteCertificateValidationCallback = (_, _, _, _) => true;
+
+            // Set an Origin header so the hub's Origin allowlist (if configured) accepts us.
+            // .NET's ClientWebSocket doesn't send Origin by default the way browsers do.
+            // Derived from HUB_TRACKER_WS scheme+host, or override via HUB_ORIGIN.
+            var originOverride = Environment.GetEnvironmentVariable("HUB_ORIGIN");
+            if (!string.IsNullOrWhiteSpace(originOverride))
+            {
+                ws.Options.SetRequestHeader("Origin", originOverride);
+            }
+            else
+            {
+                // Derive Origin from the tracker URL host only (no port). Production
+                // deployments typically serve the app page at the host's default port
+                // (443 for https, via reverse proxy) even when the WebSocket itself is
+                // on a non-standard port - so the browser-sourced Origin the allowlist
+                // needs to accept is port-less. Override with HUB_ORIGIN if your
+                // deployment differs (e.g. allowlist entry includes an explicit port).
+                var trackerUri = new Uri(cfg.TrackerWsUrl);
+                var derivedScheme = trackerUri.Scheme.Equals("wss", StringComparison.OrdinalIgnoreCase) ? "https" : "http";
+                ws.Options.SetRequestHeader("Origin", $"{derivedScheme}://{trackerUri.Host}");
+            }
             using var connectCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             try
             {
