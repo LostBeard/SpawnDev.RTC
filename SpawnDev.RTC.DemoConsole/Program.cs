@@ -17,6 +17,7 @@ try
     var services = new ServiceCollection();
     services.AddSingleton<DesktopRTCTests>();
     services.AddSingleton<DesktopTurnAuthTests>();
+    services.AddSingleton<HubDeploymentSmokeTests>();
     var sp = services.BuildServiceProvider();
     var runner = new UnitTestRunner(sp, true);
     await ConsoleRunner.Run(args, runner);
