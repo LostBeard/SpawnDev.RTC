@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>WebRTC;Signaling;Tracker;WebTorrent;P2P;Server;AspNetCore;DataChannel;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.0.3 stable: Big bundle since 1.0.0. NEW: embedded RFC 5766 STUN/TURN server as an ASP.NET Core IHostedService (`AddRtcStunTurn(...)`). One host box can run WebSocket signaling + STUN binding + TURN relay together. Auth modes: classic long-term credentials, ephemeral/REST-API HMAC credentials (RFC 8489 §9.2 pattern a la Twilio / Cloudflare), period-rotating sub-secrets (master-secret leak only exposes currently-valid periods), tracker-gated ephemeral (only peers with live WebSocket session can allocate relays). NAT port-range support (`RelayPortRangeStart/End`) for home/SMB deployments. Origin-header allowlist (`TrackerServerOptions.AllowedOrigins`, exact + wildcard-subdomain) on the /announce WebSocket endpoint. `TrackerSignalingServer.IsPeerConnected` / `ConnectedPeerIds` / `IsOriginAllowed` exposed for consumer middleware. Tracker now completes WebSocket close-handshake cleanly and catches WebSocketException / ConnectionResetException / IOException so unclean-disconnect stack traces don't fill the fail log. Production-validated at hub.spawndev.com (full 5-step deny -> announce -> allocate -> disconnect -> deny cycle green from external client). 24 integration tests in DesktopTurnAuthTests cover every path end-to-end. See CHANGELOG.md in the repo for per-rc breakdown.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.0.4 stable: Transitive dep-bump to SpawnDev.RTC 1.1.4 to force the browser `BrowserRtpSender.SetParameters` codecs-required-present fix through the chain for consumers with lock files or version pins. No source changes in SpawnDev.RTC.Server itself. See SpawnDev.RTC 1.1.4 release notes for the fix details, and the companion 1.0.3 release for the big STUN/TURN feature bundle (which remains unchanged in content and production-validated at hub.spawndev.com). See CHANGELOG.md for full history.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsPackable>true</IsPackable>
 		<LangVersion>latest</LangVersion>
