@@ -83,7 +83,7 @@
 
 - [x] IRTCDtlsTransport (State, IceTransport, events)
 - [x] IRTCIceTransport (Component, GatheringState, Role, State, GetLocalCandidates)
-- [x] IRTCSctpTransport (Transport, State, MaxMessageSize, MaxChannels)
+- [x] IRTCSctpTransport (Transport, State, MaxMessageSize, MaxChannels) — browser impl wires live JSRef reads in 1.1.3-rc.4 (was stub defaults)
 - [x] IRTCCertificate + GenerateCertificate()
 
 ## Tier 7: Track Advanced - DONE
