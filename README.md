@@ -22,6 +22,7 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 - **SCTP** - Complete SCTP implementation for data channel transport
 - **WebTorrent-compatible signaling** - [`SpawnDev.RTC.Signaling`](Docs/signaling-overview.md) speaks the WebTorrent tracker wire protocol. Public trackers (`wss://tracker.openwebtorrent.com`) work out of the box; no server to host for the default case.
 - **Self-hostable signaling server** - [`SpawnDev.RTC.Server`](#spawndevrtcserver--spawndevrtcserverapp) (library) and `SpawnDev.RTC.ServerApp` (exe + Docker image) let any ASP.NET Core app host its own tracker with one line of code. See [Docs/run-a-tracker.md](Docs/run-a-tracker.md).
+- **Perfect negotiation** - [`PerfectNegotiator`](Docs/perfect-negotiation.md) drop-in helper implements the W3C glare-free renegotiation pattern, so both peers can add tracks / transceivers / data channels concurrently on a live connection without offer/answer collision.
 - **No native dependencies** - Pure C# on desktop, native browser APIs in WASM
 - **Native access** - Cast once at creation to access platform-specific features (BlazorJS JSObjects in WASM, SipSorcery in desktop)
 
