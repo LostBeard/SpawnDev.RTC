@@ -134,6 +134,13 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         [TestMethod]
         public async Task PerfectNegotiator_AutoSendsOfferOnNegotiationNeeded()
         {
+            // Browser fires `onnegotiationneeded` reliably on `CreateDataChannel`; SipSorcery
+            // does not (same reason `Event_NegotiationNeeded_FiresOnAddTrack` skips the
+            // desktop branch in `FullCoverageTests.cs`). For desktop, use the existing
+            // dedicated `Renegotiation_AddTrackAfterConnect_Desktop` test which exercises
+            // the full offer/answer round-trip without depending on the auto-fire event.
+            if (!OperatingSystem.IsBrowser()) return;
+
             // Creating a data channel on a fresh PC fires needsNegotiation, which the
             // helper should catch + call SetLocalDescription + ship the description via
             // the provided callback. We capture it in a TaskCompletionSource.
