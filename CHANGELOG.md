@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.3-rc.6 (2026-04-24)
+
+### PerfectNegotiator: glare-free renegotiation helper + HasNegotiated race fix
+
+- New `SpawnDev.RTC.PerfectNegotiator` (shipped rc.5). Drop-in helper implementing the W3C Perfect Negotiation pattern (`https://w3c.github.io/webrtc-pc/#perfect-negotiation-example`) over any `IRTCPeerConnection`. Construct with a `polite` role flag + two signaling callbacks (`sendDescription`, `sendCandidate`); the helper auto-subscribes to `OnNegotiationNeeded` + `OnIceCandidate` and exposes `HandleRemoteDescriptionAsync` / `HandleRemoteCandidateAsync` for the app to call on incoming signaling messages. Glare resolution per the spec: impolite side wins offer collisions, polite side rolls back its in-flight offer and takes the remote. Works on both Browser (Blazor WASM → native RTCPeerConnection) and Desktop (SipSorcery).
+- rc.6 fixes a race in `HasNegotiated`: rc.5 set the flag after `await sendDescription(...)`, but a consumer awaiting that callback (e.g. a test TaskCompletionSource) resumed in the same synchronous step and observed `HasNegotiated=false`. rc.6 flips the flag right after `SetLocalDescription()` succeeds, before the send-await.
+- Also: `AutoSendsOfferOnNegotiationNeeded` test skips on desktop. SipSorcery doesn't fire `onnegotiationneeded` for `CreateDataChannel` the way the browser does (same skip pattern as the existing `Event_NegotiationNeeded_FiresOnAddTrack` test); desktop renegotiation is covered by `Renegotiation_AddTrackAfterConnect_Desktop` which doesn't rely on the auto-fire event.
+- 8 new unit tests × 2 platforms = 18 test executions, 18/0/0 pass in 4 s. Closes the Phase 7 "perfect negotiation glare-free pattern + state-machine helpers" plan item.
+- New doc: `Docs/perfect-negotiation.md` - pattern overview, usage, what the helper does for you, when to use it, constraints, platform notes, references.
+
+## 1.1.3-rc.4 (2026-04-24)
+
+### BrowserRTCSctpTransport: live JSRef reads
+
+- `BrowserRTCSctpTransport` (`Browser/BrowserRTCTransport.cs`) was hardcoding `State="connected"`, `MaxMessageSize=262144`, `MaxChannels=65535` and `Transport=null!` as stubs because we were waiting for typed properties on the underlying BlazorJS `RTCSctpTransport` wrapper. rc.4 reads the spec properties directly via `JSRef.Get<T>(name)`: `state` → string, `transport` → `RTCDtlsTransport?` wrapped in `BrowserRTCDtlsTransport` on demand, `maxMessageSize` → double (clamped to `int` range), `maxChannels` → `int?`. Callers now get the live browser-reported values (Chrome 262144 vs Firefox larger for max message size is no longer stub fiction).
+- Zero BlazorJS changes needed - the `RTCSctpTransport` JSObject wrapper already exists. Still nice-to-have is typed properties on the wrapper itself so this file can drop the `JSRef.Get` plumbing; tracked in DevComms `riker-to-data-blazorjs-rtc-sctp-properties-2026-04-24.md`, low priority.
+
 ## 1.1.3-rc.1 (2026-04-23)
 
 ### Phase 4b H.264 video bridge shipped
