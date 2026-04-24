@@ -85,8 +85,8 @@
 
 ## Phase 9: Integration with Consumers — SHIPPED
 
-- [x] **SpawnDev.WebTorrent** — consumes `SpawnDev.RTC 1.1.3-rc.1` via `RtcPeer` (replaces the prior split `BrowserPeer` + `SipSorceryPeer`). Tracker migration to `SpawnDev.RTC.Server` also done (see `PLAN-Tracker-Signaling-Migration.md`).
-- [x] **SpawnDev.ILGPU.P2P** — consumes `SpawnDev.WebTorrent 3.1.3-rc.1` transitively (Geordi verified real-WebRTC test backfill + multi-MB tensor transfer path).
+- [x] **SpawnDev.WebTorrent** — consumes `SpawnDev.RTC 1.1.3-rc.2` via `RtcPeer` + exposes `RtcPeer.PeerConnection` for consumer access to SCTP tunables (current local: `3.1.3-rc.4`). Tracker migration to `SpawnDev.RTC.Server` also done (see `PLAN-Tracker-Signaling-Migration.md`).
+- [x] **SpawnDev.ILGPU.P2P** — consumes `SpawnDev.WebTorrent 3.1.3-rc.4` (via 4.9.2-rc.16) for the 10 MB tensor test. Uses `PeerFactory` override to set SCTP `MaxBurst=32` / `BurstPeriodMilliseconds=10` per-connection, closing Gap 4 (25s end-to-end for 10 MB). Geordi's full `RealWebRtcPipelineTests` + Playwright ~P2P suite remain at 1144/0/40.
 - [ ] **SpawnDev.RTLink** — migration from bundled SipSorcery to SpawnDev.RTC not yet started; low priority (RTLink already works).
 
 ---
