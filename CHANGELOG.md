@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.1.3-rc.9 (2026-04-24)
+
+### Embedded STUN/TURN server in SpawnDev.RTC.Server
+
+One ASP.NET Core host can now run WebSocket signaling + STUN binding + TURN relay together. New in `SpawnDev.RTC.Server`:
+
+- `StunTurnServerHostedService` — ASP.NET Core `IHostedService` that starts/stops with the host. Wraps SipSorcery's RFC 5766 `TurnServer` (which handles both STUN binding requests and TURN allocation/relay in one process - no separate STUN daemon needed).
+- `StunTurnServerOptions` — listen address, port (3478 default), TCP/UDP toggles, relay address for NAT'd deployments, long-term credential (username/password/realm), allocation lifetime.
+- `AddRtcStunTurn()` DI extension on `IServiceCollection` - register via `builder.Services.AddRtcStunTurn(opts => { opts.Enabled = true; ... })` or bind a config section (`builder.Services.AddRtcStunTurn(builder.Configuration.GetSection("Turn"))`).
+- Opt-in: `Enabled = false` by default so existing consumers who only want the WebSocket signaling tracker don't unexpectedly open UDP port 3478. Default credentials (`turn-user`/`turn-pass`) are intentionally weak and log a warning so consumers notice to replace them.
+
+Usage typical shape:
+
+```csharp
+builder.Services.AddRtcStunTurn(opts =>
+{
+    opts.Enabled = true;
+    opts.Port = 3478;
+    opts.Username = builder.Configuration["Turn:Username"]!;
+    opts.Password = builder.Configuration["Turn:Password"]!;
+});
+var app = builder.Build();
+app.UseWebSockets();
+app.UseRtcSignaling("/announce"); // WebSocket signaling
+// STUN/TURN hosted service started automatically by the AddRtcStunTurn registration.
+```
+
+**Production posture:** SipSorcery's TurnServer is documented by its author as suitable for development, testing, and small-scale / embedded scenarios - not public-internet high-traffic TURN. For that, run coturn on dedicated hardware and leave `Enabled = false`. For self-hosted signaling + TURN on the same box for a small tenant (team chat, agent swarm, dev environment), it's fine.
+
+New unit test: `StunServer_Loopback_BindingRequest_ReturnsXorMappedAddress` fires a minimal RFC 5389 STUN Binding Request at a loopback TurnServer and parses the XOR-MAPPED-ADDRESS from the response. Proves the server responds correctly under the exact config the hosted service uses. Desktop-only (browser has no UDP).
+
+## 1.1.3-rc.8 (2026-04-24)
+
+### Docs hygiene
+
+- `PackageReleaseNotes` in the csproj pruned from an unreadable multi-release blob (every version since 1.1.0 in one XML node) to the current-version summary. Full history now lives here. No code changes from rc.7.
+
 ## 1.1.3-rc.7 (2026-04-24)
 
 ### Consume BlazorJS 3.5.5 typed RTCSctpTransport
