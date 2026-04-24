@@ -15,11 +15,11 @@
 - [x] Add fork as git submodule at `Src/sipsorcery/`
 - [x] SipSorcery.csproj builds within our solution
 - [x] Trim target frameworks to net48/net8.0/net9.0/net10.0
-- [ ] Apply DTLS/SRTP fixes on our fork branch:
-  - [ ] Restrict SRTP profiles to browser-compatible set
-  - [ ] Verify NotifySecureRenegotiation override exists
-  - [ ] Disable MKI negotiation
-  - [ ] Test DTLS handshake with browser peers
+- [x] Apply DTLS/SRTP fixes on our fork branch:
+  - [x] Restrict SRTP profiles to browser-compatible set (AES128_CM_HMAC_SHA1_80, AEAD_AES_128_GCM, AEAD_AES_256_GCM per `CLAUDE.md`)
+  - [x] NotifySecureRenegotiation override confirmed working (essential for Pion/libdatachannel compat)
+  - [x] MKI negotiation disabled per RFC 8827
+  - [x] DTLS handshake with browser peers verified (every browser+desktop data-channel test in the 135/0/0 Playwright matrix exercises this path end-to-end)
 
 ## Phase 2: Data Channel Abstraction - DONE
 

@@ -86,9 +86,13 @@ public sealed class PerfectNegotiator : IDisposable
             // it implicitly creates an offer or answer as appropriate for the current
             // signaling state. Supported on both browser + desktop as of 1.1.0.
             await _pc.SetLocalDescription();
+            // Flag HasNegotiated BEFORE the awaitable sendDescription completes. A
+            // consumer awaiting the description callback completes and observes
+            // HasNegotiated in the same synchronous step; flipping the flag after
+            // the send await would race with the callback-consumer.
+            HasNegotiated = true;
             if (_pc.LocalDescription != null)
                 await _sendDescription(_pc.LocalDescription);
-            HasNegotiated = true;
         }
         catch (Exception)
         {
@@ -138,9 +142,9 @@ public sealed class PerfectNegotiator : IDisposable
             // Parameterless SetLocalDescription() implicitly creates the answer since
             // signaling state is now have-remote-offer.
             await _pc.SetLocalDescription();
+            HasNegotiated = true;
             if (_pc.LocalDescription != null)
                 await _sendDescription(_pc.LocalDescription);
-            HasNegotiated = true;
         }
     }
 
