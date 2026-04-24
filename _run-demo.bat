@@ -17,4 +17,3 @@ echo Both servers starting. Open browser to the Blazor Demo URL.
 echo Navigate to Chat Room, enter a room name, and grant camera/mic permission.
 echo Open a second tab to the same URL and join the same room.
 echo.
-pause

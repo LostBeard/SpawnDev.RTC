@@ -35,4 +35,30 @@ public sealed class TrackerServerOptions
     /// If null, the server swallows these silently.
     /// </summary>
     public Action<string>? Log { get; set; }
+
+    /// <summary>
+    /// Optional Origin-header allowlist for incoming WebSocket upgrade requests.
+    /// When non-null and non-empty, connections whose <c>Origin</c> header does
+    /// not match any entry are rejected with HTTP 403 before the WebSocket
+    /// handshake completes. When null or empty, no Origin check is performed
+    /// (backward-compatible default for non-public deployments).
+    /// <para>
+    /// Entries can be:
+    /// <list type="bullet">
+    ///   <item>Exact origin: <c>https://app.example.com</c> (case-insensitive match).</item>
+    ///   <item>Wildcard subdomain: <c>https://*.example.com</c> matches any
+    ///         subdomain of <c>example.com</c> on the same scheme. Does NOT
+    ///         match bare <c>example.com</c>.</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// Use on public-facing signaling endpoints to reject browsers running on
+    /// unaffiliated sites (basic abuse protection). Note that Origin is set by
+    /// the browser and can be spoofed by non-browser clients; this is not a
+    /// strong authentication mechanism. For stronger protection combine with
+    /// ephemeral TURN credentials (<see cref="StunTurnServerOptions.EphemeralCredentialSharedSecret"/>)
+    /// and/or authenticated signaling tokens.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<string>? AllowedOrigins { get; set; }
 }

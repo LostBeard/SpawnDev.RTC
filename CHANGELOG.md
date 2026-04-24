@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.1.3-rc.13 (2026-04-24)
+
+### Relay port range for NAT deployments
+
+`SpawnDev.RTC.Server 1.0.3-rc.3` exposes the `SpawnDev.SIPSorcery 10.0.5-rc.4` fork's new `TurnServerConfig.RelayPortRangeStart/End` as `StunTurnServerOptions.RelayPortRangeStart/End` + env-var (`RTC__StunTurn__RelayPortRangeStart` / `RTC__StunTurn__RelayPortRangeEnd`). When set, per-allocation TURN relay sockets bind within the configured range instead of the OS ephemeral pool. Required when the TURN host is behind a consumer NAT that cannot forward the full ephemeral range (16,000+ ports). Matches coturn's `--min-port`/`--max-port` and pion's `RelayAddressGenerator` port-range.
+
+`SpawnDev.WebTorrent.ServerApp` (hub.spawndev.com production) also picks up the env-vars for Origin allowlist, STUN/TURN enable, and ephemeral credentials - previously only `SpawnDev.RTC.ServerApp` had them wired. Hub can now run embedded STUN/TURN without a coturn dependency.
+
+1 new integration test brings the total to 24 pass. No other code changes; this is the deployment-readiness bump.
+
+## 1.1.3-rc.12 (2026-04-24)
+
+### Tracker-gated TURN, period-rotating secrets, and Origin allowlist
+
+Three production-readiness features on top of rc.11's ephemeral-credential plumbing. All in `SpawnDev.RTC.Server 1.0.3-rc.2`; the main `SpawnDev.RTC` package moves forward only because its transitive reference to `SpawnDev.RTC.Server` changes.
+
+**Tracker-gated TURN.** `EphemeralTurnCredentials.TrackerGatedResolver(sharedSecret, realm, tracker)` composes a `ResolveHmacKey` delegate that rejects allocations unless the credential's `userId` segment matches a peer currently announced to the signaling tracker. Closes the open gap where a stolen credential was useful for TURN even if the underlying signaling session had been torn down - now TURN follows tracker presence. New `TrackerSignalingServer.IsPeerConnected(peerId)` + `ConnectedPeerIds` snapshot APIs support the same check in consumer middleware.
+
+**Period-rotating sub-secrets.** `EphemeralTurnCredentials.PeriodRotatingResolver(masterSecret, realm, periodSeconds)` + the matching `GeneratePeriodic(...)` issuer derive per-period sub-secrets as `HMAC-SHA256(masterSecret, floor(expiryUnix / periodSeconds))`. Both sides compute the same sub-secret deterministically from the expiry timestamp, so there's no period-boundary race. If the master leaks, only credentials whose expiry falls inside still-valid periods are at risk. Typical period: 1-24h.
+
+**Origin-header allowlist on signaling.** `TrackerServerOptions.AllowedOrigins` rejects WebSocket upgrade requests whose `Origin` doesn't match any entry. Supports exact match (case-insensitive) and wildcard-subdomain form (`https://*.example.com`). When unset or empty, no check is performed (backward compatible). Rejection is HTTP 403 before the WebSocket handshake completes. `TrackerSignalingServer.IsOriginAllowed` is exposed publicly for consumer middleware. The server also now completes the WebSocket Close handshake with `CloseOutputAsync` on client-initiated disconnect - avoids "premature-EOF" exceptions on `ClientWebSocket.CloseAsync` in consuming code.
+
+**hub.spawndev.com deployment knobs.** `SpawnDev.RTC.ServerApp` picks up env-var config for Origin allowlist, STUN/TURN enable/port/addresses, long-term or ephemeral credentials, and tracker-gating. Dockerfile exposes UDP 3478 + documents the hub-style config (see `SpawnDev.RTC.ServerApp/Dockerfile`).
+
+12 new tests added (23 total in `DesktopTurnAuthTests`). End-to-end proofs include real `ClientWebSocket` upgrades against a real `WebApplication.CreateBuilder()` host with a TURN server bound to a TCP/UDP port and announcing peers via the tracker wire protocol. No mocks.
+
+## 1.1.3-rc.11 (2026-04-24)
+
+### Ephemeral TURN credentials (TURN REST API pattern)
+
+`SpawnDev.RTC.Server` now supports time-limited HMAC-SHA1 TURN credentials, the industry-standard pattern used by Twilio, Cloudflare, and coturn's `--use-auth-secret`. Your app backend mints a credential pair from a shared secret; the TURN server validates without needing a user database.
+
+New in `SpawnDev.RTC.Server`:
+
+- `EphemeralTurnCredentials.Generate(sharedSecret, userId, lifetime)` - produces a `(username, password)` pair where the username encodes the expiry Unix timestamp and the password is `Base64(HMAC-SHA1(secret, username))`.
+- `EphemeralTurnCredentials.Validate(sharedSecret, username, password)` - backend-side HMAC + expiry check, constant-time compare.
+- `EphemeralTurnCredentials.ResolveLongTermKey(sharedSecret, realm, username)` - server-side resolver that computes the SipSorcery MESSAGE-INTEGRITY HMAC key from an ephemeral username. Returns null (rejects with 401) on expired or malformed usernames.
+- `StunTurnServerOptions.EphemeralCredentialSharedSecret` - convenience knob. When set, the hosted service auto-wires the resolver; static `Username`/`Password` are ignored.
+- `StunTurnServerOptions.ResolveHmacKey` - full-control resolver delegate for tracker-gated credentials, period-rotating keys, REST-API user-database lookups, etc. Takes the incoming STUN USERNAME and returns the 20-byte MD5 key (or null to reject).
+
+Underlying fork change: `SpawnDev.SIPSorcery 10.0.5-rc.3` adds `TurnServerConfig.ResolveHmacKey` - a per-request HMAC-SHA1 key resolver hook on `TurnServer`. Backward compatible: when unset, classic long-term credentials work unchanged. Candidate for upstream SIPSorcery PR once validated in production.
+
+11 new unit tests in `DesktopTurnAuthTests` cover: helper round-trip, tamper rejection, wrong-secret rejection, expired credential rejection, server/client key equivalence, DI lifecycle (enabled/disabled), full TURN Allocate round-trip with both long-term and ephemeral credentials, and expired-credential Allocate rejection (401).
+
 ## 1.1.3-rc.10 (2026-04-24)
 
 ### Simulcast control surface on IRTCRtpSender

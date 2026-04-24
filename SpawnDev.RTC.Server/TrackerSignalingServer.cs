@@ -45,6 +45,39 @@ public sealed class TrackerSignalingServer
     public int TotalPeers => _rooms.Values.Sum(r => r.Peers.Count);
 
     /// <summary>
+    /// True if a peer with the given <paramref name="peerId"/> is currently
+    /// connected (announced in at least one room). Enables tracker-gated TURN:
+    /// a <see cref="StunTurnServerOptions.ResolveHmacKey"/> delegate can check
+    /// this before issuing a TURN allocation, so only clients that have first
+    /// established a signaling session get relay access.
+    /// </summary>
+    public bool IsPeerConnected(string peerId)
+    {
+        if (string.IsNullOrEmpty(peerId)) return false;
+        foreach (var room in _rooms.Values)
+            if (room.Peers.ContainsKey(peerId)) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Snapshot of every currently-connected peer id across all rooms. Useful
+    /// for admin / monitoring endpoints; do not call on the hot path - the
+    /// result is a fresh allocation each time. For single-peer lookups use
+    /// <see cref="IsPeerConnected"/>.
+    /// </summary>
+    public IReadOnlyCollection<string> ConnectedPeerIds
+    {
+        get
+        {
+            var set = new HashSet<string>();
+            foreach (var room in _rooms.Values)
+                foreach (var peerId in room.Peers.Keys)
+                    set.Add(peerId);
+            return set;
+        }
+    }
+
+    /// <summary>
     /// Handle one WebSocket connection. Call from an ASP.NET Core endpoint that
     /// has already accepted the upgrade (e.g. through <see cref="Extensions.SignalingAppBuilderExtensions.UseRtcSignaling"/>).
     /// </summary>
@@ -54,6 +87,20 @@ public sealed class TrackerSignalingServer
         {
             context.Response.StatusCode = 400;
             return;
+        }
+
+        // Origin allowlist (basic abuse protection). Only runs when the consumer
+        // has opted in by populating TrackerServerOptions.AllowedOrigins. Rejects
+        // the upgrade with 403 if the client's Origin header does not match.
+        if (_options.AllowedOrigins is { Count: > 0 } allowList)
+        {
+            var originHeader = context.Request.Headers.Origin.ToString();
+            if (!IsOriginAllowed(originHeader, allowList))
+            {
+                _options.Log?.Invoke($"[RTC.Server] rejected upgrade - Origin '{originHeader}' not in allowlist");
+                context.Response.StatusCode = 403;
+                return;
+            }
         }
 
         using var ws = await context.WebSockets.AcceptWebSocketAsync();
@@ -72,6 +119,43 @@ public sealed class TrackerSignalingServer
         }
     }
 
+    /// <summary>
+    /// Match an Origin header against the configured allowlist. Accepts exact
+    /// matches (case-insensitive) and wildcard-subdomain entries of the form
+    /// <c>https://*.example.com</c>. Exposed so consumers can apply the same
+    /// semantics in their own middleware (e.g. for HTTP endpoints that mirror
+    /// the signaling endpoint's abuse protection).
+    /// </summary>
+    public static bool IsOriginAllowed(string origin, IReadOnlyList<string> allowList)
+    {
+        if (string.IsNullOrEmpty(origin)) return false;
+
+        foreach (var entry in allowList)
+        {
+            if (string.IsNullOrEmpty(entry)) continue;
+
+            // Exact match.
+            if (origin.Equals(entry, StringComparison.OrdinalIgnoreCase)) return true;
+
+            // Wildcard-subdomain form: "scheme://*.example.com" matches
+            // "scheme://sub.example.com" or "scheme://deep.sub.example.com".
+            // Does NOT match bare "scheme://example.com".
+            var starIdx = entry.IndexOf("://*.", StringComparison.Ordinal);
+            if (starIdx > 0)
+            {
+                var scheme = entry.Substring(0, starIdx + 3); // "scheme://"
+                var suffix = entry.Substring(starIdx + 4);    // ".example.com"
+                if (origin.StartsWith(scheme, StringComparison.OrdinalIgnoreCase) &&
+                    origin.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+                    origin.Length > scheme.Length + suffix.Length)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private async Task ReceiveLoopAsync(SignalingPeer peer)
     {
         var buffer = new byte[16384];
@@ -83,7 +167,19 @@ public sealed class TrackerSignalingServer
             do
             {
                 result = await peer.WebSocket.ReceiveAsync(buffer, CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Close) return;
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    // Complete the close handshake so the client's CloseAsync
+                    // returns cleanly instead of throwing a premature-EOF error.
+                    try
+                    {
+                        using var cts = new CancellationTokenSource(_options.SendTimeoutMs);
+                        await peer.WebSocket.CloseOutputAsync(
+                            WebSocketCloseStatus.NormalClosure, "", cts.Token);
+                    }
+                    catch { /* client may have already torn down - don't mask cleanup */ }
+                    return;
+                }
                 frame.Write(buffer, 0, result.Count);
                 if (frame.Length > _options.MaxMessageBytes)
                 {

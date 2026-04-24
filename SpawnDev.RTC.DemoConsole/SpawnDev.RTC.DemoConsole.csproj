@@ -13,7 +13,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- Needed to host a real ASP.NET Core test app inside tests that exercise
+		     the signaling pipeline end-to-end (Origin allowlist, tracker-gated TURN). -->
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\SpawnDev.RTC.Demo.Shared\SpawnDev.RTC.Demo.Shared.csproj" />
+		<ProjectReference Include="..\SpawnDev.RTC.Server\SpawnDev.RTC.Server.csproj" />
 	</ItemGroup>
 
 </Project>
