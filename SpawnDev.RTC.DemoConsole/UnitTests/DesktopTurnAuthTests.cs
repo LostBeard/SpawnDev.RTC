@@ -643,6 +643,330 @@ namespace SpawnDev.RTC.DemoConsole.UnitTests
             }
         }
 
+        // --- TURN end-to-end relay forwarding ----------------------------------
+
+        [TestMethod(Timeout = 15000)]
+        public async Task TurnRelay_E2E_SendIndicationForwardsDataToRawPeer()
+        {
+            // Full RFC 5766 §10 round-trip through the TURN server:
+            //   1. Client A allocates a relay on the TURN server (gets relay endpoint).
+            //   2. Client A creates permission for raw peer B's address.
+            //   3. Client A sends a SendIndication containing XORPeerAddress=B + Data=payload.
+            //   4. TURN server's HandleSendIndication forwards the payload from A's
+            //      relay-socket to B's real UDP endpoint (the actual wire relay).
+            //   5. Raw peer B (not a TURN client - just a UdpClient) receives the payload.
+            //
+            // Proves the relay-forward path works end-to-end, not just Allocate.
+            // Closes the Plans/PLAN-Full-WebRTC-Coverage.md "TURN relay E2E test" gap.
+
+            var controlPort = GetFreeUdpPort();
+            const string realm = "spawndev-rtc-test";
+            const string user = "alice";
+            const string pass = "s3cret";
+
+            var turnCfg = new TurnServerConfig
+            {
+                ListenAddress = IPAddress.Loopback,
+                Port = controlPort,
+                EnableUdp = true,
+                EnableTcp = false,
+                RelayAddress = IPAddress.Loopback,
+                Username = user,
+                Password = pass,
+                Realm = realm,
+            };
+
+            using var turn = new TurnServer(turnCfg);
+            turn.Start();
+            try
+            {
+                await Task.Delay(150);
+
+                // Raw peer B: bare UdpClient, NOT a TURN client. Listens for the relayed bytes.
+                using var peerB = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+                var peerBEndpoint = (IPEndPoint)peerB.Client.LocalEndPoint!;
+
+                // Client A: a real TURN client with its own allocation.
+                using var clientA = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+                var turnEp = new IPEndPoint(IPAddress.Loopback, controlPort);
+
+                // --- Step 1: Allocate via standard 401-challenge-then-authed sequence ---
+                var allocateAuthState = await AllocateAndCaptureAuthState(clientA, turnEp, user, realm, pass);
+                if (allocateAuthState == null)
+                    throw new Exception("TURN Allocate did not complete");
+
+                // --- Step 2: CreatePermission for peerB's endpoint ---
+                var cpOk = await CreatePermissionAsync(clientA, turnEp, user, realm, pass,
+                    allocateAuthState.Value.Nonce, allocateAuthState.Value.RealmBytes, peerBEndpoint);
+                if (!cpOk) throw new Exception("CreatePermission request failed");
+
+                // --- Step 3: SendIndication with payload targeted at peerB ---
+                var payload = Encoding.UTF8.GetBytes("turn-e2e-test-payload-" + Guid.NewGuid().ToString("N"));
+                await SendSendIndicationAsync(clientA, turnEp, peerBEndpoint, payload);
+
+                // --- Step 4: Raw peerB should receive the payload via the TURN relay socket ---
+                using var recvCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                var result = await peerB.ReceiveAsync(recvCts.Token);
+                if (!result.Buffer.AsSpan().SequenceEqual(payload))
+                    throw new Exception(
+                        $"Payload mismatch: sent {payload.Length} bytes, received {result.Buffer.Length} bytes. " +
+                        "The TURN relay-forward path did not forward the exact bytes we sent.");
+            }
+            finally
+            {
+                turn.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Allocate round-trip + capture the NONCE + REALM bytes the server gave us.
+        /// Subsequent requests (CreatePermission, SendIndication if MESSAGE-INTEGRITY'd)
+        /// need to echo the same realm + nonce back.
+        /// </summary>
+        private static async Task<(byte[] Nonce, byte[] RealmBytes)?> AllocateAndCaptureAuthState(
+            UdpClient udp, IPEndPoint turn, string username, string realm, string password)
+        {
+            // Unauth Allocate -> expect 401 with REALM + NONCE
+            var txId = new byte[12];
+            RandomNumberGenerator.Fill(txId);
+            var req = new SIPSorcery.Net.STUNMessage(SIPSorcery.Net.STUNMessageTypesEnum.Allocate);
+            req.Header.TransactionId = txId;
+            req.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.RequestedTransport, new byte[] { 17, 0, 0, 0 }));
+            var bytes = req.ToByteBuffer(null, false);
+            await udp.SendAsync(bytes, bytes.Length, turn);
+
+            using var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var challenge = await udp.ReceiveAsync(cts1.Token);
+            var challengeMsg = SIPSorcery.Net.STUNMessage.ParseSTUNMessage(challenge.Buffer, challenge.Buffer.Length);
+            if (challengeMsg == null) return null;
+
+            var realmAttr = challengeMsg.Attributes.FirstOrDefault(a => a.AttributeType == SIPSorcery.Net.STUNAttributeTypesEnum.Realm);
+            var nonceAttr = challengeMsg.Attributes.FirstOrDefault(a => a.AttributeType == SIPSorcery.Net.STUNAttributeTypesEnum.Nonce);
+            if (realmAttr?.Value == null || nonceAttr?.Value == null) return null;
+
+            // Authed Allocate
+            var txId2 = new byte[12];
+            RandomNumberGenerator.Fill(txId2);
+            var req2 = new SIPSorcery.Net.STUNMessage(SIPSorcery.Net.STUNMessageTypesEnum.Allocate);
+            req2.Header.TransactionId = txId2;
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.RequestedTransport, new byte[] { 17, 0, 0, 0 }));
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.Username, Encoding.UTF8.GetBytes(username)));
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(SIPSorcery.Net.STUNAttributeTypesEnum.Realm, realmAttr.Value));
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(SIPSorcery.Net.STUNAttributeTypesEnum.Nonce, nonceAttr.Value));
+
+            var key = MD5.HashData(Encoding.UTF8.GetBytes($"{username}:{realm}:{password}"));
+            var authBytes = req2.ToByteBuffer(key, false);
+            await udp.SendAsync(authBytes, authBytes.Length, turn);
+
+            using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var success = await udp.ReceiveAsync(cts2.Token);
+            var successMsg = SIPSorcery.Net.STUNMessage.ParseSTUNMessage(success.Buffer, success.Buffer.Length);
+            if (successMsg == null) return null;
+            if (successMsg.Header.MessageType != SIPSorcery.Net.STUNMessageTypesEnum.AllocateSuccessResponse) return null;
+
+            return (nonceAttr.Value, realmAttr.Value);
+        }
+
+        /// <summary>CreatePermission for a specific peer endpoint.</summary>
+        private static async Task<bool> CreatePermissionAsync(
+            UdpClient udp, IPEndPoint turn, string username, string realm, string password,
+            byte[] nonce, byte[] realmBytes, IPEndPoint peerEp)
+        {
+            var txId = new byte[12];
+            RandomNumberGenerator.Fill(txId);
+            var req = new SIPSorcery.Net.STUNMessage(SIPSorcery.Net.STUNMessageTypesEnum.CreatePermission);
+            req.Header.TransactionId = txId;
+            req.Attributes.Add(new SIPSorcery.Net.STUNXORAddressAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.XORPeerAddress,
+                peerEp.Port, peerEp.Address, txId));
+            req.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.Username, Encoding.UTF8.GetBytes(username)));
+            req.Attributes.Add(new SIPSorcery.Net.STUNAttribute(SIPSorcery.Net.STUNAttributeTypesEnum.Realm, realmBytes));
+            req.Attributes.Add(new SIPSorcery.Net.STUNAttribute(SIPSorcery.Net.STUNAttributeTypesEnum.Nonce, nonce));
+
+            var key = MD5.HashData(Encoding.UTF8.GetBytes($"{username}:{realm}:{password}"));
+            var bytes = req.ToByteBuffer(key, false);
+            await udp.SendAsync(bytes, bytes.Length, turn);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var resp = await udp.ReceiveAsync(cts.Token);
+            var msg = SIPSorcery.Net.STUNMessage.ParseSTUNMessage(resp.Buffer, resp.Buffer.Length);
+            return msg?.Header.MessageType == SIPSorcery.Net.STUNMessageTypesEnum.CreatePermissionSuccessResponse;
+        }
+
+        [TestMethod(Timeout = 15000)]
+        public async Task TurnRelay_E2E_DataIndicationDeliversPeerPayloadToClient()
+        {
+            // Reverse direction of the forward relay test:
+            //   1. Client A allocates a relay on the TURN server (gets XOR-RELAYED-ADDRESS).
+            //   2. Client A CreatePermission for raw peer B's address (so the TURN server
+            //      will accept inbound UDP from B).
+            //   3. Raw peer B (a bare UdpClient) sends payload UDP -> A's relay endpoint.
+            //   4. TURN server's RelayUdpToClientAsync receives on A's relay socket and
+            //      wraps the payload in a DataIndication.
+            //   5. Client A receives the DataIndication and extracts the original bytes.
+            //
+            // Proves the incoming-relay path works end-to-end (peer -> TURN server -> client).
+            // Together with TurnRelay_E2E_SendIndicationForwardsDataToRawPeer this covers
+            // the full bidirectional RFC 5766 §10 data path.
+
+            var controlPort = GetFreeUdpPort();
+            const string realm = "spawndev-rtc-test";
+            const string user = "alice";
+            const string pass = "s3cret";
+
+            var turnCfg = new TurnServerConfig
+            {
+                ListenAddress = IPAddress.Loopback,
+                Port = controlPort,
+                EnableUdp = true,
+                EnableTcp = false,
+                RelayAddress = IPAddress.Loopback,
+                Username = user,
+                Password = pass,
+                Realm = realm,
+            };
+
+            using var turn = new TurnServer(turnCfg);
+            turn.Start();
+            try
+            {
+                await Task.Delay(150);
+
+                using var peerB = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+                var peerBEndpoint = (IPEndPoint)peerB.Client.LocalEndPoint!;
+
+                using var clientA = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+                var turnEp = new IPEndPoint(IPAddress.Loopback, controlPort);
+
+                // Allocate + capture relayed-address so peerB knows where to send.
+                var (authState, relayEp) = await AllocateAndGetRelayAddressAsync(clientA, turnEp, user, realm, pass);
+                if (authState == null || relayEp == null)
+                    throw new Exception("TURN Allocate did not return a relay endpoint");
+
+                // CreatePermission for peerB so the TURN server will accept + forward
+                // UDP arriving from that address.
+                var cpOk = await CreatePermissionAsync(clientA, turnEp, user, realm, pass,
+                    authState.Value.Nonce, authState.Value.RealmBytes, peerBEndpoint);
+                if (!cpOk) throw new Exception("CreatePermission request failed");
+
+                // Peer B sends a raw UDP packet directly to A's relay address.
+                var payload = Encoding.UTF8.GetBytes("turn-reverse-test-" + Guid.NewGuid().ToString("N"));
+                await peerB.SendAsync(payload, payload.Length, relayEp);
+
+                // Client A should now receive a DataIndication wrapping that payload.
+                using var recvCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                while (true)
+                {
+                    var result = await clientA.ReceiveAsync(recvCts.Token);
+                    var msg = SIPSorcery.Net.STUNMessage.ParseSTUNMessage(result.Buffer, result.Buffer.Length);
+                    if (msg == null) continue;
+                    if (msg.Header.MessageType != SIPSorcery.Net.STUNMessageTypesEnum.DataIndication) continue;
+
+                    var dataAttr = msg.Attributes.FirstOrDefault(a => a.AttributeType == SIPSorcery.Net.STUNAttributeTypesEnum.Data);
+                    if (dataAttr?.Value == null)
+                        throw new Exception("DataIndication arrived but had no Data attribute");
+                    if (!dataAttr.Value.AsSpan().SequenceEqual(payload))
+                        throw new Exception(
+                            $"Payload mismatch: peerB sent {payload.Length} bytes, A received {dataAttr.Value.Length} bytes via DataIndication. " +
+                            "The TURN peer-to-client relay path corrupted or replaced the payload.");
+                    return; // success
+                }
+            }
+            finally
+            {
+                turn.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Allocate variant that also returns the XOR-RELAYED-ADDRESS endpoint from
+        /// the success response - needed for the reverse-direction relay test
+        /// where a peer sends data TO the client's relay endpoint.
+        /// </summary>
+        private static async Task<((byte[] Nonce, byte[] RealmBytes)? Auth, IPEndPoint? Relay)> AllocateAndGetRelayAddressAsync(
+            UdpClient udp, IPEndPoint turn, string username, string realm, string password)
+        {
+            var txId = new byte[12];
+            RandomNumberGenerator.Fill(txId);
+            var req = new SIPSorcery.Net.STUNMessage(SIPSorcery.Net.STUNMessageTypesEnum.Allocate);
+            req.Header.TransactionId = txId;
+            req.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.RequestedTransport, new byte[] { 17, 0, 0, 0 }));
+            var bytes = req.ToByteBuffer(null, false);
+            await udp.SendAsync(bytes, bytes.Length, turn);
+
+            using var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var challenge = await udp.ReceiveAsync(cts1.Token);
+            var challengeMsg = SIPSorcery.Net.STUNMessage.ParseSTUNMessage(challenge.Buffer, challenge.Buffer.Length);
+            if (challengeMsg == null) return (null, null);
+
+            var realmAttr = challengeMsg.Attributes.FirstOrDefault(a => a.AttributeType == SIPSorcery.Net.STUNAttributeTypesEnum.Realm);
+            var nonceAttr = challengeMsg.Attributes.FirstOrDefault(a => a.AttributeType == SIPSorcery.Net.STUNAttributeTypesEnum.Nonce);
+            if (realmAttr?.Value == null || nonceAttr?.Value == null) return (null, null);
+
+            var txId2 = new byte[12];
+            RandomNumberGenerator.Fill(txId2);
+            var req2 = new SIPSorcery.Net.STUNMessage(SIPSorcery.Net.STUNMessageTypesEnum.Allocate);
+            req2.Header.TransactionId = txId2;
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.RequestedTransport, new byte[] { 17, 0, 0, 0 }));
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.Username, Encoding.UTF8.GetBytes(username)));
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(SIPSorcery.Net.STUNAttributeTypesEnum.Realm, realmAttr.Value));
+            req2.Attributes.Add(new SIPSorcery.Net.STUNAttribute(SIPSorcery.Net.STUNAttributeTypesEnum.Nonce, nonceAttr.Value));
+
+            var key = MD5.HashData(Encoding.UTF8.GetBytes($"{username}:{realm}:{password}"));
+            var authBytes = req2.ToByteBuffer(key, false);
+            await udp.SendAsync(authBytes, authBytes.Length, turn);
+
+            using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var success = await udp.ReceiveAsync(cts2.Token);
+            var successMsg = SIPSorcery.Net.STUNMessage.ParseSTUNMessage(success.Buffer, success.Buffer.Length);
+            if (successMsg?.Header.MessageType != SIPSorcery.Net.STUNMessageTypesEnum.AllocateSuccessResponse)
+                return (null, null);
+
+            IPEndPoint? relayEp = null;
+            foreach (var attr in successMsg.Attributes)
+            {
+                if (attr.AttributeType != SIPSorcery.Net.STUNAttributeTypesEnum.XORRelayedAddress) continue;
+                if (attr.Value == null || attr.Value.Length < 8) continue;
+                int xorPort = ((attr.Value[2] << 8) | attr.Value[3]) ^ 0x2112;
+                int a0 = attr.Value[4] ^ 0x21;
+                int a1 = attr.Value[5] ^ 0x12;
+                int a2 = attr.Value[6] ^ 0xA4;
+                int a3 = attr.Value[7] ^ 0x42;
+                relayEp = new IPEndPoint(new IPAddress(new[] { (byte)a0, (byte)a1, (byte)a2, (byte)a3 }), xorPort);
+                break;
+            }
+
+            return ((nonceAttr.Value, realmAttr.Value), relayEp);
+        }
+
+        /// <summary>
+        /// SendIndication: tell the TURN server to forward a payload to the peer.
+        /// Indications are unauth per RFC 5766 §10 (MESSAGE-INTEGRITY is not required).
+        /// </summary>
+        private static async Task SendSendIndicationAsync(
+            UdpClient udp, IPEndPoint turn, IPEndPoint peerEp, byte[] payload)
+        {
+            var txId = new byte[12];
+            RandomNumberGenerator.Fill(txId);
+            var msg = new SIPSorcery.Net.STUNMessage(SIPSorcery.Net.STUNMessageTypesEnum.SendIndication);
+            msg.Header.TransactionId = txId;
+            msg.Attributes.Add(new SIPSorcery.Net.STUNXORAddressAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.XORPeerAddress,
+                peerEp.Port, peerEp.Address, txId));
+            msg.Attributes.Add(new SIPSorcery.Net.STUNAttribute(
+                SIPSorcery.Net.STUNAttributeTypesEnum.Data, payload));
+
+            var bytes = msg.ToByteBuffer(null, false);
+            await udp.SendAsync(bytes, bytes.Length, turn);
+        }
+
         // --- Relay port range (NAT port-forwarding support) --------------------
 
         [TestMethod]

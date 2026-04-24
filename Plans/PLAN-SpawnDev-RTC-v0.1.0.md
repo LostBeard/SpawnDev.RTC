@@ -4,7 +4,7 @@
 
 **Success criteria:** Desktop .NET and browser Blazor WASM peers connect and exchange data channel messages, audio tracks, and video tracks bidirectionally. Verified by PlaywrightMultiTest. API mirrors the W3C WebRTC specification.
 
-> **Status (2026-04-23): v0.1.0 superseded — we're on v1.1.3-rc.1.** Phases 1-6 + 8 + 9 all shipped; Phase 4a (audio bridge) and Phase 4b (H.264 video bridge via MediaFoundation MFT) both landed 2026-04-23. Only Phase 7 (advanced WebRTC features: renegotiation on live connection, simulcast, perfect-negotiation pattern, TURN) remains. Test count: 261 end-to-end via PlaywrightMultiTest, across browser + desktop. See `PLAN-Full-WebRTC-Coverage.md` for per-item status + `Docs/audio-tracks.md` / `Docs/video-tracks.md` for consumer-facing integration guides.
+> **Status (2026-04-24): v0.1.0 superseded — we're on v1.1.4 stable on nuget.org.** Phases 1-6 + 8 + 9 all shipped. Phase 4a (audio bridge) and Phase 4b (H.264 video bridge via MediaFoundation MFT) landed 2026-04-23. Phase 7 (advanced WebRTC features): renegotiation shipped, perfect-negotiation shipped, **TURN shipped (embedded RFC 5766 server with 4 credential modes + full relay data-path E2E)**. Only Simulcast's real-layer behavior (beyond DTO shape) remains unchecked, as a nice-to-have. Test count: **319 end-to-end via PlaywrightMultiTest** across browser + desktop. See `PLAN-Full-WebRTC-Coverage.md` for per-item status + `Docs/audio-tracks.md` / `Docs/video-tracks.md` / `Docs/stun-turn-server.md` for consumer-facing integration guides.
 
 
 ---
@@ -69,7 +69,7 @@
 
 - [x] **Renegotiation** - Add/remove tracks on live connection. **Both platforms verified via PlaywrightMultiTest (135/0/0 post-2026-04-23):** `Renegotiation_AddTrackAfterConnect_Desktop` (post-connect AddTrack + manual second offer/answer → pc2.OnTrack fires in 706 ms) and its browser mirror `Renegotiation_AddTrackAfterConnect_Browser` (same scenario via getUserMedia + fake-device-for-media-stream). The earlier browser-side `Event_NegotiationNeeded_FiresOnAddTrack` tests only the event; these new tests cover the full round-trip. Desktop `createDataChannel` post-connect still hits a SipSorcery DCEP-ACK timeout (tracked separately; track-add works around it).
 - [x] **ICE restart** - `CreateOffer(RTCOfferOptions)` with `IceRestart = true` (browser + desktop).
-- [ ] **TURN relay** - Full TURN support (config surface exists via `RTCIceServerConfig`; production TURN testing deferred).
+- [x] **TURN relay** - Shipped 2026-04-24. Beyond client-side config via `RTCIceServerConfig`, `SpawnDev.RTC.Server 1.0.3+` ships a full embedded RFC 5766 TURN server (`AddRtcStunTurn(...)` hosted service) with long-term + ephemeral (TURN REST API) + tracker-gated + period-rotating credential modes, Origin allowlist, and NAT relay-port-range support. 24 integration tests in `DesktopTurnAuthTests` including full forward + reverse RFC 5766 §10 relay data-path E2E. Production-validated at hub.spawndev.com. See `Docs/stun-turn-server.md`.
 - [x] **Trickle ICE** - `OnIceCandidate` + `AddIceCandidate` on both platforms; `CanTrickleIceCandidates` property exposed.
 - [x] **Perfect negotiation** - parameterless `SetLocalDescription()` shipped in 1.1.0; glare-free `PerfectNegotiator` helper shipped in 1.1.3-rc.5 with 8 unit tests. Wraps an `IRTCPeerConnection` + two signaling callbacks; implements polite/impolite glare resolution per the W3C spec.
 - [ ] **Simulcast** - Multiple quality layers for video (future; needs `sendEncodings` sender-parameter support).

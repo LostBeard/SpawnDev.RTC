@@ -181,7 +181,7 @@
 
 ### Phase 7 Advanced Features (from `PLAN-SpawnDev-RTC-v0.1.0.md`):
 - [x] Renegotiation on live connection — dedicated tests `Renegotiation_AddTrackAfterConnect_Desktop` + `Renegotiation_AddTrackAfterConnect_Browser` in `RTCTestBase.FinalPushTests.cs` shipped 2026-04-23, both pass under PlaywrightMultiTest.
-- [ ] TURN relay production testing (config surface ready; no active test against a real TURN server).
+- [x] TURN relay production testing — shipped 2026-04-24. `DesktopTurnAuthTests.TurnRelay_E2E_SendIndicationForwardsDataToRawPeer` + `TurnRelay_E2E_DataIndicationDeliversPeerPayloadToClient` cover both directions of the RFC 5766 §10 data path: Allocate → CreatePermission → SendIndication → real-wire UDP relay forward (client-to-peer, 210 ms) and inverse peer-to-client relay via DataIndication (192 ms). Plus the existing 24-test `DesktopTurnAuthTests` class covers Allocate auth (long-term + ephemeral + tracker-gated + period-rotating), Origin allowlist, relay-port-range, and full live-hub smoke (`HubDeploymentSmokeTests.Smoke_TrackerGatedTurn_DenyThenAllowThenDeny` against hub.spawndev.com).
 - [x] Perfect negotiation glare-free pattern + state-machine helpers — `SpawnDev.RTC.PerfectNegotiator` shipped in 1.1.3-rc.5. Wraps `IRTCPeerConnection` + two signaling callbacks, implements polite/impolite glare resolution, works on both Browser and Desktop. 8 unit tests cover contract + auto-offer on `needsNegotiation`.
 - [ ] Simulcast (`sendEncodings` sender-parameter support).
 
