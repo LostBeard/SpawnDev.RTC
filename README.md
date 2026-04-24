@@ -22,6 +22,7 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 - **SCTP** - Complete SCTP implementation for data channel transport
 - **WebTorrent-compatible signaling** - [`SpawnDev.RTC.Signaling`](Docs/signaling-overview.md) speaks the WebTorrent tracker wire protocol. Public trackers (`wss://tracker.openwebtorrent.com`) work out of the box; no server to host for the default case.
 - **Self-hostable signaling server** - [`SpawnDev.RTC.Server`](#spawndevrtcserver--spawndevrtcserverapp) (library) and `SpawnDev.RTC.ServerApp` (exe + Docker image) let any ASP.NET Core app host its own tracker with one line of code. See [Docs/run-a-tracker.md](Docs/run-a-tracker.md).
+- **Embedded STUN/TURN server** - `SpawnDev.RTC.Server` ships an RFC 5766 TURN server as an ASP.NET Core `IHostedService`. Classic long-term credentials, ephemeral HMAC credentials (RFC 8489 §9.2 / TURN REST API pattern), tracker-gated ephemeral (only currently-announced peers can allocate), period-rotating sub-secrets, Origin-header allowlist, and configurable relay-port range for NAT port forwarding. One host box can run signaling + STUN + TURN together without coturn. See [Docs/stun-turn-server.md](Docs/stun-turn-server.md).
 - **Perfect negotiation** - [`PerfectNegotiator`](Docs/perfect-negotiation.md) drop-in helper implements the W3C glare-free renegotiation pattern, so both peers can add tracks / transceivers / data channels concurrently on a live connection without offer/answer collision.
 - **No native dependencies** - Pure C# on desktop, native browser APIs in WASM
 - **Native access** - Cast once at creation to access platform-specific features (BlazorJS JSObjects in WASM, SipSorcery in desktop)
@@ -255,6 +256,8 @@ docker run -d -p 8080:8080 --restart unless-stopped \
 ```
 
 The wire format is bit-compatible with the public WebTorrent tracker fleet - a plain JS WebTorrent client can torrent through your server, and any SpawnDev.RTC consumer can meet peers through a public WebTorrent tracker. See [Docs/run-a-tracker.md](Docs/run-a-tracker.md) for reverse-proxy configs (Caddy / nginx / haproxy / Cloudflare), systemd units, and operational notes.
+
+**Embedded STUN/TURN (optional):** the same `SpawnDev.RTC.Server` package also ships a RFC 5766 STUN/TURN server. One-line opt-in: `builder.Services.AddRtcStunTurn(opts => { opts.Enabled = true; /* ... */ });`. Supports classic long-term credentials, ephemeral HMAC credentials (Twilio / Cloudflare / coturn REST API pattern), tracker-gated ephemeral (only announced peers can allocate), period-rotating secrets, NAT port-range binding, and Origin-header allowlisting. See [Docs/stun-turn-server.md](Docs/stun-turn-server.md) for the full deployment guide.
 
 ## Dependencies
 

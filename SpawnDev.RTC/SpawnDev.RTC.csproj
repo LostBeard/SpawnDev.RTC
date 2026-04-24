@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.3-rc.14</Version>
+		<Version>1.1.3</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.3-rc.14: Tracker WebSocket disconnect hygiene fix in SpawnDev.RTC.Server 1.0.3-rc.4. Catches WebSocketException / ConnectionResetException / IOException from the tracker receive loop when peers drop TCP uncleanly (normal on public-internet deployments); previously bubbled up as "unhandled application exception" fail-level Kestrel log entries. Pure log hygiene, no functional change. No code changes to the main RTC package. See CHANGELOG.md for full version history.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.3 stable: Significant bundle since 1.1.1. Dep-bump to SpawnDev.SIPSorcery 10.0.5 (ResolveHmacKey + RelayPortRange for production TURN, SCTP burst tunables, SctpDataSender race fix). Cross-platform IRTCRtpSender.GetParameters/SetParameters simulcast DTOs (browser via typed BlazorJS wrappers, desktop single-encoding stub). BlazorJS 3.5.5 -> 3.5.6 dep bump for typed RTCRtpSendParameters / RTCSctpTransport. Consumer-facing STUN/TURN server lives in the companion SpawnDev.RTC.Server 1.0.3 (tracker-gated ephemeral credentials, Origin allowlist, period-rotating secrets, NAT port-range support). Production-validated at hub.spawndev.com. See CHANGELOG.md for per-rc breakdown.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>
@@ -50,7 +50,7 @@
 		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
-		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.5-rc.4" />
+		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.5" />
 	</ItemGroup>
 
 	<!-- SpawnDev.MultiMedia supplies cross-platform IAudioTrack / IVideoTrack abstractions

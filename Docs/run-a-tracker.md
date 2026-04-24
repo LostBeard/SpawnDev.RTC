@@ -4,6 +4,8 @@
 
 There are three common deploy shapes. Pick the one that matches your ops. All three front the server with TLS via a reverse proxy - browsers will refuse WebSocket connections that aren't either same-origin or TLS.
 
+> **Heads up:** the same binary can also host an embedded STUN/TURN server on the same box (no coturn needed) - just set a couple of env vars. See [stun-turn-server.md](stun-turn-server.md) for credentials, NAT port-range setup, and the env-var turnkey config.
+
 ## Shape 1: Docker
 
 Build from source (a published image is planned but not yet on a public registry):

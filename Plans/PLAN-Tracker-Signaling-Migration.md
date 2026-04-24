@@ -3,6 +3,8 @@
 **Owner:** Captain (TJ)
 **Lead:** Riker (team-lead editor on RTC + WebTorrent + MultiMedia)
 **Status:** **SHIPPED 2026-04-22.** Implementation complete; all acceptance-checklist items satisfied. See the bottom of this doc for the final checklist state.
+
+**Follow-up: STUN/TURN shipped 2026-04-24.** The "out of scope" item at the bottom - embedding TURN in the signaling server - landed 2 days after the migration as part of `SpawnDev.RTC.Server 1.0.3`. Includes long-term + ephemeral (RFC 8489 §9.2) credentials, tracker-gated allocation, period-rotating sub-secrets, Origin allowlist, and NAT port-range support. Production-validated at `hub.spawndev.com`. See [Docs/stun-turn-server.md](../Docs/stun-turn-server.md).
 **Date drafted:** 2026-04-17
 **Date shipped:** 2026-04-22 as `SpawnDev.RTC 1.1.0` stable + `SpawnDev.RTC.Server 1.0.0` stable + `SpawnDev.WebTorrent 3.1.0` stable + `SpawnDev.WebTorrent.Server 3.1.0` stable. Captain manually verified bidirectional JS WebTorrent interop via `hub.spawndev.com`. 408/0/13 Playwright regression clean on the WebTorrent side, 253/0/0 on the RTC side.
 
