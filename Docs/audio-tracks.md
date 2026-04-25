@@ -56,11 +56,11 @@ Two end-to-end tests in `SpawnDev.RTC.Demo.Shared/UnitTests/RTCTestBase.Phase4Me
 1. Two desktop peers exchange a 48 kHz stereo sine wave, verify `OnTrack` fires with audio kind + Opus payload type in the SDP.
 2. The receiving peer's encoded-frame counter reaches at least 5 non-empty RTP frames within 20 seconds, proving the bridge actually encodes and emits audio (not just that signaling succeeded).
 
-Both run in the full RTC PlaywrightMultiTest suite and pass on desktop. Full RTC regression: 261/0/0.
+Both run in the full RTC PlaywrightMultiTest suite and pass on desktop. Full RTC regression as of 1.1.6: **323 pass / 0 fail / 3 skip** (the 3 skips are platform-conditional).
 
-## Phase 4b (video, not yet shipped)
+## Phase 4b (video) — SHIPPED
 
-`IVideoTrack` on the MultiMedia side exists, but the SIP-side encoder for H.264 (via Windows MediaFoundation P/Invoke) is the next concrete deliverable and is estimated at 2-3 weeks of focused work - the RTP H.264 payload format is the wildcard. Linux VAAPI and macOS VideoToolbox are separate per-OS follow-ups after that.
+The video bridge is live. `IVideoTrack` on the MultiMedia side feeds `MultiMediaVideoSource` → Windows MediaFoundation H.264 encoder → RFC 6184 RTP packetization through SipSorcery. Baseline profile, low-latency, hardware-accelerated where available (Intel Quick Sync / NVIDIA NVENC / AMD VCE). Linux VAAPI and macOS VideoToolbox remain per-OS follow-ups; Windows is production today. See [video-tracks.md](video-tracks.md) for the bridge details + `DesktopRTCPeerConnection.AddTrack(IVideoTrack)` overload.
 
 Until video lands, use Phase 4a audio alongside browser-native video (desktop ↔ browser calls can still carry video on the browser side) or substitute screen-share over a data channel.
 

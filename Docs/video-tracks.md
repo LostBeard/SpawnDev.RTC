@@ -12,18 +12,19 @@ Browser consumes video via native WebRTC (`getUserMedia` → `RTCPeerConnection.
 
 ## Minimal desktop example
 
-Capture a webcam and send to a peer:
+Capture a webcam and send to a peer. Constraints / media stream types are SpawnDev.MultiMedia's; the peer connection is SpawnDev.RTC.Desktop's. Both namespaces declare a `MediaStreamConstraints` / `MediaTrackConstraints` type, so qualify the multimedia ones explicitly to avoid resolution ambiguity:
 
 ```csharp
-using SpawnDev.RTC.Desktop;
-using SpawnDev.MultiMedia;
+using SpawnDev.RTC.Desktop;             // DesktopRTCPeerConnection
+using SpawnDev.MultiMedia;              // IVideoTrack, VideoPixelFormat
+using MM = SpawnDev.MultiMedia;         // alias to disambiguate constraints types
 
 var pc = new DesktopRTCPeerConnection();
 
 // Any IVideoTrack - webcam, screen capture, synthetic, etc.
-var stream = await MediaDevices.GetUserMedia(new MediaStreamConstraints
+var stream = await MM.MediaDevices.GetUserMedia(new MM.MediaStreamConstraints
 {
-    Video = new MediaTrackConstraints
+    Video = new MM.MediaTrackConstraints
     {
         Width = 640,
         Height = 480,
@@ -31,6 +32,9 @@ var stream = await MediaDevices.GetUserMedia(new MediaStreamConstraints
         PixelFormat = VideoPixelFormat.NV12, // zero-copy into MFT
     }
 });
+
+// IMediaStream.GetVideoTracks() returns IMediaStreamTrack[] (the base interface).
+// Cast to IVideoTrack - WindowsVideoTrack / BrowserMediaStreamTrack both implement it.
 var videoTrack = (IVideoTrack)stream.GetVideoTracks()[0];
 
 pc.AddTrack(videoTrack);  // wraps internally in MultiMediaVideoSource

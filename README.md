@@ -17,7 +17,8 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 - **Browser-style API** - Mirrors the W3C WebRTC specification so web developers feel at home
 - **Data channels** - Reliable and unreliable data channels with full DCEP support
 - **Media streams** - Audio and video capture, tracks, and stream management
-- **Desktop audio bridge** - `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` wires a [SpawnDev.MultiMedia](https://github.com/LostBeard/SpawnDev.MultiMedia) WASAPI microphone straight into SipSorcery's RTP encoder (Opus via Concentus, PCMU/PCMA/G722 via the built-in audio encoder). Browser audio goes through the native WebRTC stack; the same API works on both sides. Video bridge (Windows MediaFoundation H.264) is tracked as Phase 4b.
+- **Desktop audio + video bridges** - `DesktopRTCPeerConnection.AddTrack(IAudioTrack)` wires a [SpawnDev.MultiMedia](https://github.com/LostBeard/SpawnDev.MultiMedia) WASAPI microphone into SipSorcery's RTP encoder (Opus via Concentus, PCMU/PCMA/G722 via the built-in audio encoder). `AddTrack(IVideoTrack)` does the same for video — Windows MediaFoundation H.264 (baseline profile, low-latency, hardware-accelerated where available) feeds RFC 6184 RTP packetization. See [Docs/audio-tracks.md](Docs/audio-tracks.md) and [Docs/video-tracks.md](Docs/video-tracks.md).
+- **Simulcast** - `IRTCPeerConnection.AddTransceiver(kind, RTCRtpTransceiverInit)` accepts initial `SendEncodings` so the browser path emits a real simulcast offer (`a=simulcast:send` + `a=rid:* send` lines per RFC 8853). `IRTCRtpSender.GetParameters()` / `SetParameters()` round-trip the typed `RTCRtpSendParameters` DTO. Desktop path accepts the surface but defers real multi-layer encoding to upstream SipSorcery support — same API, partial implementation today.
 - **ICE with STUN/TURN** - Full ICE candidate gathering, connectivity checks, and relay fallback
 - **SCTP** - Complete SCTP implementation for data channel transport
 - **WebTorrent-compatible signaling** - [`SpawnDev.RTC.Signaling`](Docs/signaling-overview.md) speaks the WebTorrent tracker wire protocol. Public trackers (`wss://tracker.openwebtorrent.com`) work out of the box; no server to host for the default case.
@@ -31,8 +32,8 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 
 | Platform | WebRTC Backend | Status |
 |----------|---------------|--------|
-| Blazor WebAssembly | Native browser RTCPeerConnection via SpawnDev.BlazorJS | Working |
-| .NET Desktop (Windows/Linux/macOS) | SipSorcery (bundled fork) | In Development |
+| Blazor WebAssembly | Native browser RTCPeerConnection via SpawnDev.BlazorJS | Stable (1.1.6) |
+| .NET Desktop (Windows/Linux/macOS) | SipSorcery (bundled fork) | Stable (1.1.6) — full audio + video bridge, browser interop verified |
 
 ## Quick Start
 
@@ -293,7 +294,7 @@ For private deployments, run `SpawnDev.RTC.ServerApp` (see [Solution Structure](
 
 ## Test Results
 
-**203 tests passing** across browser (Chrome) and desktop (.NET). 102 test methods across 17 files.
+**323 pass / 0 fail / 3 skip** across browser (Chrome) and desktop (.NET) via PlaywrightMultiTest as of 1.1.6 stable. The 3 skips are platform-conditional (browser-only tests in the desktop runtime).
 
 - **Video pixel verification:** red canvas -> WebRTC -> verify red pixels arrive. Blue canvas -> verify blue. Split-screen (left=red, right=green) -> verify spatial accuracy
 - **Data integrity:** SHA-256 verified 32KB payloads, 50-chunk ordered delivery with per-byte verification, 256KB max payload, simultaneous bidirectional messaging, Unicode (emoji, CJK, Arabic)

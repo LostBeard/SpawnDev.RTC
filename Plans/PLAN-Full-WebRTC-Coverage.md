@@ -2,8 +2,8 @@
 
 **Goal:** 100% W3C WebRTC API coverage on both browser and desktop platforms, with full test coverage for every feature.
 
-**Last updated:** 2026-04-23
-**Current state:** 261/0/0 PlaywrightMultiTest suite (browser + desktop); full API surface implemented; Phase 4a audio + Phase 4b H.264 video bridges shipped 2026-04-23.
+**Last updated:** 2026-04-25
+**Current state:** 323 pass / 0 fail / 3 skip PlaywrightMultiTest suite (browser + desktop) at 1.1.6 stable; full API surface implemented; Phase 4a audio + Phase 4b H.264 video bridges shipped 2026-04-23; SipSorcery fork `MediaStreamTrack.StreamStatus` setter widened to public 2026-04-25.
 
 ---
 
@@ -187,5 +187,5 @@
 
 ### Future (SipSorcery fork upgrades) — shipped where possible:
 9. [x] Native transceiver support in SipSorcery — our fork + upstream-fix PRs have landed what we needed (#1558 codec-priority ternary merged 2026-04-23; #1560 SCTP Reset-race merged 2026-04-23).
-10. [ ] `StreamStatus` public setter in SipSorcery `MediaStreamTrack` — minor; works via workaround today.
+10. [x] `StreamStatus` public setter in SipSorcery `MediaStreamTrack` — shipped 2026-04-25 in fork commit `c4b5f79e8`. One-line widening from `internal` to `public`; logged in `Src/sipsorcery/UPSTREAM_BACKLOG.md` for eventual upstream PR. Locked by `DesktopForkApiTests.MediaStreamTrack_StreamStatus_PublicSetterWorks`.
 11. [ ] Desktop screen capture (`GetDisplayMedia` on desktop) — browser side works; desktop throws PlatformNotSupportedException intentionally. Phase 5 item.
