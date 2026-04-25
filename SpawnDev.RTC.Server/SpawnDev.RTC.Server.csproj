@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.4</Version>
+		<Version>1.0.5</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>WebRTC;Signaling;Tracker;WebTorrent;P2P;Server;AspNetCore;DataChannel;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.0.4 stable: Transitive dep-bump to SpawnDev.RTC 1.1.4 to force the browser `BrowserRtpSender.SetParameters` codecs-required-present fix through the chain for consumers with lock files or version pins. No source changes in SpawnDev.RTC.Server itself. See SpawnDev.RTC 1.1.4 release notes for the fix details, and the companion 1.0.3 release for the big STUN/TURN feature bundle (which remains unchanged in content and production-validated at hub.spawndev.com). See CHANGELOG.md for full history.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.0.5 stable: Two fixes + dep-bump to SpawnDev.RTC 1.1.6. (1) `TrackerSignalingServer._readOpts` sets `TypeInfoResolver = new DefaultJsonTypeInfoResolver()` (AOT/trimmed/file-based host compat). (2) `TrackerSignalingServer.HandleWebSocketAsync` skips the Origin allowlist check when the Origin header is empty - non-browser clients (desktop C#, Node.js `ws`, curl) don't send Origin; the allowlist is documented as browser-only abuse protection; empty means "not a browser" so the check cannot meaningfully apply. Caught by SpawnDev.WebTorrent PlaywrightMultiTest after the 2026-04-24 hub.spawndev.com allowlist deployment 403'd 5 desktop tests; new `OriginAllowlist_E2E_MissingOriginBypassesList` E2E test in the SpawnDev.RTC suite locks the new behavior. Browser clients still allowlist-checked as before. See SpawnDev.RTC 1.1.6 for the full write-up.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsPackable>true</IsPackable>
 		<LangVersion>latest</LangVersion>

@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.1.6 (2026-04-24)
+
+### Two tracker-signaling bug fixes
+
+**1. `TypeInfoResolver` for AOT / trimmed / file-based hosts.**
+
+`BinaryJsonSerializer` (client outbound) and `TrackerSignalingServer._readOpts` (server inbound) now explicitly set
+
+```csharp
+TypeInfoResolver = new DefaultJsonTypeInfoResolver()
+```
+
+Without this, the very first tracker announce threw
+
+```
+System.InvalidOperationException: Reflection-based serialization has been disabled for this application.
+Either use the source generator APIs or explicitly configure the 'JsonSerializerOptions.TypeInfoResolver' property.
+```
+
+under any reflection-disabled host — specifically:
+
+- **.NET 10 file-based `dotnet run script.cs`** hosts (new in .NET 10, disables reflection-based serialization by default).
+- **Trimmed / AOT publishes** that haven't plugged in a source generator.
+
+Impact was masked because `Torrent.StartDiscovery` fires the initial announce with `_ = _discovery.AnnounceAsync(...)` (fire-and-forget), so the exception was swallowed and the client silently never registered with any tracker. Regular `dotnet build` + `dotnet run --project` hosts weren't affected — reflection is enabled there.
+
+Caught by the new `SpawnDev.WebTorrent/interop_test/js_webtorrent_liveswarm.cs` harness, which runs as a file-based `dotnet run` script and uses the full SpawnDev.WebTorrent → SpawnDev.RTC tracker-signaling stack to pair against a real Node.js `webtorrent@^2` + `@roamhq/wrtc` seeder. After the fix, that harness passes end-to-end: 1 MiB hybrid torrent transferred SHA-256 byte-identical from JS to C# over real WebRTC datachannel through the bundled WebSocket tracker.
+
+Zero behavior change for reflection-enabled builds — setting `TypeInfoResolver` explicitly to `DefaultJsonTypeInfoResolver` is what the default was before; the value now just doesn't depend on the host's reflection-based default being enabled.
+
+**2. Empty Origin bypasses the `AllowedOrigins` allowlist.**
+
+`TrackerSignalingServer.HandleWebSocketAsync` now skips the allowlist check when the request's `Origin` header is empty (matches the case where it is missing entirely on the upgrade).
+
+Per RFC 6454 §7, browser-initiated WebSocket upgrades always include an `Origin` header. A missing/empty `Origin` therefore means a non-browser client - desktop C# `ClientWebSocket`, Node.js `ws` without explicit Origin override, curl, etc. The allowlist is explicitly documented as browser-origin abuse protection, with the docstring noting that "Origin is set by the browser and can be spoofed by non-browser clients; this is not a strong authentication mechanism." Treating "no Origin" as "not a browser, allowlist does not apply" makes the gate match its stated purpose.
+
+Caught when the 2026-04-24 hub.spawndev.com `RTC__AllowedOrigins=https://hub.spawndev.com;https://*.spawndev.com` deployment 403'd 5 SpawnDev.WebTorrent desktop integration tests on next sweep. Before the fix any deployment with a populated allowlist effectively blocked every legitimate non-browser consumer, including command-line tools and backend services.
+
+New `OriginAllowlist_E2E_MissingOriginBypassesList` test in `DesktopTurnAuthTests`. The browser-Origin path - explicit Origin must match the allowlist - is unchanged and still covered by `OriginAllowlist_E2E_AcceptsListedRejectsOthers`.
+
+PlaywrightMultiTest full sweep: **323 pass / 0 fail / 3 skip** in 2m 12s. Companion release: SpawnDev.RTC.Server 1.0.5.
+
 ## 1.1.5 (2026-04-24)
 
 ### Simulcast sendEncodings + TURN data-path E2E tests

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace SpawnDev.RTC.Signaling;
 
@@ -11,11 +12,16 @@ namespace SpawnDev.RTC.Signaling;
 /// </summary>
 internal static class BinaryJsonSerializer
 {
+    // Explicit TypeInfoResolver so serialization works under file-based `dotnet run script.cs`
+    // (which disables reflection-based metadata by default) and AOT/trimmed publishes. Without
+    // this the announce throws InvalidOperationException "Reflection-based serialization has
+    // been disabled for this application." as soon as the first tracker announce fires.
     private static readonly JsonSerializerOptions _baseOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
     };
 
     public static string Serialize(object value, JsonSerializerOptions? baseOptions = null)

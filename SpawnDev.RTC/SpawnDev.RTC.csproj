@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.5</Version>
+		<Version>1.1.6</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.5: Additive API surface closing the RTC v0.1.0 plan "real simulcast sendEncodings" gap. New overloads on `IRTCPeerConnection`: `AddTransceiver(string kind, RTCRtpTransceiverInit init)` + `AddTransceiver(IRTCMediaStreamTrack track, RTCRtpTransceiverInit init)`. `RTCRtpTransceiverInit` (new cross-platform DTO) exposes `Direction` + `SendEncodings` - per RFC 8853 / W3C, simulcast RIDs must be set at transceiver creation (not via SetParameters). Browser path round-trips to native `addTransceiver`; desktop path accepts the options but ignores SendEncodings (SipSorcery has no native simulcast). New integration test `RtpSender_InitSimulcast_SdpOfferContainsSimulcastAndRidLines` parses the generated SDP offer to verify `a=simulcast:send` + three `a=rid:* send` lines land on the wire. Also ships two new TURN data-path E2E tests (`TurnRelay_E2E_SendIndicationForwardsDataToRawPeer` + `TurnRelay_E2E_DataIndicationDeliversPeerPayloadToClient`) covering RFC 5766 §10 forward + reverse directions. PlaywrightMultiTest full sweep 322 pass, 0 fail, 3 skip in 2m 10s.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.6 stable: Two tracker-signaling bug fixes since 1.1.5. (1) `BinaryJsonSerializer` (client outbound) + `TrackerSignalingServer._readOpts` (server inbound) now explicitly set `TypeInfoResolver = new DefaultJsonTypeInfoResolver()` so announce serialization works under AOT/trimmed/file-based `dotnet run script.cs` hosts (new in .NET 10). Before this, the first announce threw `InvalidOperationException: Reflection-based serialization has been disabled for this application.` and was swallowed by the `_ = _discovery.AnnounceAsync(...)` fire-and-forget - C# clients silently never registered with trackers under reflection-disabled hosts. (2) `TrackerSignalingServer.HandleWebSocketAsync` now skips the `AllowedOrigins` check when the request's Origin header is empty. The allowlist is documented as browser-origin abuse protection ("Origin is set by the browser and can be spoofed by non-browser clients"); a missing Origin means a non-browser client (desktop C# `ClientWebSocket`, Node.js `ws` without explicit Origin, curl, etc.) that cannot be abused from a hostile page. Without this, any deployment with a populated allowlist 403'd every legitimate desktop / CLI / backend consumer. Caught by the new SpawnDev.WebTorrent `interop_test/js_webtorrent_liveswarm.cs` harness + the full PlaywrightMultiTest sweep. New `OriginAllowlist_E2E_MissingOriginBypassesList` E2E test locks the new behavior. Browser allowlist enforcement unchanged. PlaywrightMultiTest full sweep **323/0/3 in 2m 12s**.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>

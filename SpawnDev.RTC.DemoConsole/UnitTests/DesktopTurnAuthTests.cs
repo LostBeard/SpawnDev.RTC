@@ -552,6 +552,38 @@ namespace SpawnDev.RTC.DemoConsole.UnitTests
             }
         }
 
+        [TestMethod]
+        public async Task OriginAllowlist_E2E_MissingOriginBypassesList()
+        {
+            // Non-browser clients (desktop C# ClientWebSocket, Node.js ws without
+            // Origin override, curl, etc.) don't send an Origin header - the
+            // allowlist is browser-origin abuse protection per its XML doc, so a
+            // missing header must NOT be rejected. Regression test for a bug
+            // caught via SpawnDev.WebTorrent PlaywrightMultiTest: 5 desktop tests
+            // failed with 403 on wss://hub.spawndev.com:44365 after the hub
+            // enabled RTC__AllowedOrigins, even though no C# desktop client
+            // sends an Origin header.
+            var httpPort = GetFreeTcpPort();
+            using var app = BuildSignalingApp(httpPort,
+                new[] { "https://app.example.com", "https://*.spawndev.com" },
+                _ => { });
+            await app.StartAsync();
+            try
+            {
+                using var ws = new System.Net.WebSockets.ClientWebSocket();
+                // Deliberately do NOT SetRequestHeader("Origin", ...) - matches
+                // what ClientWebSocket ships by default from a .NET desktop app.
+                await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{httpPort}/announce"), default);
+                if (ws.State != System.Net.WebSockets.WebSocketState.Open)
+                    throw new Exception($"Expected Open for missing-Origin (non-browser) client, got {ws.State}");
+                await ws.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "", default);
+            }
+            finally
+            {
+                await app.StopAsync();
+            }
+        }
+
         // --- Tracker-gated TURN Allocate end-to-end ----------------------------
 
         [TestMethod]

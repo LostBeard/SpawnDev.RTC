@@ -28,9 +28,12 @@ public sealed class TrackerSignalingServer
     private readonly ConcurrentDictionary<string, SignalingRoomInfo> _rooms = new();
     private readonly TrackerServerOptions _options;
 
+    // Explicit TypeInfoResolver so deserialization works under file-based `dotnet run script.cs`
+    // hosts and AOT/trimmed publishes. Matches BinaryJsonSerializer's serializer options.
     private static readonly JsonSerializerOptions _readOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
     };
 
     public TrackerSignalingServer(TrackerServerOptions? options = null)
@@ -92,10 +95,21 @@ public sealed class TrackerSignalingServer
         // Origin allowlist (basic abuse protection). Only runs when the consumer
         // has opted in by populating TrackerServerOptions.AllowedOrigins. Rejects
         // the upgrade with 403 if the client's Origin header does not match.
+        //
+        // An empty/missing Origin header bypasses the check: per the feature's
+        // stated purpose (browser-origin abuse protection) and per RFC 6454 §7,
+        // browsers always send Origin on WebSocket upgrades. A missing Origin
+        // means a non-browser client (desktop C# using ClientWebSocket,
+        // Node.js ws library without explicit Origin, curl, etc.) - those
+        // cannot be abused from a hostile page and the allowlist does not apply.
+        // The `AllowedOrigins` XML doc is explicit that "Origin is set by the
+        // browser and can be spoofed by non-browser clients; this is not a strong
+        // authentication mechanism." So an attacker who wants to bypass is trivial
+        // either way; legitimate non-browser consumers should not be blocked.
         if (_options.AllowedOrigins is { Count: > 0 } allowList)
         {
             var originHeader = context.Request.Headers.Origin.ToString();
-            if (!IsOriginAllowed(originHeader, allowList))
+            if (!string.IsNullOrEmpty(originHeader) && !IsOriginAllowed(originHeader, allowList))
             {
                 _options.Log?.Invoke($"[RTC.Server] rejected upgrade - Origin '{originHeader}' not in allowlist");
                 context.Response.StatusCode = 403;
