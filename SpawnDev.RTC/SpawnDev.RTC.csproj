@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.6</Version>
+		<Version>1.1.7</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.6 stable: Two tracker-signaling bug fixes since 1.1.5. (1) `BinaryJsonSerializer` (client outbound) + `TrackerSignalingServer._readOpts` (server inbound) now explicitly set `TypeInfoResolver = new DefaultJsonTypeInfoResolver()` so announce serialization works under AOT/trimmed/file-based `dotnet run script.cs` hosts (new in .NET 10). Before this, the first announce threw `InvalidOperationException: Reflection-based serialization has been disabled for this application.` and was swallowed by the `_ = _discovery.AnnounceAsync(...)` fire-and-forget - C# clients silently never registered with trackers under reflection-disabled hosts. (2) `TrackerSignalingServer.HandleWebSocketAsync` now skips the `AllowedOrigins` check when the request's Origin header is empty. The allowlist is documented as browser-origin abuse protection ("Origin is set by the browser and can be spoofed by non-browser clients"); a missing Origin means a non-browser client (desktop C# `ClientWebSocket`, Node.js `ws` without explicit Origin, curl, etc.) that cannot be abused from a hostile page. Without this, any deployment with a populated allowlist 403'd every legitimate desktop / CLI / backend consumer. Caught by the new SpawnDev.WebTorrent `interop_test/js_webtorrent_liveswarm.cs` harness + the full PlaywrightMultiTest sweep. New `OriginAllowlist_E2E_MissingOriginBypassesList` E2E test locks the new behavior. Browser allowlist enforcement unchanged. PlaywrightMultiTest full sweep **323/0/3 in 2m 12s**.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.7 stable: dependency-metadata fix only - no code changes. Versions 1.1.4 and 1.1.6 on nuget.org declared a dependency on `SpawnDev.MultiMedia 0.2.0-rc.1`, but only `SpawnDev.MultiMedia 0.2.0` (stable) was ever published to nuget.org. NuGet falls back to 0.2.0 with NU1603 warning, but consumers with strict warning-as-error policies (some GitHub Actions deploy pipelines) saw build failures. 1.1.7 repacks against the locally-resolvable `SpawnDev.MultiMedia 0.2.0` stable, producing a nuspec with `<dependency id="SpawnDev.MultiMedia" version="0.2.0" />`. No source code differences from 1.1.6.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>
