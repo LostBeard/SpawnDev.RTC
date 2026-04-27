@@ -292,9 +292,39 @@ All demos use the public `wss://tracker.openwebtorrent.com` for signaling - no s
 
 For private deployments, run `SpawnDev.RTC.ServerApp` (see [Solution Structure](#spawndevrtcserver--spawndevrtcserverapp) above) or embed `SpawnDev.RTC.Server` into an existing ASP.NET Core app with a single `app.UseRtcSignaling("/announce")` call. Both host the same WebTorrent-protocol tracker - clients using the public fleet and clients using your server can't tell the difference, and WebTorrent clients treat it as just another tracker URL.
 
+## Documentation
+
+### Protocol Documentation — `Research/`
+
+The most thorough public reference for the WebRTC + WebTorrent-tracker protocols as used by SpawnDev.RTC, written and maintained inside this repo. The W3C/IETF WebRTC specs cover the wire format; the WebTorrent tracker WebSocket protocol has no formal spec at all. Both are documented end-to-end here, with every observed behavior verified against real implementations (Chrome, Firefox, the JS `bittorrent-tracker` reference). Useful both internally and to anyone writing their own client.
+
+| # | Document | Description |
+|---|----------|-------------|
+| 00 | [Research/00-README.md](Research/00-README.md) | Index and source list |
+| 01 | [Research/01-tracker-signaling.md](Research/01-tracker-signaling.md) | WebSocket tracker wire protocol used as a generic WebRTC signaling channel — every message type, every field, every JS-reference behavior (announce, offer relay, answer relay, stopped/completed events, scrape, frame-by-frame parity) |
+| 02 | [Research/02-rtc-peer-connection.md](Research/02-rtc-peer-connection.md) | Cross-platform `RTCPeerConnection` — browser native vs SipSorcery fork, ICE/DTLS/SCTP layer-by-layer, observed browser-vs-desktop SDP differences |
+| 03 | [Research/03-data-channels.md](Research/03-data-channels.md) | DataChannel framing, BufferedAmount + threshold backpressure (with the production cause-12 saga), `WireDataChannel` adapter, max message size |
+| 04 | [Research/04-stun-turn.md](Research/04-stun-turn.md) | Embedded STUN/TURN server protocol (RFC 5389/5766/8489), long-term and ephemeral credentials, **tracker-gated TURN** (a SpawnDev extension), NAT port-range bounding |
+| 05 | [Research/05-room-key-and-peer-id.md](Research/05-room-key-and-peer-id.md) | The 20-byte RoomKey + PeerId conventions, generation patterns, identity binding (Ed25519), anti-impersonation, common pitfalls |
+| 06 | [Research/06-sipsorcery-fork.md](Research/06-sipsorcery-fork.md) | Why we fork SipSorcery, what we change, submodule layout, upstream-sync workflow |
+
+The `D:\users\tj\Projects\SpawnDev.WebTorrent\tracker-debug\` directory ships parity harnesses (`verify-tracker-parity.mjs`, `verify-offer-flow.mjs`) that compare SpawnDev.RTC.Server's WebSocket tracker behavior to the JS reference frame-by-frame. Run before any change to `TrackerSignalingServer` or wire DTOs.
+
+The matching BitTorrent-side protocol docs (peer wire protocol, BEP extensions, DHT) live in [SpawnDev.WebTorrent's Research/](https://github.com/LostBeard/SpawnDev.WebTorrent/tree/master/SpawnDev.WebTorrent/Research) — RTC and WebTorrent split the protocol surface so neither doc set duplicates the other.
+
+### Architecture and operations
+
+| Doc | Description |
+|-----|-------------|
+| [Docs/signaling-overview.md](Docs/signaling-overview.md) | `SpawnDev.RTC.Signaling` API (`ISignalingClient`, `RoomKey`, `TrackerSignalingClient`, `RtcPeerConnectionRoomHandler`) |
+| [Docs/run-a-tracker.md](Docs/run-a-tracker.md) | `app.UseRtcSignaling("/announce")` in any ASP.NET Core app |
+| [Docs/stun-turn-server.md](Docs/stun-turn-server.md) | Embedded STUN/TURN config + deployment |
+| [Docs/audio-tracks.md](Docs/audio-tracks.md), [Docs/video-tracks.md](Docs/video-tracks.md) | Desktop audio + video bridge |
+| [Docs/perfect-negotiation.md](Docs/perfect-negotiation.md) | `PerfectNegotiator` glare-free renegotiation helper |
+
 ## Test Results
 
-**323 pass / 0 fail / 3 skip** across browser (Chrome) and desktop (.NET) via PlaywrightMultiTest as of 1.1.6 stable. The 3 skips are platform-conditional (browser-only tests in the desktop runtime).
+**324 pass / 0 fail / 3 skip** across browser (Chrome) and desktop (.NET) via PlaywrightMultiTest as of 1.0.7-rc.1 (RTC.Server). The 3 skips are platform-conditional (browser-only tests in the desktop runtime).
 
 - **Video pixel verification:** red canvas -> WebRTC -> verify red pixels arrive. Blue canvas -> verify blue. Split-screen (left=red, right=green) -> verify spatial accuracy
 - **Data integrity:** SHA-256 verified 32KB payloads, 50-chunk ordered delivery with per-byte verification, 256KB max payload, simultaneous bidirectional messaging, Unicode (emoji, CJK, Arabic)

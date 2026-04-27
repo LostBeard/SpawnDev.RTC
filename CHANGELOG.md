@@ -1,5 +1,19 @@
 # Changelog
 
+## SpawnDev.RTC.Server 1.0.7-rc.1 (2026-04-28)
+
+### Two parity fixes against the bittorrent-tracker JS reference
+
+Both surfaced by a new head-to-head harness `tracker-debug/verify-tracker-parity.mjs` that runs the same six WebTorrent-tracker scenarios against (a) the live `wss://hub.spawndev.com:44365/announce` and (b) a fresh local `bittorrent-tracker` npm reference, and diffs every captured frame.
+
+**1. Answer-relay path.** When an announce frame carries `answer + to_peer_id + offer_id` (a reply to a forwarded offer), the JS reference forwards the answer to the targeted peer and returns NO announce response to the sender. The C# server was previously sending an extra announce-response frame in this case. `TrackerSignalingServer.HandleAnnounceAsync` now short-circuits to the answer-relay branch BEFORE the response-build step and exits without responding.
+
+**2. Stopped event.** When an announce carries `event=stopped`, the JS reference removes the peer from the room AND sends an announce response with the updated counts (so `incomplete=0` etc. reflect post-stop state). The C# server was previously returning early without sending any response. State mutation now happens before the response-build step, the response is sent with post-stop counts, and the offer-forwarding branch is skipped.
+
+Both fixes only affect the announce-response framing - the data-channel WebRTC flow itself is unchanged. Verified end-to-end against the live hub at `wss://hub.spawndev.com:44365/announce` after redeploy: all 6 scenarios PARITY OK against JS reference (single peer / two peers / three peers / answer flow / stopped event / reconnect).
+
+Includes the `peers`-field-omission fix from 1.0.6.
+
 ## 1.1.6 (2026-04-24)
 
 ### Two tracker-signaling bug fixes

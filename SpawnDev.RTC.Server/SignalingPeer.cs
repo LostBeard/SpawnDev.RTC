@@ -24,6 +24,14 @@ public sealed class SignalingPeer
     public DateTimeOffset ConnectedAt { get; } = DateTimeOffset.UtcNow;
 
     /// <summary>
+    /// Kestrel's HttpContext.Connection.Id for this WebSocket. Empty for
+    /// peers constructed from non-HTTP test rigs. Used by the diagnostic
+    /// log path so each line is prefixed with the same connection id that
+    /// Kestrel uses in its own connection-lifecycle log lines.
+    /// </summary>
+    public string ConnId { get; internal set; } = "";
+
+    /// <summary>
     /// True when the peer's most recent announce reported <c>left=0</c> or
     /// <c>event=completed</c>. Counted as a seeder in swarm stats.
     /// </summary>

@@ -36,6 +36,26 @@ public sealed class TrackerSignalingServer
         TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
     };
 
+    // Diagnostic file logging gated on env var. When `RTC_TRACKER_DEBUG_LOG` is set
+    // to a path, every WS lifecycle event + frame parse + dispatch + send writes a
+    // line to that file. Used to root-cause the hub-vs-local divergence where same
+    // DLL bytes behave differently across environments.
+    private static readonly string? _debugLogPath = Environment.GetEnvironmentVariable("RTC_TRACKER_DEBUG_LOG");
+    private static readonly object _debugLogLock = new();
+    private static void Diag(string msg)
+    {
+        if (string.IsNullOrEmpty(_debugLogPath)) return;
+        try
+        {
+            var line = $"{DateTime.UtcNow:HH:mm:ss.fff} {msg}{Environment.NewLine}";
+            lock (_debugLogLock)
+            {
+                File.AppendAllText(_debugLogPath, line);
+            }
+        }
+        catch { /* never let logging break the service */ }
+    }
+
     public TrackerSignalingServer(TrackerServerOptions? options = null)
     {
         _options = options ?? new TrackerServerOptions();
@@ -86,9 +106,13 @@ public sealed class TrackerSignalingServer
     /// </summary>
     public async Task HandleWebSocketAsync(HttpContext context)
     {
+        var connId = context.Connection.Id;
+        var remote = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        Diag($"[{connId}] handler entry remote={remote} isWS={context.WebSockets.IsWebSocketRequest} origin='{context.Request.Headers.Origin}' ua='{context.Request.Headers.UserAgent}'");
         if (!context.WebSockets.IsWebSocketRequest)
         {
             context.Response.StatusCode = 400;
+            Diag($"[{connId}] not a WS request, returning 400");
             return;
         }
 
@@ -118,31 +142,35 @@ public sealed class TrackerSignalingServer
         }
 
         using var ws = await context.WebSockets.AcceptWebSocketAsync();
+        Diag($"[{connId}] WS accepted, entering receive loop");
         var peer = new SignalingPeer(ws, context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+        peer.ConnId = connId;
 
         try
         {
             await ReceiveLoopAsync(peer);
+            Diag($"[{connId}] receive loop returned cleanly");
         }
         catch (WebSocketException wsex)
         {
-            // Client dropped the connection uncleanly (TCP RST) or the close handshake
-            // was aborted mid-flight. Normal in public-internet deployments - mobile
-            // clients, proxies, flaky links all cause this. Log at debug-level (via the
-            // consumer's configured logger) rather than letting Kestrel surface it as
-            // an "unhandled application exception" in the fail log stream.
+            Diag($"[{connId}] WebSocketException: {wsex.Message} ({wsex.WebSocketErrorCode})");
             _options.Log?.Invoke($"[RTC.Server] WebSocket receive aborted from {peer.RemoteAddress}: {wsex.Message}");
         }
         catch (Microsoft.AspNetCore.Connections.ConnectionResetException)
         {
-            // Peer TCP reset - same story as above, just surfaced with a Kestrel-specific
-            // exception type. Expected on public endpoints; swallow.
+            Diag($"[{connId}] ConnectionResetException");
             _options.Log?.Invoke($"[RTC.Server] Connection reset by {peer.RemoteAddress}");
         }
         catch (IOException ioex)
         {
-            // Underlying socket read failed. Treat as a peer disconnect.
+            Diag($"[{connId}] IOException: {ioex.Message}");
             _options.Log?.Invoke($"[RTC.Server] IO error on peer {peer.RemoteAddress}: {ioex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Diag($"[{connId}] UNHANDLED Exception: {ex.GetType().FullName}: {ex.Message}");
+            Diag($"[{connId}] stack: {ex.StackTrace}");
+            throw;
         }
         finally
         {
@@ -193,6 +221,8 @@ public sealed class TrackerSignalingServer
     private async Task ReceiveLoopAsync(SignalingPeer peer)
     {
         var buffer = new byte[16384];
+        var connId = peer.ConnId;
+        Diag($"[{connId}] receive loop start, state={peer.WebSocket.State}");
 
         while (peer.WebSocket.State == WebSocketState.Open)
         {
@@ -200,7 +230,9 @@ public sealed class TrackerSignalingServer
             WebSocketReceiveResult result;
             do
             {
+                Diag($"[{connId}] awaiting ReceiveAsync...");
                 result = await peer.WebSocket.ReceiveAsync(buffer, CancellationToken.None);
+                Diag($"[{connId}] ReceiveAsync returned: count={result.Count} type={result.MessageType} eom={result.EndOfMessage}");
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     // Complete the close handshake so the client's CloseAsync
@@ -222,18 +254,30 @@ public sealed class TrackerSignalingServer
                 }
             } while (!result.EndOfMessage);
 
-            if (result.MessageType != WebSocketMessageType.Text) continue;
+            if (result.MessageType != WebSocketMessageType.Text)
+            {
+                Diag($"[{connId}] non-text frame, skipping (type={result.MessageType})");
+                continue;
+            }
 
             try
             {
                 var json = Encoding.UTF8.GetString(frame.GetBuffer(), 0, (int)frame.Length);
+                Diag($"[{connId}] frame complete, json bytes={json.Length}, first 120 chars: {json.Substring(0, Math.Min(120, json.Length))}");
                 var msg = JsonSerializer.Deserialize<WireMessage>(json, _readOpts);
-                if (msg == null) continue;
+                if (msg == null)
+                {
+                    Diag($"[{connId}] WireMessage deserialize returned null");
+                    continue;
+                }
+                Diag($"[{connId}] parsed action={msg.Action} infoHash.len={msg.InfoHash?.Length ?? -1} peerId.len={msg.PeerId?.Length ?? -1} numwant={msg.NumWant} offers.kind={msg.Offers?.ValueKind}");
 
                 switch (msg.Action)
                 {
                     case "announce":
+                        Diag($"[{connId}] dispatching to HandleAnnounceAsync");
                         await HandleAnnounceAsync(peer, msg);
+                        Diag($"[{connId}] HandleAnnounceAsync returned");
                         break;
                     case "offer":
                         await RelayOfferAsync(peer, msg);
@@ -241,13 +285,19 @@ public sealed class TrackerSignalingServer
                     case "answer":
                         await RelayAnswerAsync(peer, msg);
                         break;
+                    default:
+                        Diag($"[{connId}] unknown action '{msg.Action}'");
+                        break;
                 }
             }
             catch (Exception ex)
             {
+                Diag($"[{connId}] frame handler exception: {ex.GetType().FullName}: {ex.Message}");
+                Diag($"[{connId}] stack: {ex.StackTrace}");
                 _options.Log?.Invoke($"[RTC.Server] frame parse error: {ex.Message}");
             }
         }
+        Diag($"[{connId}] receive loop exiting, state={peer.WebSocket.State}");
     }
 
     private async Task HandleAnnounceAsync(SignalingPeer peer, WireMessage msg)
@@ -261,25 +311,50 @@ public sealed class TrackerSignalingServer
 
         peer.PeerId = msg.PeerId;
         var room = _rooms.GetOrAdd(msg.InfoHash, key => new SignalingRoomInfo(key));
-        room.Peers[peer.PeerId] = peer;
 
+        // Answer-relay path: when an announce carries an answer + to_peer_id + offer_id,
+        // it is a reply to a forwarded offer. JS bittorrent-tracker forwards the answer
+        // to the targeted peer and returns NO response to the sender. Mirror that here -
+        // sending an extra announce-response in this case is a divergence the parity
+        // harness flagged 2026-04-27 (verify-tracker-parity.mjs scenario D).
+        bool hasAnswer = msg.Answer is JsonElement ae && ae.ValueKind == JsonValueKind.Object;
+        bool isAnswerRelay = hasAnswer && !string.IsNullOrEmpty(msg.ToPeerId) && !string.IsNullOrEmpty(msg.OfferId);
+        if (isAnswerRelay)
+        {
+            if (room.Peers.TryGetValue(msg.ToPeerId!, out var target) && target.WebSocket.State == WebSocketState.Open)
+            {
+                var forward = BinaryJsonSerializer.Serialize(new RelayMessage
+                {
+                    Action = "announce",
+                    InfoHash = msg.InfoHash!,
+                    PeerId = peer.PeerId,
+                    Answer = (JsonElement)msg.Answer!,
+                    OfferId = msg.OfferId,
+                });
+                await SendTextAsync(target, forward);
+            }
+            return;
+        }
+
+        // Mutate room state BEFORE building the response so the counts in the response
+        // reflect post-stop state - matches JS reference (parity-harness scenario E).
         if (msg.Event == "stopped")
         {
             room.Peers.TryRemove(peer.PeerId, out _);
-            return;
         }
-        if (msg.Event == "completed" || msg.Left == 0)
-            peer.IsSeeder = true;
+        else
+        {
+            room.Peers[peer.PeerId] = peer;
+            if (msg.Event == "completed" || msg.Left == 0)
+                peer.IsSeeder = true;
+        }
 
         // Match the bittorrent-tracker JS reference (webtorrent/bittorrent-tracker
         // server.js): the WebSocket-tracker announce response carries info_hash +
         // interval + complete + incomplete only. NO peer list. Peer-list semantics
         // are a TCP/UDP-tracker thing; on the WebRTC path peer discovery happens
-        // exclusively via forwarded offer/answer below. Returning a `peers` field
-        // here was a divergence from the reference - clients that strictly follow
-        // the JS WebTorrent peer flow could see unexpected fields and react in
-        // ways that desync the connection state. Verified against bittorrent-tracker
-        // npm package by `tracker-debug/verify-offer-flow-local.mjs` 2026-04-28.
+        // exclusively via forwarded offer/answer below. Verified against bittorrent-tracker
+        // npm package by `tracker-debug/verify-tracker-parity.mjs` 2026-04-27.
         var response = BinaryJsonSerializer.Serialize(new AnnounceResponse
         {
             InfoHash = msg.InfoHash!,
@@ -288,7 +363,12 @@ public sealed class TrackerSignalingServer
             Incomplete = room.LeechCount,
             Peers = null,
         });
+        Diag($"[{peer.ConnId}] announce response built ({response.Length} chars), sending...");
         await SendTextAsync(peer, response);
+        Diag($"[{peer.ConnId}] announce response sent OK");
+
+        // After a stopped event the peer is gone - no offer forwarding, no further work.
+        if (msg.Event == "stopped") return;
 
         if (msg.Offers is JsonElement offersEl && offersEl.ValueKind == JsonValueKind.Array)
         {
@@ -316,23 +396,6 @@ public sealed class TrackerSignalingServer
                 });
                 await SendTextAsync(candidates[idx], forward);
                 idx++;
-            }
-        }
-
-        bool hasAnswer = msg.Answer is JsonElement ae && ae.ValueKind == JsonValueKind.Object;
-        if (hasAnswer && !string.IsNullOrEmpty(msg.ToPeerId) && !string.IsNullOrEmpty(msg.OfferId))
-        {
-            if (room.Peers.TryGetValue(msg.ToPeerId, out var target) && target.WebSocket.State == WebSocketState.Open)
-            {
-                var forward = BinaryJsonSerializer.Serialize(new RelayMessage
-                {
-                    Action = "announce",
-                    InfoHash = msg.InfoHash!,
-                    PeerId = peer.PeerId,
-                    Answer = (JsonElement)msg.Answer!,
-                    OfferId = msg.OfferId,
-                });
-                await SendTextAsync(target, forward);
             }
         }
     }
