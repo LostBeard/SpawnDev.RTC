@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.5</Version>
+		<Version>1.0.6</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>WebRTC;Signaling;Tracker;WebTorrent;P2P;Server;AspNetCore;DataChannel;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.0.5 stable: Two fixes + dep-bump to SpawnDev.RTC 1.1.6. (1) `TrackerSignalingServer._readOpts` sets `TypeInfoResolver = new DefaultJsonTypeInfoResolver()` (AOT/trimmed/file-based host compat). (2) `TrackerSignalingServer.HandleWebSocketAsync` skips the Origin allowlist check when the Origin header is empty - non-browser clients (desktop C#, Node.js `ws`, curl) don't send Origin; the allowlist is documented as browser-only abuse protection; empty means "not a browser" so the check cannot meaningfully apply. Caught by SpawnDev.WebTorrent PlaywrightMultiTest after the 2026-04-24 hub.spawndev.com allowlist deployment 403'd 5 desktop tests; new `OriginAllowlist_E2E_MissingOriginBypassesList` E2E test in the SpawnDev.RTC suite locks the new behavior. Browser clients still allowlist-checked as before. See SpawnDev.RTC 1.1.6 for the full write-up.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.0.6: align WebSocket-tracker announce response with the JS reference (`webtorrent/bittorrent-tracker` server.js). The C# `TrackerSignalingServer.HandleAnnounceAsync` previously included a `peers` field in the announce response (a list of peer-id summaries); the JS reference does NOT - peer-list semantics are a TCP/UDP-tracker concept, and on the WebRTC path peer discovery happens exclusively via the forwarded offer/answer mechanism. The extra field was a divergence that could desync clients strictly following the JS WebTorrent peer flow. Verified head-to-head against the local `bittorrent-tracker` npm package by `tracker-debug/verify-offer-flow-local.mjs` 2026-04-28. No public API surface change - `AnnounceResponse.Peers` property and `PeerSummary` type are retained for backward-compat, just unused in the response. Forwarded-offer behavior unchanged: announcer's offers still distributed one per existing peer, matching the reference exactly.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsPackable>true</IsPackable>
 		<LangVersion>latest</LangVersion>

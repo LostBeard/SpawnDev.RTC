@@ -271,20 +271,22 @@ public sealed class TrackerSignalingServer
         if (msg.Event == "completed" || msg.Left == 0)
             peer.IsSeeder = true;
 
-        var maxPeers = Math.Min(msg.NumWant ?? _options.MaxPeersPerAnnounce, _options.MaxPeersPerAnnounce);
-        var otherPeers = room.Peers.Values
-            .Where(p => p.PeerId != peer.PeerId)
-            .Take(maxPeers)
-            .Select(p => new PeerSummary { PeerId = p.PeerId })
-            .ToArray();
-
+        // Match the bittorrent-tracker JS reference (webtorrent/bittorrent-tracker
+        // server.js): the WebSocket-tracker announce response carries info_hash +
+        // interval + complete + incomplete only. NO peer list. Peer-list semantics
+        // are a TCP/UDP-tracker thing; on the WebRTC path peer discovery happens
+        // exclusively via forwarded offer/answer below. Returning a `peers` field
+        // here was a divergence from the reference - clients that strictly follow
+        // the JS WebTorrent peer flow could see unexpected fields and react in
+        // ways that desync the connection state. Verified against bittorrent-tracker
+        // npm package by `tracker-debug/verify-offer-flow-local.mjs` 2026-04-28.
         var response = BinaryJsonSerializer.Serialize(new AnnounceResponse
         {
             InfoHash = msg.InfoHash!,
             Interval = _options.AnnounceIntervalSeconds,
             Complete = room.SeederCount,
             Incomplete = room.LeechCount,
-            Peers = otherPeers.Length > 0 ? otherPeers : null,
+            Peers = null,
         });
         await SendTextAsync(peer, response);
 
