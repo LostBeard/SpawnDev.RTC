@@ -16,6 +16,28 @@ This is the same protocol described in [SpawnDev.WebTorrent's Research/04-tracke
 
 ---
 
+## 0. Client coverage — what speaks this protocol
+
+The WebSocket tracker is **not in any BEP** — it's a WebTorrent-ecosystem extension defined entirely by the JS reference (`webtorrent/bittorrent-tracker` npm package). That means any client targeting our tracker has to be in the WebTorrent ecosystem; mainline-BitTorrent clients (libtorrent family) cannot speak it.
+
+| Client | WebSocket tracker | WebRTC peer-wire | TCP/uTP peer-wire | Where they sit |
+|---|---|---|---|---|
+| Browser SpawnDev.WebTorrent (Blazor WASM) | ✓ | ✓ | ✗ (no raw TCP in browser) | WebTorrent ecosystem |
+| Browser webtorrent.js / Brave Browser | ✓ | ✓ | ✗ | WebTorrent ecosystem |
+| Node.js `webtorrent@^2` (default) | ✓ | ✓ | ✗ | WebTorrent ecosystem |
+| Node.js `webtorrent-hybrid` | ✓ | ✓ | ✓ | **bridge** |
+| WebTorrent Desktop app | ✓ | ✓ | ✓ | **bridge** |
+| Desktop SpawnDev.WebTorrent (.NET) | ✓ | ✓ | ✓ (via TcpListenerService) | **bridge** |
+| qBittorrent / libtorrent 2.0 | ✗ (verified: "unsupported URL protocol") | ✗ | ✓ | mainline only |
+| Transmission / Deluge / rqbit | ✗ (libtorrent-based, same as above) | ✗ | ✓ | mainline only |
+
+Two consequences:
+
+1. **A browser-only WebTorrent peer cannot reach a mainline-only qBittorrent peer.** They use different trackers AND different peer-wire transports. To bridge them you need a hybrid peer (WebTorrent Desktop, `webtorrent-hybrid`, or our SpawnDev.WebTorrent.ServerApp seeder).
+2. **The hub deliberately scopes to the WebTorrent ecosystem.** Adding HTTP (BEP 3) and UDP (BEP 15) tracker support to broaden mainline-client reach is captured in `Plans/PLAN-Full-Tracker-Parity.md` as future work; the current shipped scope is WebSocket-only by design.
+
+For multiplayer-game / agent-swarm / voice-chat use cases, the WebSocket-only scope is sufficient — those consumers are 100% WebRTC-based and never need mainline tracker compatibility.
+
 ## 1. Why this protocol
 
 A WebRTC peer-to-peer connection requires a **signaling channel** to exchange SDP offers, SDP answers, and ICE candidates before the direct WebRTC link can be established. The signaling channel is application-defined — the WebRTC spec deliberately leaves it open. Implementations roll their own (Firebase, Socket.IO, custom WebSocket, etc.) at the cost of fragmentation.
