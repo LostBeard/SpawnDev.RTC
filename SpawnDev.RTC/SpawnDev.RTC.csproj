@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.7</Version>
+		<Version>1.1.8-rc.1</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.7 stable: dependency-metadata fix only - no code changes. Versions 1.1.4 and 1.1.6 on nuget.org declared a dependency on `SpawnDev.MultiMedia 0.2.0-rc.1`, but only `SpawnDev.MultiMedia 0.2.0` (stable) was ever published to nuget.org. NuGet falls back to 0.2.0 with NU1603 warning, but consumers with strict warning-as-error policies (some GitHub Actions deploy pipelines) saw build failures. 1.1.7 repacks against the locally-resolvable `SpawnDev.MultiMedia 0.2.0` stable, producing a nuspec with `<dependency id="SpawnDev.MultiMedia" version="0.2.0" />`. No source code differences from 1.1.6.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.8-rc.1: Critical desktop SCTP backpressure fix - `DesktopRTCDataChannel.OnBufferedAmountLow` now actually fires. Before this rc, the event was declared on the desktop wrapper but explicitly never raised (the comment said "SipSorcery doesn't have this - never fires"). Consumers that relied on it for spec'd backpressure handling - notably `SpawnDev.WebTorrent.RtcPeer.Send`, which awaits the event when the SCTP send queue exceeds 64 KB - sat on the 30-second `WaitAsync` timeout for every multi-MB push. The TimeoutException propagated through `Peer.OnConnected` -&gt; `Peer.Destroy(err)` -&gt; `Wire.Destroy()` and looked to consumers like a real peer departure, killing the wire mid-transfer. Manifested in `SpawnDev.ILGPU.P2P` as "No healthy peers available for dispatch" / 90s dispatch timeouts on every 1MB+ buffer transfer. Fix: `DesktopRTCDataChannel` now starts a low-overhead background polling task (20 ms tick, gated on a non-zero `BufferedAmountLowThreshold`) that fires `OnBufferedAmountLow` exactly once when `bufferedAmount` transitions from above-threshold to at-or-below-threshold (matches the spec's edge-triggered semantics). Diagnosed 2026-04-29 via `[RtcPeer-DIAG]` logging on `LargeBuffer_1MB_DispatchedOverRealWebRtc_BitExact`: the timeout was firing with `BufferedAmount=0` and `ReadyState=open`, proving the channel had drained and the missing signal was the only thing wrong.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>

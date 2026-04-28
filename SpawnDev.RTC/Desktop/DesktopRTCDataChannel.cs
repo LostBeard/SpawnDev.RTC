@@ -31,7 +31,23 @@ namespace SpawnDev.RTC.Desktop
         public long BufferedAmountLowThreshold
         {
             get => (long)NativeChannel.bufferedAmountLowThreshold;
-            set => NativeChannel.bufferedAmountLowThreshold = (ulong)value;
+            set
+            {
+                NativeChannel.bufferedAmountLowThreshold = (ulong)value;
+                // SipSorcery doesn't natively raise the bufferedamountlow event, so we
+                // emulate it: poll bufferedAmount and fire OnBufferedAmountLow when it
+                // transitions from above-threshold to below-threshold (matches the
+                // edge-triggered semantics of the spec). Without this, callers that
+                // rely on the event (like SpawnDev.WebTorrent's RtcPeer.Send for SCTP
+                // backpressure) sit on a 30-second WaitAsync timeout for every chunk
+                // sent over the threshold, which collapses into the wire dying mid-
+                // transfer (TimeoutException -> Peer.Destroy) on multi-MB tensor
+                // pushes. Diagnosed 2026-04-29 via [RtcPeer-DIAG] logging in
+                // SpawnDev.ILGPU.P2P's LargeBuffer_1MB test: the timeout fired with
+                // BufferedAmount=0 (drained) and ReadyState=open (channel fine), so
+                // the missing signal was the only thing wrong.
+                StartBufferedAmountLowPoller();
+            }
         }
         public string BinaryType
         {
@@ -42,7 +58,7 @@ namespace SpawnDev.RTC.Desktop
         public event Action? OnOpen;
         public event Action? OnClose;
         public event Action? OnClosing;  // SipSorcery doesn't have this - never fires
-        public event Action? OnBufferedAmountLow;  // SipSorcery doesn't have this - never fires
+        public event Action? OnBufferedAmountLow;  // Fired by the emulated poller in StartBufferedAmountLowPoller.
         public event Action<string>? OnStringMessage;
         public event Action<byte[]>? OnBinaryMessage;
         public event Action<ArrayBuffer>? OnArrayBufferMessage;  // Never fires on desktop
@@ -118,10 +134,73 @@ namespace SpawnDev.RTC.Desktop
         {
             if (_disposed) return;
             _disposed = true;
+            try { _bufferPollCts?.Cancel(); } catch { }
+            try { _bufferPollCts?.Dispose(); } catch { }
             NativeChannel.onopen -= HandleOpen;
             NativeChannel.onclose -= HandleClose;
             NativeChannel.onmessage -= HandleMessage;
             NativeChannel.onerror -= HandleError;
+        }
+
+        // ===== Emulated OnBufferedAmountLow polling =====
+        //
+        // SipSorcery's RTCDataChannel does not expose a "bufferedamountlow" event
+        // hook; bufferedAmount is updated as SCTP drains but no callback fires when
+        // it crosses the threshold. We emulate the spec'd edge-triggered behavior
+        // with a single polling task per channel: when bufferedAmount transitions
+        // from above-threshold to at-or-below-threshold, OnBufferedAmountLow fires
+        // exactly once. The poller exits when the channel is disposed or its
+        // ReadyState leaves "open".
+
+        private System.Threading.CancellationTokenSource? _bufferPollCts;
+        private int _bufferPollerStarted; // 0 = not started, 1 = started
+
+        private void StartBufferedAmountLowPoller()
+        {
+            // Once-and-done: only start the poller the first time the threshold is set.
+            if (System.Threading.Interlocked.Exchange(ref _bufferPollerStarted, 1) != 0)
+                return;
+
+            _bufferPollCts = new System.Threading.CancellationTokenSource();
+            var ct = _bufferPollCts.Token;
+            _ = Task.Run(async () =>
+            {
+                bool wasAboveThreshold = false;
+                while (!ct.IsCancellationRequested && !_disposed)
+                {
+                    try
+                    {
+                        if (NativeChannel.readyState != RTCDataChannelState.open)
+                        {
+                            await Task.Delay(50, ct).ConfigureAwait(false);
+                            continue;
+                        }
+                        var threshold = (long)NativeChannel.bufferedAmountLowThreshold;
+                        var current = (long)NativeChannel.bufferedAmount;
+                        if (current > threshold)
+                        {
+                            wasAboveThreshold = true;
+                        }
+                        else if (wasAboveThreshold)
+                        {
+                            // Transitioned downward across the threshold. Fire ONCE.
+                            wasAboveThreshold = false;
+                            try { OnBufferedAmountLow?.Invoke(); }
+                            catch { /* never let consumer exceptions bubble out of the poller */ }
+                        }
+                        await Task.Delay(20, ct).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                    catch
+                    {
+                        // Defensive: keep polling even if a transient native call throws.
+                        await Task.Delay(100).ConfigureAwait(false);
+                    }
+                }
+            }, ct);
         }
     }
 }
