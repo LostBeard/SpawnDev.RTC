@@ -79,6 +79,67 @@ namespace SpawnDev.RTC.Browser
             NativeConnection.OnIceConnectionStateChange += HandleIceConnectionStateChange;
             NativeConnection.OnIceGatheringStateChange += HandleIceGatheringStateChange;
             NativeConnection.OnNegotiationNeeded += HandleNegotiationNeeded;
+
+            // Connection-state polling fallback (2026-04-29). Chromium under
+            // Playwright can fail to emit `connectionstatechange` when the
+            // remote tab closes via `page.close()` - the JS event simply
+            // never fires on the surviving side, leaving `connectionState`
+            // permanently "connected" from the consumer's perspective even
+            // though the data channel and ICE both went down. Without this
+            // fallback, P2P consumers (`SpawnDev.WebTorrent.RtcPeer`,
+            // `SpawnDev.ILGPU.P2P.P2PWebRtcBridge`) never see `OnClose` and
+            // peers stay registered indefinitely.
+            //
+            // Diagnosed 2026-04-29 against `P2PSwarm.TwoTab_PeerDiscovery`:
+            // worker tab closed via Playwright, coord.peerCount stayed at 1
+            // for the full 90s test budget; bridge `wire.OnClose` never
+            // fired (verified via diagnostic Console.WriteLine).
+            //
+            // The poll runs every 500 ms, comparing the freshly-read
+            // `connectionState` against the last value we observed firing.
+            // When they differ - whether via natural JS event or our poll -
+            // we synthesise a state-change call. Idempotent because the
+            // event consumers (RtcPeer) only act on terminal transitions.
+            StartConnectionStatePoller();
+        }
+
+        private System.Threading.CancellationTokenSource? _pollCts;
+        private string? _lastObservedConnectionState;
+
+        private void StartConnectionStatePoller()
+        {
+            _pollCts = new System.Threading.CancellationTokenSource();
+            var ct = _pollCts.Token;
+            _lastObservedConnectionState = NativeConnection.ConnectionState;
+            _ = Task.Run(async () =>
+            {
+                while (!ct.IsCancellationRequested && !_disposed)
+                {
+                    try
+                    {
+                        var current = NativeConnection.ConnectionState;
+                        if (current != _lastObservedConnectionState)
+                        {
+                            _lastObservedConnectionState = current;
+                            try { OnConnectionStateChange?.Invoke(current); }
+                            catch { /* never let a consumer exception kill the poller */ }
+                        }
+                        // Stop polling once we hit a terminal state - the connection
+                        // is gone; no further transitions are possible.
+                        if (current == "failed" || current == "closed")
+                            return;
+                        await Task.Delay(500, ct).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                    catch
+                    {
+                        await Task.Delay(1000).ConfigureAwait(false);
+                    }
+                }
+            }, ct);
         }
 
         public IRTCDataChannel CreateDataChannel(string label, RTCDataChannelConfig? options = null)
@@ -266,6 +327,10 @@ namespace SpawnDev.RTC.Browser
 
         private void HandleConnectionStateChange(Event e)
         {
+            // Update poller's last-observed value so it doesn't double-fire.
+            // Single-threaded Blazor WASM means this assignment is atomic
+            // relative to the poller's read.
+            _lastObservedConnectionState = ConnectionState;
             OnConnectionStateChange?.Invoke(ConnectionState);
         }
 
@@ -315,6 +380,8 @@ namespace SpawnDev.RTC.Browser
         {
             if (_disposed) return;
             _disposed = true;
+            try { _pollCts?.Cancel(); } catch { }
+            try { _pollCts?.Dispose(); } catch { }
             NativeConnection.OnIceCandidate -= HandleIceCandidate;
             NativeConnection.OnIceCandidateError -= HandleIceCandidateError;
             NativeConnection.OnDataChannel -= HandleDataChannel;
