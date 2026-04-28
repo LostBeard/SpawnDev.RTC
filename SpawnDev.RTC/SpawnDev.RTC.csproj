@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.8-rc.2</Version>
+		<Version>1.1.8-rc.4</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.8-rc.2: Browser-side connection-state polling fallback. `BrowserRTCPeerConnection` now starts a 500 ms-tick background poll on `connectionState` and synthesises `OnConnectionStateChange` invocations when it transitions, AS A FALLBACK for cases where Chromium fails to fire the JS `connectionstatechange` event. Diagnosed 2026-04-29 against `SpawnDev.ILGPU.P2P`'s `P2PSwarm.TwoTab_PeerDiscovery`: when the worker tab closes via Playwright `page.close()`, the surviving tab's RTCPeerConnection NEVER emits `connectionstatechange` for the resulting transition - the data channel and ICE both go down silently, leaving consumers (`SpawnDev.WebTorrent.RtcPeer` and `SpawnDev.ILGPU.P2P.P2PWebRtcBridge`) stuck believing the peer is alive. Bridge `wire.OnClose` never fires; `coord.peerCount` stays at 1 indefinitely. Verified via diagnostic Console.WriteLine added at the top of `P2PWebRtcBridge.AttachToSwarm`'s `wire.OnClose` callback - zero hits in a 90s test budget. Fix: poll runs every 500 ms, dedupes against the last-observed value, stops automatically once a terminal state ("failed" / "closed") is reached. Idempotent against the natural JS event firing. Single-threaded Blazor WASM means no race vs `HandleConnectionStateChange`. Plus the rc.1 desktop OnBufferedAmountLow poller (unchanged).</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.8-rc.4: Adds opt-in diagnostic flag `BrowserRTCPeerConnection.DiagnosticsEnabled` (default false). When true, the connection-state poller publishes per-tick state and synthesis events to JS globals (`__brrtc_pc_{N}`, `__brrtc_last_tick`, `__brrtc_synth_{N}`) for debugging. Off-default keeps zero JS-interop overhead in production. Polling fallback functionality from rc.3 unchanged.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>

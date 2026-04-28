@@ -105,12 +105,44 @@ namespace SpawnDev.RTC.Browser
 
         private System.Threading.CancellationTokenSource? _pollCts;
         private string? _lastObservedConnectionState;
+        private string? _lastObservedIceConnectionState;
+        private bool _synthesisedFailed;
+        private DateTime? _disconnectedSinceUtc;
+        private static int _diagIdCounter;
+
+        /// <summary>
+        /// When true, the connection-state poller publishes per-tick state to JS
+        /// globals (`__brrtc_pc_{N}`, `__brrtc_last_tick`) and synthesis events to
+        /// `__brrtc_synth_{N}`. Off by default - the per-tick writes add JS interop
+        /// overhead on every poll. Set to true from test harnesses to trace why a
+        /// peer's close path didn't fire.
+        /// </summary>
+        public static bool DiagnosticsEnabled { get; set; }
+
+        /// <summary>
+        /// Debounce duration for synthesising a "failed" `connectionState` when
+        /// `iceConnectionState` reaches "disconnected" but never advances to
+        /// "failed" / "closed" (Chromium-under-Playwright bug, see
+        /// `StartConnectionStatePoller`). Set high enough that brief network
+        /// blips self-recover (browsers typically recover ICE within a few
+        /// seconds), low enough that genuine remote departures route close
+        /// paths within a sane test budget. 15 s lands in the middle.
+        /// </summary>
+        public int IceDisconnectedTimeoutMs { get; set; } = 15_000;
 
         private void StartConnectionStatePoller()
         {
             _pollCts = new System.Threading.CancellationTokenSource();
             var ct = _pollCts.Token;
             _lastObservedConnectionState = NativeConnection.ConnectionState;
+            _lastObservedIceConnectionState = NativeConnection.IceConnectionState;
+            int diagTick = 0;
+            var diagId = System.Threading.Interlocked.Increment(ref _diagIdCounter);
+            if (DiagnosticsEnabled)
+            {
+                try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set("__brrtc_poller_started", true); } catch { }
+                try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set("__brrtc_pc_count", diagId); } catch { }
+            }
             _ = Task.Run(async () =>
             {
                 while (!ct.IsCancellationRequested && !_disposed)
@@ -118,15 +150,97 @@ namespace SpawnDev.RTC.Browser
                     try
                     {
                         var current = NativeConnection.ConnectionState;
+                        var iceCurrent = NativeConnection.IceConnectionState;
+                        if (DiagnosticsEnabled && ++diagTick % 4 == 0)
+                        {
+                            try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set($"__brrtc_pc_{diagId}",
+                                $"tick={diagTick} conn={current} ice={iceCurrent}"); } catch { }
+                            try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set("__brrtc_last_tick",
+                                $"id={diagId} tick={diagTick} conn={current} ice={iceCurrent}"); } catch { }
+                        }
+
+                        // Primary: connectionState transitions.
                         if (current != _lastObservedConnectionState)
                         {
                             _lastObservedConnectionState = current;
                             try { OnConnectionStateChange?.Invoke(current); }
                             catch { /* never let a consumer exception kill the poller */ }
                         }
+
+                        // Secondary: iceConnectionState transitions. Notify our own
+                        // event subscribers (RtcPeer logs these but acts only on
+                        // connection state — see fallback below for the synthesis).
+                        if (iceCurrent != _lastObservedIceConnectionState)
+                        {
+                            _lastObservedIceConnectionState = iceCurrent;
+                            try { OnIceConnectionStateChange?.Invoke(iceCurrent); }
+                            catch { }
+                        }
+
+                        // Fallback for the Chromium-under-Playwright bug where the
+                        // remote tab closes and `iceConnectionState` transitions to
+                        // "disconnected" but NEVER advances to "failed" or "closed",
+                        // and `connectionState` similarly stays at "disconnected"
+                        // (also never reaches "failed"). Diagnosed 2026-04-29 via
+                        // per-peer state polling against P2PSwarm.TwoTab_PeerDiscovery:
+                        // worker tab closed -> coord side observed conn=disconnected
+                        // ice=disconnected within ~10s, then stayed that way for 90s+.
+                        //
+                        // Treat sustained "disconnected" (>= IceDisconnectedTimeoutMs)
+                        // as a synthesised "failed" so consumers (RtcPeer ->
+                        // SimplePeer.OnClose -> Wire.Destroy -> bridge) can route the
+                        // close path. ICE "disconnected" can be transient (network
+                        // reachability dip), but in practice browsers self-recover
+                        // within a few seconds; longer than that means the remote
+                        // is gone. One-shot guard: don't fire repeatedly even if
+                        // the bug clears.
+                        if (!_synthesisedFailed
+                            && current != "failed" && current != "closed")
+                        {
+                            bool iceFailed = iceCurrent == "failed";
+                            bool iceDisconnected = iceCurrent == "disconnected" || current == "disconnected";
+
+                            if (iceFailed)
+                            {
+                                _synthesisedFailed = true;
+                                _lastObservedConnectionState = "failed";
+                                if (DiagnosticsEnabled)
+                                {
+                                    try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set($"__brrtc_synth_{diagId}",
+                                        $"src=iceFailed tick={diagTick} subs={OnConnectionStateChange?.GetInvocationList().Length ?? 0}"); } catch { }
+                                }
+                                try { OnConnectionStateChange?.Invoke("failed"); }
+                                catch { }
+                            }
+                            else if (iceDisconnected)
+                            {
+                                if (_disconnectedSinceUtc == null)
+                                    _disconnectedSinceUtc = DateTime.UtcNow;
+                                else if ((DateTime.UtcNow - _disconnectedSinceUtc.Value).TotalMilliseconds
+                                          >= IceDisconnectedTimeoutMs)
+                                {
+                                    _synthesisedFailed = true;
+                                    _lastObservedConnectionState = "failed";
+                                    if (DiagnosticsEnabled)
+                                    {
+                                        try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set($"__brrtc_synth_{diagId}",
+                                            $"src=debounce tick={diagTick} subs={OnConnectionStateChange?.GetInvocationList().Length ?? 0}"); } catch { }
+                                    }
+                                    try { OnConnectionStateChange?.Invoke("failed"); }
+                                    catch { }
+                                }
+                            }
+                            else
+                            {
+                                // Connection recovered (or never disconnected). Reset
+                                // the debounce timer.
+                                _disconnectedSinceUtc = null;
+                            }
+                        }
+
                         // Stop polling once we hit a terminal state - the connection
                         // is gone; no further transitions are possible.
-                        if (current == "failed" || current == "closed")
+                        if (current == "failed" || current == "closed" || _synthesisedFailed)
                             return;
                         await Task.Delay(500, ct).ConfigureAwait(false);
                     }

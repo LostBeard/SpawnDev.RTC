@@ -1,5 +1,20 @@
 # Changelog
 
+## SpawnDev.RTC 1.1.8-rc.4 (2026-04-29)
+
+### Opt-in `BrowserRTCPeerConnection.DiagnosticsEnabled` static flag
+
+New static property `BrowserRTCPeerConnection.DiagnosticsEnabled` (default `false`). When set to `true`, the connection-state poller publishes per-tick state and synthesis events to JS globals for debugging:
+
+- `__brrtc_pc_count` - number of pollers started in this app
+- `__brrtc_pc_{N}` - latest tick state for poller N (`tick={n} conn={state} ice={state}`)
+- `__brrtc_last_tick` - last tick globally
+- `__brrtc_synth_{N}` - set when synthesis fires (`src=iceFailed|debounce tick={n} subs={N}`)
+
+Off-default keeps zero JS-interop overhead in production. Enable via `SpawnDev.RTC.Browser.BrowserRTCPeerConnection.DiagnosticsEnabled = true;` in `Program.cs` when investigating wire-close issues.
+
+Polling fallback functionality (rc.2 / rc.3) unchanged.
+
 ## SpawnDev.RTC.Server 1.0.7-rc.1 (2026-04-28)
 
 ### Two parity fixes against the bittorrent-tracker JS reference
