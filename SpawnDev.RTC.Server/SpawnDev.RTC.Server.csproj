@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.7-rc.1</Version>
+		<Version>1.0.7</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>WebRTC;Signaling;Tracker;WebTorrent;P2P;Server;AspNetCore;DataChannel;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.0.7-rc.1: two further parity fixes against the bittorrent-tracker JS reference (webtorrent/bittorrent-tracker server.js), found by tracker-debug/verify-tracker-parity.mjs head-to-head test against the local bittorrent-tracker npm package. (1) Answer-relay path: when an announce frame carries `answer + to_peer_id + offer_id` (a reply to a forwarded offer), the JS reference forwards the answer to the targeted peer and returns no announce response to the sender. The C# server now matches - was previously sending an extra announce-response frame in this case. (2) Stopped event: when an announce carries `event=stopped`, the JS reference removes the peer from the room AND sends back an announce-response with the updated counts (so `incomplete=0` etc. reflect post-stop state). The C# server now matches - was previously returning early without sending any response. Both fixes only affect the announce-response framing; the data-channel WebRTC flow itself is unchanged. Includes the `peers`-field-omission fix from 1.0.6.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.0.7 stable: rolls up rc.1's tracker-parity fixes plus 1.0.6's `peers`-field-omission fix into a single stable cut. Two parity fixes against the bittorrent-tracker JS reference (webtorrent/bittorrent-tracker server.js), found by `tracker-debug/verify-tracker-parity.mjs` head-to-head test against the local bittorrent-tracker npm package. (1) Answer-relay path: when an announce frame carries `answer + to_peer_id + offer_id` (a reply to a forwarded offer), the JS reference forwards the answer to the targeted peer and returns no announce response to the sender. The C# server now matches - was previously sending an extra announce-response frame in this case. (2) Stopped event: when an announce carries `event=stopped`, the JS reference removes the peer from the room AND sends back an announce-response with the updated counts (so `incomplete=0` etc. reflect post-stop state). The C# server now matches - was previously returning early without sending any response. Plus the `peers`-field-omission fix from 1.0.6: omit the `peers` field entirely (instead of `peers=[]`) when there are no peers to return, matching the JS reference. All three fixes only affect the announce-response framing; the data-channel WebRTC flow itself is unchanged. Verified end-to-end against the live hub at `wss://hub.spawndev.com:44365/announce`: all 6 scenarios PARITY OK against JS reference. Transitively pulls in SpawnDev.RTC 1.1.8 stable (Desktop OnBufferedAmountLow + browser connection-state polling fallback + opt-in DiagnosticsEnabled).</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsPackable>true</IsPackable>
 		<LangVersion>latest</LangVersion>
