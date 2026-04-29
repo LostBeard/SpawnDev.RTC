@@ -50,7 +50,7 @@
 		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
-		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.5" />
+		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.6" />
 	</ItemGroup>
 
 	<!-- SpawnDev.MultiMedia supplies cross-platform IAudioTrack / IVideoTrack abstractions
