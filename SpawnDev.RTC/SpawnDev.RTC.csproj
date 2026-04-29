@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.8-rc.4</Version>
+		<Version>1.1.8</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -19,7 +19,7 @@
 		<RepositoryUrl>https://github.com/LostBeard/SpawnDev.RTC.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Blazor;BlazorWebAssembly;WebRTC;CrossPlatform;DataChannel;Video;Audio;MediaStream;ICE;DTLS;SCTP;SipSorcery;WebTorrent;P2P;RealTime</PackageTags>
-		<PackageReleaseNotes>v1.1.8-rc.4: Adds opt-in diagnostic flag `BrowserRTCPeerConnection.DiagnosticsEnabled` (default false). When true, the connection-state poller publishes per-tick state and synthesis events to JS globals (`__brrtc_pc_{N}`, `__brrtc_last_tick`, `__brrtc_synth_{N}`) for debugging. Off-default keeps zero JS-interop overhead in production. Polling fallback functionality from rc.3 unchanged.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.1.8: stable rollup of rc.1 + rc.2 + rc.4 — three additive bug fixes / diagnostics on top of 1.1.7, no breaking changes. (1) **Desktop OnBufferedAmountLow now actually fires.** SipSorcery has no native event hook; 1.1.7's DesktopRTCDataChannel declared the event but it was silent. 1.1.8 emulates the spec'd edge-triggered semantics via a 20ms-tick poller. Unblocks SCTP backpressure waits on desktop (was the silent reason 1MB+ tensor sends timed out at 30s in concurrent-await contexts even though buffer had drained). (2) **BrowserRTCPeerConnection connection-state polling fallback.** Chromium-under-Playwright fails to fire native `connectionstatechange` when the remote tab closes, leaving consumers (RtcPeer, P2PWebRtcBridge) stuck believing the peer is alive. 1.1.8 adds a 500ms-tick poll on `NativeConnection.ConnectionState`; when it differs from `_lastObservedConnectionState`, synthesises `OnConnectionStateChange`. Auto-stops on terminal state ("failed"/"closed"). Cancelled in Dispose. (3) **Opt-in `BrowserRTCPeerConnection.DiagnosticsEnabled` static flag** (default false). When true, the connection-state poller publishes per-tick state and synthesis events to JS globals (`__brrtc_pc_{N}`, `__brrtc_last_tick`, `__brrtc_synth_{N}`) for debugging. Off-default keeps zero JS-interop overhead in production. PMT 324/0/3 GREEN against this build.</PackageReleaseNotes>
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 		<IsPackable>true</IsPackable>
@@ -61,7 +61,7 @@
 		<ProjectReference Include="..\..\..\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\..\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj')">
-		<PackageReference Include="SpawnDev.MultiMedia" Version="0.1.0-rc.1" />
+		<PackageReference Include="SpawnDev.MultiMedia" Version="0.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>

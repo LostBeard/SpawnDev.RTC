@@ -1,5 +1,40 @@
 # Changelog
 
+## SpawnDev.RTC 1.1.8 (2026-04-28)
+
+Stable rollup of `1.1.8-rc.1`, `1.1.8-rc.2`, and `1.1.8-rc.4`. Three additive bug fixes / diagnostics on top of `1.1.7`. **No breaking changes.** PMT 324/0/3 GREEN against this build (3 skips are intentional capability gates).
+
+### Desktop `OnBufferedAmountLow` now actually fires (rc.1)
+
+`SpawnDev.RTC` 1.1.7's `DesktopRTCDataChannel` declared `OnBufferedAmountLow` but the event never fired - SipSorcery has no native event hook on `RTCDataChannel.bufferedamountlow` (the W3C spec event). 1.1.8 emulates the spec'd edge-triggered semantics in C#: a 20ms-tick poll on `BufferedAmount`, fire when crossing from above-threshold to at-or-below-threshold. Browser side unchanged - JS WebRTC fires the event natively.
+
+This was the silent root cause of every multi-MB tensor send timing out at 30s in concurrent-await contexts. Buffers had drained, channels were healthy, but the `OnBufferedAmountLow` signal that `RtcPeer.Send` was waiting on never arrived. Diagnosed against `SpawnDev.ILGPU.P2P`'s `LargeBuffer_1MB_DispatchedOverRealWebRtc_BitExact` regression: `[RtcPeer-DIAG]` showed `BufferedAmount=0` and `ReadyState=open` at the timeout, proving SCTP had drained.
+
+After this fix, `LargeBuffer_1MB` passes 3/3 standalone in ~135s; 10MB passes (eventually) in 155-260s. Combined with `SpawnDev.WebTorrent` 3.2.2-rc.2's shared-TCS multi-awaiter fix, concurrent `Send` callers all wake on a single drain event.
+
+### Browser `RTCPeerConnection` connection-state polling fallback (rc.2)
+
+Chromium-under-Playwright fails to fire native `connectionstatechange` when the remote tab closes via `page.close()`. Some `RTCPeerConnection` instances stay stuck at `connectionState=connected` even after the remote side has left. Consumers (`SpawnDev.WebTorrent.RtcPeer`, `SpawnDev.ILGPU.P2P.P2PWebRtcBridge`) interpreted "no state change" as "peer is alive" and the wire never closed.
+
+`BrowserRTCPeerConnection` now runs a 500ms-tick background poll on `NativeConnection.ConnectionState`. When the polled value differs from `_lastObservedConnectionState`, synthesises an `OnConnectionStateChange` invocation. Single-threaded Blazor WASM means no race vs the natural `HandleConnectionStateChange` JS event - the two paths dedupe via `_lastObservedConnectionState`. Auto-stops on terminal state (`"failed"` or `"closed"`). Cancelled in `Dispose`.
+
+Diagnosed against `SpawnDev.ILGPU.P2P`'s `P2PSwarm.TwoTab_PeerDiscovery` test where `coord.peerCount` stayed at 1 indefinitely after the worker tab closed.
+
+### Opt-in `BrowserRTCPeerConnection.DiagnosticsEnabled` static flag (rc.4)
+
+New static property `BrowserRTCPeerConnection.DiagnosticsEnabled` (default `false`). When set to `true`, the connection-state poller publishes per-tick state and synthesis events to JS globals for debugging:
+
+- `__brrtc_pc_count` - number of pollers started in this app
+- `__brrtc_pc_{N}` - latest tick state for poller N (`tick={n} conn={state} ice={state}`)
+- `__brrtc_last_tick` - last tick globally
+- `__brrtc_synth_{N}` - set when synthesis fires (`src=iceFailed|debounce tick={n} subs={N}`)
+
+Off-default keeps zero JS-interop overhead in production. Enable via `SpawnDev.RTC.Browser.BrowserRTCPeerConnection.DiagnosticsEnabled = true;` in `Program.cs` when investigating wire-close issues.
+
+### Other
+
+- `<PackageReference Include="SpawnDev.MultiMedia" Version="0.2.0" />` (was `0.1.0-rc.1`, which is no longer on nuget.org). External-consumer fallback only - in-repo dev still uses `ProjectReference` to the sibling `SpawnDev.MultiMedia` repo.
+
 ## SpawnDev.RTC 1.1.8-rc.4 (2026-04-29)
 
 ### Opt-in `BrowserRTCPeerConnection.DiagnosticsEnabled` static flag
