@@ -28,7 +28,16 @@ public sealed class TrackerSignalingClient : ISignalingClient
     public const int ReconnectVariance = 300_000;       // 5 min
     public const int OfferTimeout = 50_000;             // 50s
     public const int DefaultAnnounceInterval = 120_000; // 120s
-    public const int MaxOffers = 10;                    // JS: MAX_ANNOUNCE_PEERS
+    // JS bittorrent-tracker reference (lib/client/websocket-tracker.js:61) hard-caps
+    // `numwant = Math.min(opts.numwant, 5)`. The 5 ceiling is per-announce on the CLIENT
+    // side of how many SDP offers we publish per round. Our previous value of 10 was
+    // double the reference and inflated duplicate-PC formation rates by 2x with no
+    // benefit (the tracker's positional pairing matches at most one offer per candidate
+    // peer per round; surplus offers are silently discarded). Keep aligned with reference.
+    // Note: `MAX_ANNOUNCE_PEERS = 82` (JS common.js) is the SERVER-side cap on returned
+    // peers, NOT the client-side offer cap. See
+    // `SpawnDev.WebTorrent/Docs/protocol-reference/08-offer-pairing-and-dedup.md`.
+    public const int MaxOffers = 5;
 
     /// <summary>Enable verbose wire logging to <see cref="Console"/>. Off by default.</summary>
     public static bool VerboseLogging { get; set; }
