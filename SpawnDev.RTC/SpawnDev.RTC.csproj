@@ -4,8 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.1.10-local.1</Version>
-		<PackageReleaseNotes>v1.1.10-local.1: periodic re-announce at the tracker-given interval (TrackerSignalingClient). The announce-interval timer body was previously empty (announce-once on connect), so a thin initial swarm never grew; the JS bittorrent-tracker reference re-announces every interval to keep pairing newly-arrived peers. Re-enabled with the Layers 1-3 offer/answer dedup guarding against duplicate-PC formation. Fixes slow swarm growth that made service-worker media streaming stall on a cold start. See SpawnDev.WebTorrent/Docs/protocol-reference/08-offer-pairing-and-dedup.md.</PackageReleaseNotes>
+		<Version>1.1.10</Version>
+		<PackageReleaseNotes>v1.1.10 (rollup of 1.1.9-rc.1 numwant cap + 1.1.10 periodic re-announce): TrackerSignalingClient now re-announces periodically at the tracker-given interval. The announce-interval timer body was previously empty (announce-once on connect), so a thin initial swarm never grew; the JS bittorrent-tracker reference re-announces every interval to keep pairing newly-arrived peers. ReAnnounceAll re-sends a periodic announce (Event=null, FRESH offers per active room) at the tracker cadence; the Layers 1-3 offer/answer dedup guard against duplicate-PC SCTP cascade (regression-tested by TrackerSignaling_ReAnnounce_FiresAtTrackerInterval). Also: client-side numwant is now capped at 5 to match the JS reference (was 10). Full RTC PMT 324/0/3 GREEN. See SpawnDev.WebTorrent/Docs/protocol-reference/08-offer-pairing-and-dedup.md.</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>

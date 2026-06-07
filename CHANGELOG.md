@@ -1,5 +1,21 @@
 # Changelog
 
+## SpawnDev.RTC 1.1.10 (2026-06-06)
+
+Rollup of `1.1.9-rc.1` (numwant cap) and the `1.1.10` periodic re-announce. Two additive changes on top of `1.1.8`; the only public-surface change is the documented numwant clamp. Full RTC PMT **324/0/3** GREEN; new `TrackerSignaling_ReAnnounce_FiresAtTrackerInterval` regression guard PASSES (1/1).
+
+### Periodic re-announce at the tracker-given interval (1.1.10)
+
+`TrackerSignalingClient`'s announce-interval timer body was empty (reserved-for-future), so the client announced exactly once on connect and a thin initial swarm never grew. The JS bittorrent-tracker reference re-announces every interval to keep pairing newly-arrived peers - that is how a cold-start swarm grows.
+
+`SetAnnounceInterval` (fed by the announce response's `interval` / `min interval`) now drives `ReAnnounceAll`, which re-sends a periodic announce (`Event=null`, FRESH offers per active room via the room handler's `CreateOffersAsync`) for every subscribed room at the tracker-given cadence. The duplicate-PC SCTP cascade the empty timer was originally avoiding is held off by the existing Layers 1-3 offer/answer dedup (see `SpawnDev.WebTorrent/Docs/protocol-reference/08-offer-pairing-and-dedup.md`).
+
+Fixes slow swarm growth that made `SpawnDev.WebTorrent` service-worker media streaming stall on a cold start. The new `TrackerSignaling_ReAnnounce_FiresAtTrackerInterval` test spins an in-process tracker with a 1-second announce interval and asserts the client re-announces several times within a few intervals (the old behavior left `CreateOffersAsync` at exactly 1 for the whole session).
+
+### Client-side numwant capped at 5, matching the JS reference (1.1.9-rc.1)
+
+`TrackerSignalingClient.MaxOffers` aligned with the JS bittorrent-tracker reference, which caps client-side numwant at 5 (`lib/client/websocket-tracker.js:61: Math.min(opts.numwant, 5)`). The prior default of 10 was double the reference and inflated duplicate-PC formation rates; surplus offers are silently discarded by the tracker's positional pairing anyway. **Public-surface change:** callers passing numwant > 5 now have it clamped at 5.
+
 ## SpawnDev.RTC 1.1.8 (2026-04-28)
 
 Stable rollup of `1.1.8-rc.1`, `1.1.8-rc.2`, and `1.1.8-rc.4`. Three additive bug fixes / diagnostics on top of `1.1.7`. **No breaking changes.** PMT 324/0/3 GREEN against this build (3 skips are intentional capability gates).

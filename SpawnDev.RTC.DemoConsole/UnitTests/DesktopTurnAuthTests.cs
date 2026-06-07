@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SIPSorcery.Net;
 using SpawnDev.RTC.Server;
 using SpawnDev.RTC.Server.Extensions;
+using SpawnDev.RTC.Signaling;
 using SpawnDev.UnitTesting;
 using System.Net;
 using System.Net.Sockets;
@@ -1039,6 +1040,87 @@ namespace SpawnDev.RTC.DemoConsole.UnitTests
             {
                 turn.Stop();
             }
+        }
+
+        // --- Periodic re-announce (tracker-interval-driven) ------------------------
+
+        /// <summary>
+        /// The tracker-given announce interval must drive periodic re-announces, not just a single
+        /// announce-on-connect. Regression guard for the previously-empty announce-interval timer in
+        /// <see cref="TrackerSignalingClient"/>: the JS bittorrent-tracker reference re-announces every
+        /// interval to keep pairing newly-arrived peers (so a thin cold-start swarm can grow). The
+        /// duplicate-PC SCTP cascade that the empty timer was avoiding is held off by the Layers 1-3
+        /// offer/answer dedup, verified separately (Docs/protocol-reference/08-offer-pairing-and-dedup.md).
+        ///
+        /// Spins an in-process tracker with a 1-second announce interval and asserts the client
+        /// re-announces (CreateOffersAsync invoked) several times within a few intervals - the old
+        /// behavior left CreateOffersAsync at exactly 1 (announce-once). Exercises the real
+        /// TrackerSignalingClient + TrackerSignalingServer over a real WebSocket; no mocks.
+        /// </summary>
+        [TestMethod]
+        public async Task TrackerSignaling_ReAnnounce_FiresAtTrackerInterval()
+        {
+            int httpPort = GetFreeTcpPort();
+            var builder = WebApplication.CreateBuilder();
+            builder.Logging.ClearProviders();
+            builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, httpPort));
+            var app = builder.Build();
+            app.UseWebSockets();
+            app.UseRtcSignaling("/announce", new TrackerServerOptions { AnnounceIntervalSeconds = 1 });
+            await app.StartAsync();
+            try
+            {
+                var handler = new CountingRoomHandler();
+                var peerId = new byte[20];
+                RandomNumberGenerator.Fill(peerId);
+                await using var client = new TrackerSignalingClient($"ws://127.0.0.1:{httpPort}/announce", peerId);
+                var room = RoomKey.Random();
+                client.Subscribe(room, handler);
+                await client.AnnounceAsync(room, new AnnounceOptions { Event = "started", NumWant = 3 });
+
+                // ~5 intervals at 1s. Expect the initial announce + several re-announces. The old
+                // (empty-timer) behavior would leave this at exactly 1 for the whole session.
+                await Task.Delay(5500);
+
+                int calls = handler.CreateOffersCalls;
+                if (calls < 3)
+                    throw new Exception(
+                        $"Periodic re-announce did not fire at the tracker interval: CreateOffersAsync was called " +
+                        $"{calls} time(s) in ~5.5s at a 1s server interval (expected >= 3). The announce-interval " +
+                        $"timer is not re-announcing.");
+            }
+            finally
+            {
+                await app.StopAsync();
+            }
+        }
+
+        /// <summary>Counting <see cref="ISignalingRoomHandler"/>: tallies CreateOffersAsync calls (one per
+        /// announce) so a test can detect periodic re-announces. Produces valid-shaped offers (20-byte id +
+        /// non-empty SDP) so the client actually transmits them to the tracker.</summary>
+        private sealed class CountingRoomHandler : ISignalingRoomHandler
+        {
+            private int _createOffersCalls;
+            public int CreateOffersCalls => Volatile.Read(ref _createOffersCalls);
+
+            public Task<IReadOnlyList<SignalingOffer>> CreateOffersAsync(int count, CancellationToken ct)
+            {
+                Interlocked.Increment(ref _createOffersCalls);
+                var list = new List<SignalingOffer>(count);
+                for (int i = 0; i < count; i++)
+                {
+                    var id = new byte[20];
+                    RandomNumberGenerator.Fill(id);
+                    list.Add(new SignalingOffer(id, "v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n"));
+                }
+                return Task.FromResult<IReadOnlyList<SignalingOffer>>(list);
+            }
+
+            public Task<string?> HandleOfferAsync(byte[] remotePeerId, byte[] offerId, string offerSdp, CancellationToken ct)
+                => Task.FromResult<string?>(null);
+
+            public Task HandleAnswerAsync(byte[] remotePeerId, byte[] offerId, string answerSdp, CancellationToken ct)
+                => Task.CompletedTask;
         }
 
         // --- Helpers ---------------------------------------------------------------
