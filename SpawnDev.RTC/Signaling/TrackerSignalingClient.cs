@@ -113,6 +113,13 @@ public sealed class TrackerSignalingClient : ISignalingClient
     // without rehashing on every message.
     private readonly ConcurrentDictionary<string, RoomKey> _roomKeys = new();
 
+    // Wire-format info_hash → last AnnounceOptions, so the tracker-interval timer can periodically
+    // re-announce each active room with FRESH offers. The JS WebTorrent / bittorrent-tracker reference
+    // re-announces every interval to keep pairing newly-arrived peers; we previously announced once on
+    // connect, so a thin initial swarm never grew. Layers 1-3 dedup collapse re-announce offers to
+    // already-connected remotes while pairing new peers (see Docs/protocol-reference/08-offer-pairing).
+    private readonly ConcurrentDictionary<string, AnnounceOptions> _lastAnnounceOptions = new();
+
     // Outstanding offers we've sent. offer-id hex → (room, timeout timer).
     // The room is needed so answer responses can be routed back to the correct handler.
     private readonly ConcurrentDictionary<string, (RoomKey room, Timer? timer)> _pendingOffers = new();
@@ -156,6 +163,7 @@ public sealed class TrackerSignalingClient : ISignalingClient
         var wire = roomKey.ToWireString();
         _handlers.TryRemove(wire, out _);
         _roomKeys.TryRemove(wire, out _);
+        _lastAnnounceOptions.TryRemove(wire, out _);
     }
 
     // ========================
@@ -173,6 +181,7 @@ public sealed class TrackerSignalingClient : ISignalingClient
 
         var infoHashBinary = roomKey.ToWireString();
         _roomKeys.TryAdd(infoHashBinary, roomKey);
+        _lastAnnounceOptions[infoHashBinary] = options;   // remembered for the periodic re-announce timer
 
         if (!_connected)
         {
@@ -548,7 +557,33 @@ public sealed class TrackerSignalingClient : ISignalingClient
     {
         if (ms <= 0) return;
         _announceTimer?.Dispose();
-        _announceTimer = new Timer(_ => { /* reserved for future periodic re-announce */ }, null, ms, ms);
+        // Fire at the tracker-given interval (from the announce response's "interval"/"min interval").
+        // The JS reference re-announces every interval to keep pairing newly-arrived peers; we previously
+        // left this body empty (announce-once), so a thin initial swarm never grew. ReAnnounceAll re-sends
+        // a periodic announce (fresh offers, no event) for every active room.
+        _announceTimer = new Timer(_ => ReAnnounceAll(), null, ms, ms);
+    }
+
+    /// <summary>Periodic re-announce of every active room at the tracker-given interval. Re-generates fresh
+    /// WebRTC offers per room (via the room handler's CreateOffersAsync); the Layer 1-3 dedup collapses offers
+    /// to already-connected remotes while pairing newly-arrived peers. Mirrors the JS WebTorrent /
+    /// bittorrent-tracker re-announce loop. Event=null marks it periodic (not started/completed/stopped).</summary>
+    private void ReAnnounceAll()
+    {
+        if (Destroyed || Reconnecting || !_connected) return;
+        foreach (var kv in _roomKeys)
+        {
+            if (!_lastAnnounceOptions.TryGetValue(kv.Key, out var last)) continue;
+            var periodic = new AnnounceOptions
+            {
+                Event = null,
+                NumWant = last.NumWant,
+                Uploaded = last.Uploaded,
+                Downloaded = last.Downloaded,
+                Left = last.Left,
+            };
+            _ = AnnounceAsync(kv.Value, periodic);
+        }
     }
 
     // ========================
