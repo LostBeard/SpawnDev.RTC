@@ -8,9 +8,11 @@ public sealed class TrackerServerOptions
 {
     /// <summary>
     /// Announce interval returned to clients (seconds). Clients re-announce at least
-    /// this often. WebTorrent tracker convention is 120 s.
+    /// this often. WebTorrent's torrent-swarm convention is 120 s, but for on-demand
+    /// WebRTC signaling (peers connecting/reconnecting interactively) that's too sparse -
+    /// a dropped/slow peer waits too long to be rediscovered. 30 s keeps peers fresh.
     /// </summary>
-    public int AnnounceIntervalSeconds { get; set; } = 120;
+    public int AnnounceIntervalSeconds { get; set; } = 30;
 
     /// <summary>
     /// Maximum number of peers returned per announce response. Clients request

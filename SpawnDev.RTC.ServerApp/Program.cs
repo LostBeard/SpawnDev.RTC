@@ -54,7 +54,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(opts =>
 // to ASP.NET Core's default configuration builder.
 var trackerOptions = new TrackerServerOptions
 {
-    AnnounceIntervalSeconds = builder.Configuration.GetValue("RTC:AnnounceIntervalSeconds", 120),
+    AnnounceIntervalSeconds = builder.Configuration.GetValue("RTC:AnnounceIntervalSeconds", 30),
     MaxPeersPerAnnounce = builder.Configuration.GetValue("RTC:MaxPeersPerAnnounce", 50),
     MaxMessageBytes = builder.Configuration.GetValue("RTC:MaxMessageBytes", 1_000_000),
     SendTimeoutMs = builder.Configuration.GetValue("RTC:SendTimeoutMs", 10_000),
