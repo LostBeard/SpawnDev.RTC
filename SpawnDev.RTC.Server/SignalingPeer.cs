@@ -37,6 +37,20 @@ public sealed class SignalingPeer
     /// </summary>
     public bool IsSeeder { get; internal set; }
 
+    /// <summary>
+    /// UTC timestamp of this peer's most recent announce (updated every announce). Drives offer-relay
+    /// ordering - offers prefer the most-recently-heard-from peers, which are provably alive (they just
+    /// talked to the server) and include any freshly-joined peer. A silent/dead peer's timestamp goes
+    /// stale, so it sinks to the bottom of the relay order and is the eviction janitor's target.
+    /// </summary>
+    public DateTimeOffset LastAnnounce { get; internal set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Count of offers relayed TO this peer over this connection's lifetime. Used as the relay fairness
+    /// tiebreak among equally-recent peers (fewest-received wins) so no live peer is starved of offers.
+    /// </summary>
+    public int OffersReceived { get; internal set; }
+
     internal SignalingPeer(WebSocket ws, string remoteAddress)
     {
         WebSocket = ws;

@@ -310,6 +310,7 @@ public sealed class TrackerSignalingServer
         if (msg.InfoHash.Length > 100) return;
 
         peer.PeerId = msg.PeerId;
+        peer.LastAnnounce = DateTimeOffset.UtcNow; // recency drives relay ordering + the stale janitor
         var room = _rooms.GetOrAdd(msg.InfoHash, key => new SignalingRoomInfo(key));
 
         // Answer-relay path: when an announce carries an answer + to_peer_id + offer_id,
@@ -349,6 +350,12 @@ public sealed class TrackerSignalingServer
                 peer.IsSeeder = true;
         }
 
+        // Janitor: drop peers that have gone silent (stale LastAnnounce, or a socket no longer Open)
+        // so they neither pad the swarm counts nor receive relayed offers into the void. Recency
+        // ordering already deprioritizes them; this frees the entry + aborts the dead socket. The
+        // peer that just announced was refreshed above, so it survives.
+        EvictStalePeers(room);
+
         // Match the bittorrent-tracker JS reference (webtorrent/bittorrent-tracker
         // server.js): the WebSocket-tracker announce response carries info_hash +
         // interval + complete + incomplete only. NO peer list. Peer-list semantics
@@ -372,9 +379,15 @@ public sealed class TrackerSignalingServer
 
         if (msg.Offers is JsonElement offersEl && offersEl.ValueKind == JsonValueKind.Array)
         {
+            // Order candidates most-recently-heard-from FIRST (provably alive + any fresh joiner), then
+            // fewest offers received (fairness so no live peer is starved), then random. Offers are dealt
+            // one per candidate down this list, so a new peer gets the best shot and a stale/ghost peer
+            // only receives an offer if the room is too small to avoid it.
             var candidates = room.Peers.Values
                 .Where(p => p.PeerId != peer.PeerId && p.WebSocket.State == WebSocketState.Open)
-                .OrderBy(_ => Random.Shared.Next())
+                .OrderByDescending(p => p.LastAnnounce)
+                .ThenBy(p => p.OffersReceived)
+                .ThenBy(_ => Random.Shared.Next())
                 .ToArray();
 
             int idx = 0;
@@ -395,6 +408,7 @@ public sealed class TrackerSignalingServer
                     OfferId = offerId.GetString(),
                 });
                 await SendTextAsync(candidates[idx], forward);
+                candidates[idx].OffersReceived++; // fairness bookkeeping for the tiebreak
                 idx++;
             }
         }
@@ -432,6 +446,27 @@ public sealed class TrackerSignalingServer
             OfferId = msg.OfferId,
         });
         await SendTextAsync(target, forward);
+    }
+
+    /// <summary>
+    /// Remove peers from a room whose last announce is older than
+    /// <see cref="TrackerServerOptions.PeerTimeoutSeconds"/>, or whose socket is no longer Open, and
+    /// abort their dead sockets. Runs lazily on each announce touching the room. Self-healing: a
+    /// wrongly-evicted live peer simply re-announces and re-joins on its next interval.
+    /// </summary>
+    private void EvictStalePeers(SignalingRoomInfo room)
+    {
+        var cutoff = DateTimeOffset.UtcNow.AddSeconds(-_options.PeerTimeoutSeconds);
+        foreach (var kvp in room.Peers)
+        {
+            var p = kvp.Value;
+            if (p.LastAnnounce >= cutoff && p.WebSocket.State == WebSocketState.Open) continue;
+            if (room.Peers.TryRemove(kvp.Key, out _))
+            {
+                try { p.WebSocket.Abort(); } catch { /* already gone */ }
+                Diag($"evicted stale peer {p.PeerId} lastAnnounce={p.LastAnnounce:HH:mm:ss} state={p.WebSocket.State}");
+            }
+        }
     }
 
     private async Task SendTextAsync(SignalingPeer peer, string text)

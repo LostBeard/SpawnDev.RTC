@@ -15,6 +15,20 @@ public sealed class TrackerServerOptions
     public int AnnounceIntervalSeconds { get; set; } = 30;
 
     /// <summary>
+    /// A peer that has not re-announced within this many seconds is treated as gone and evicted from
+    /// its room(s) on the next announce touching that room (its dead socket is aborted). Without this,
+    /// a peer that drops silently (network blip, NAT timeout, killed process with no TCP RST) lingers
+    /// as a "candidate" until its WebSocket eventually notices - and the tracker keeps relaying offers
+    /// into that void, so connecting peers waste offers on ghosts (slow/failed connects that compound
+    /// with random per-connection peer-ids). Mirrors the JS bittorrent-tracker's miss-based eviction.
+    /// <para>Only needs to exceed <see cref="AnnounceIntervalSeconds"/> by enough to tolerate announce
+    /// jitter - a healthy peer re-announces every interval, so the margin just covers a late one.
+    /// Over-eviction is self-healing (a wrongly-evicted live peer re-announces and re-joins on its next
+    /// interval), so being aggressive is cheap. Default = 2x the interval.</para>
+    /// </summary>
+    public int PeerTimeoutSeconds { get; set; } = 60;
+
+    /// <summary>
     /// Maximum number of peers returned per announce response. Clients request
     /// via <c>numwant</c>; the server clamps to this ceiling.
     /// </summary>
