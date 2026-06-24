@@ -1,5 +1,19 @@
 # Changelog
 
+## SpawnDev.RTC.Server 1.0.8 (2026-06-23)
+
+Fairer + ghost-resistant WebRTC offer relay in `TrackerSignalingServer`. RTC PMT **325/0/3** GREEN. Announce-response framing + the WebRTC data-channel flow are unchanged; this only changes which peers an offer is relayed to.
+
+### Recency-ordered + fairness offer relay
+
+The signaling server relayed each announced offer to a uniformly-random open peer in the room - no liveness signal - and only dropped a peer when its WebSocket noticed the close. A peer that died silently (network blip, NAT idle-timeout, killed process with no TCP RST) lingered as a relay candidate until its socket eventually timed out, and with random per-connection peer-ids those ghosts piled up, so offers were relayed into the void. Connecting peers (especially fresh joiners and flaky/embedded clients like the SpawnWear watch) waited or failed, and the waste compounded across every hub client (RTC consumers, WebTorrent model downloads).
+
+Offer-relay candidates are now ordered most-recently-announced FIRST (provably-alive + any fresh joiner gets priority), then fewest-offers-received (fairness so no live peer is starved), then random. Offers are dealt one per candidate down that list, so a new peer gets the best shot and a stale/ghost peer only receives an offer if the room is too small to avoid it. `SignalingPeer` gains `LastAnnounce` (updated every announce) + `OffersReceived`.
+
+### Stale-peer eviction
+
+`EvictStalePeers` runs on each announce touching a room: peers past `TrackerServerOptions.PeerTimeoutSeconds` (new; default 2x the announce interval) or with a non-Open socket are removed and their dead socket aborted. Self-healing - a wrongly-evicted live peer simply re-announces and re-joins on its next interval. The recency ordering already deprioritizes ghosts; eviction frees the entry + the dead socket.
+
 ## SpawnDev.RTC 1.1.10 (2026-06-06)
 
 Rollup of `1.1.9-rc.1` (numwant cap) and the `1.1.10` periodic re-announce. Two additive changes on top of `1.1.8`; the only public-surface change is the documented numwant clamp. Full RTC PMT **324/0/3** GREEN; new `TrackerSignaling_ReAnnounce_FiresAtTrackerInterval` regression guard PASSES (1/1).
