@@ -1,5 +1,17 @@
 # Changelog
 
+## SpawnDev.RTC 1.1.11 (2026-06-24)
+
+Carries the `SpawnDev.SIPSorcery 10.0.7` answerer DTLS-role fix. Full RTC PMT GREEN; new fork unit + integration regression tests pass; 37/37 WebRTC+SDP negotiation unit tests green.
+
+### Answerer honors the offerer's `a=setup` (RFC 4145 §4.1 / RFC 5763 §5)
+
+When the desktop SipSorcery peer ANSWERS an incoming offer, it previously hardcoded its DTLS role to `active` (DTLS client), ignoring the offerer's `a=setup` attribute. An offerer that explicitly requests `setup:active` - meaning it wants to be the DTLS client - was answered `setup:active` too, producing two DTLS clients: both sent a ClientHello and each rejected the other's as `unexpected_message(10)`, failing the handshake instantly.
+
+This surfaced as the SpawnWear console-to-watch blocker. The watch (libpeer) forces itself to DTLS client (`setup:active`) because an mbedTLS server cannot reassemble the fragmented ClientHello a browser sends; a browser answerer correctly responds `setup:passive` (DTLS server), so the watch-to-Companion path worked, but the desktop SipSorcery answerer did not.
+
+The answerer now mirrors the offer: `setup:active` -> we answer `setup:passive` (DTLS server); `setup:passive` -> we answer `active`; the common `setup:actpass` (or an absent attribute) -> `active` as before, so the browser-offer path is unchanged. Verified end-to-end on hardware: the console now completes ICE -> DTLS (role passive) -> SCTP -> data channel -> Ed25519 challenge against a physical SpawnWear watch.
+
 ## SpawnDev.RTC.Server 1.0.8 (2026-06-23)
 
 Fairer + ghost-resistant WebRTC offer relay in `TrackerSignalingServer`. RTC PMT **325/0/3** GREEN. Announce-response framing + the WebRTC data-channel flow are unchanged; this only changes which peers an offer is relayed to.
