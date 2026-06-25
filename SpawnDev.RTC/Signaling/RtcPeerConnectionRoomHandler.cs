@@ -168,6 +168,17 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
         var localDc = entry.dc;
         var remoteHex = Convert.ToHexString(remotePeerId).ToLowerInvariant();
 
+        // One connection per [room+peerid], symmetric with HandleOfferAsync's guard. If we're
+        // already paired with this peer (e.g. we answered their offer while they also answered one
+        // of ours - possible once the remote peer both offers AND answers), keep the existing
+        // connection and discard this freshly-answered duplicate rather than overwriting + orphaning it.
+        if (_peers.ContainsKey(remoteHex))
+        {
+            try { pc.Close(); } catch { }
+            pc.Dispose();
+            return;
+        }
+
         WirePeer(pc, remoteHex);
         await pc.SetRemoteDescription(new RTCSessionDescriptionInit { Type = "answer", Sdp = answerSdp }).ConfigureAwait(false);
 
