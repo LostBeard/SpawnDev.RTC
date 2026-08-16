@@ -4,8 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.0.2</Version>
-		<PackageReleaseNotes>v2.0.2 - Dependency update</PackageReleaseNotes>
+		<Version>2.0.3</Version>
+		<PackageReleaseNotes>v2.0.3 - Dependency update</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -31,14 +31,27 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
-		<PackageReference Include="SpawnDev.SpawnJS" Version="2.0.9" />
+		<PackageReference Include="SpawnDev.SpawnJS" Version="2.0.10" />
 		<PackageReference Include="SpawnDev.SpawnJS.Cryptography" Version="2.0.1" />
-		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.7" />
-		<PackageReference Include="SpawnDev.MultiMedia" Version="2.0.0" />
+		<PackageReference Include="SpawnDev.MultiMedia" Version="2.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="SpawnDev.RTC.Server" />
+	</ItemGroup>
+
+	<!-- SpawnDev.SIPSorcery is our fork of SIPSorcery (namespace + AssemblyName identical
+	     to upstream for drop-in compatibility). Conditional wiring:
+	       * In-repo builds where the submodule sibling exists: use ProjectReference for
+	         hot-iteration. Transitive deps (BouncyCastle, Concentus, etc.) flow normally.
+	       * External / standalone builds: use PackageReference so NuGet resolves the
+	         fork package from the feed (local or nuget.org).
+	     Standard .NET ecosystem conditional pattern (ASP.NET Core uses it). -->
+	<ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
+		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
+		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.7" />
 	</ItemGroup>
 
 	<ItemGroup>
