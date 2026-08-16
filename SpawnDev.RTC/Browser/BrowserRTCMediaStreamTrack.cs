@@ -42,7 +42,7 @@ namespace SpawnDev.RTC.Browser
 
         public RTCMediaTrackSettings GetSettings()
         {
-            // Use BlazorJS's typed GetSettings and map to our DTO
+            // Use SpawnJS's typed GetSettings and map to our DTO
             var settings = NativeTrack.GetSettings();
             return new RTCMediaTrackSettings
             {
@@ -57,7 +57,7 @@ namespace SpawnDev.RTC.Browser
 
         public MediaTrackConstraints GetConstraints()
         {
-            // BlazorJS returns its own type - map what we can
+            // SpawnJS returns its own type - map what we can
             var c = NativeTrack.GetConstraints();
             return new MediaTrackConstraints();
         }

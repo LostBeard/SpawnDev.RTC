@@ -7,7 +7,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
     /// - the simulcast control surface.
     ///
     /// Browser: wraps the native RTCRtpSender.getParameters / setParameters via
-    /// BlazorJS typed DTOs (RTCRtpSendParameters in SpawnDev.BlazorJS.JSObjects.WebRTC).
+    /// SpawnJS typed DTOs (RTCRtpSendParameters in SpawnDev.SpawnJS.JSObjects.WebRTC).
     /// Real simulcast behavior depends on the browser's video encoder; these tests
     /// just prove the round-trip shape works.
     ///
@@ -62,7 +62,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             if (OperatingSystem.IsBrowser()) return;
             // Desktop-only: the browser's rejection happens inside the JS engine with
             // an `InvalidStateError` that surfaces as a JS exception; exact type +
-            // timing varies across browsers + BlazorJS's async marshaling. The
+            // timing varies across browsers + SpawnJS's async marshaling. The
             // desktop path has a deterministic check we can assert cleanly.
 
             using var pc = RTCPeerConnectionFactory.Create();
@@ -108,7 +108,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             // RIDs after getParameters is rejected with DOM `InvalidModificationError`
             // ("Read-only field modified in setParameters()") - encodings[i].rid is
             // treated as a read-only field once the transceiver exists. The browser
-            // surfaces this through our BlazorJS wrapper as a plain `Exception`
+            // surfaces this through our SpawnJS wrapper as a plain `Exception`
             // rather than a typed JSException (the message starts with the DOM
             // error name). The point of this test is that the DTO shape survives
             // round-trip, not that real browser simulcast reconfig works - swallow

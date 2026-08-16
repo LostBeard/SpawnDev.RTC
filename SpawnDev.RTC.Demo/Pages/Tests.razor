@@ -1,6 +1,6 @@
 @page "/tests"
 @using System.Reflection
-@using SpawnDev.UnitTesting.Blazor
+@using SpawnDev.UnitTesting.Browser
 @using SpawnDev.RTC
 
 <PageTitle>Unit Tests</PageTitle>
@@ -14,7 +14,7 @@
 
 <UnitTestsView TypeInstanceResolver="TestTypeResolver" TestAssemblies="Assemblies" TestTypes="Types"></UnitTestsView>
 
-@inject SpawnDev.BlazorJS.BlazorJSRuntime JS
+@inject SpawnDev.SpawnJS.SpawnJSRuntime JS
 
 @code{
     [Inject]

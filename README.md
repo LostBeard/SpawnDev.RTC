@@ -26,35 +26,35 @@ SpawnDev.RTC provides a unified WebRTC interface that works identically in Blazo
 - **Embedded STUN/TURN server** - `SpawnDev.RTC.Server` ships an RFC 5766 TURN server as an ASP.NET Core `IHostedService`. Classic long-term credentials, ephemeral HMAC credentials (RFC 8489 §9.2 / TURN REST API pattern), tracker-gated ephemeral (only currently-announced peers can allocate), period-rotating sub-secrets, Origin-header allowlist, and configurable relay-port range for NAT port forwarding. One host box can run signaling + STUN + TURN together without coturn. See [Docs/stun-turn-server.md](Docs/stun-turn-server.md).
 - **Perfect negotiation** - [`PerfectNegotiator`](Docs/perfect-negotiation.md) drop-in helper implements the W3C glare-free renegotiation pattern, so both peers can add tracks / transceivers / data channels concurrently on a live connection without offer/answer collision.
 - **No native dependencies** - Pure C# on desktop, native browser APIs in WASM
-- **Native access** - Cast once at creation to access platform-specific features (BlazorJS JSObjects in WASM, SipSorcery in desktop)
+- **Native access** - Cast once at creation to access platform-specific features (SpawnJS JSObjects in WASM, SipSorcery in desktop)
 
 ## Platform Support
 
 | Platform | WebRTC Backend | Status |
 |----------|---------------|--------|
-| Blazor WebAssembly | Native browser RTCPeerConnection via SpawnDev.BlazorJS | Stable (1.1.6) |
+| Blazor WebAssembly | Native browser RTCPeerConnection via SpawnDev.SpawnJS | Stable (1.1.6) |
 | .NET Desktop (Windows/Linux/macOS) | SipSorcery (bundled fork) | Stable (1.1.6) — full audio + video bridge, browser interop verified |
 
 ## Quick Start
 
 ### Blazor WebAssembly
 
-SpawnDev.RTC uses [SpawnDev.BlazorJS](https://github.com/LostBeard/SpawnDev.BlazorJS) for browser WebRTC. You must register BlazorJSRuntime and use `BlazorJSRunAsync()` in your `Program.cs`:
+SpawnDev.RTC uses [SpawnDev.SpawnJS](https://github.com/LostBeard/SpawnDev.SpawnJS) for browser WebRTC. You must register SpawnJSRuntime and use `SpawnJSRunAsync()` in your `Program.cs`:
 
 ```csharp
 // Program.cs
-using SpawnDev.BlazorJS;
+using SpawnDev.SpawnJS;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-// Required: register BlazorJSRuntime (enables static BlazorJSRuntime.JS access)
-builder.Services.AddBlazorJSRuntime();
+// Required: register SpawnJSRuntime (enables static SpawnJSRuntime.JS access)
+builder.Services.AddSpawnJSRuntime();
 
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Required: use BlazorJSRunAsync instead of RunAsync
-await builder.Build().BlazorJSRunAsync();
+// Required: use SpawnJSRunAsync instead of RunAsync
+await builder.Build().SpawnJSRunAsync();
 ```
 
 ### Desktop (.NET)
@@ -172,7 +172,7 @@ var pc = RTCPeerConnectionFactory.Create(config);
 if (pc is BrowserRTCPeerConnection browserPc)
 {
     var nativePC = browserPc.NativeConnection;
-    // Access any browser WebRTC API via SpawnDev.BlazorJS
+    // Access any browser WebRTC API via SpawnDev.SpawnJS
 }
 
 // On desktop: full SipSorcery RTCPeerConnection
@@ -204,7 +204,7 @@ SpawnDev.RTC (cross-platform WebRTC)
     |     +-- RtcPeerConnectionRoomHandler (default PC-per-peer handler)
     |
     +-- Browser (Blazor WASM)
-    |       Native RTCPeerConnection via SpawnDev.BlazorJS
+    |       Native RTCPeerConnection via SpawnDev.SpawnJS
     |       Zero-copy JS types (ArrayBuffer, TypedArray, Blob, DataView)
     |       getUserMedia, getDisplayMedia, enumerateDevices
     |
@@ -262,7 +262,7 @@ The wire format is bit-compatible with the public WebTorrent tracker fleet - a p
 
 ## Dependencies
 
-- [SpawnDev.BlazorJS](https://github.com/LostBeard/SpawnDev.BlazorJS) - Browser WebRTC wrappers
+- [SpawnDev.SpawnJS](https://github.com/LostBeard/SpawnDev.SpawnJS) - Browser WebRTC wrappers
 - [SipSorcery](https://github.com/sipsorcery-org/sipsorcery) (bundled fork) - Desktop WebRTC stack
 - [Portable.BouncyCastle](https://www.nuget.org/packages/Portable.BouncyCastle/) - DTLS cryptography
 

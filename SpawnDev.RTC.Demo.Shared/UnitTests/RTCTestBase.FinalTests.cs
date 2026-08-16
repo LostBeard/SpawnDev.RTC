@@ -113,7 +113,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
                 if (OperatingSystem.IsBrowser())
                 {
                     testStream = new SpawnDev.RTC.Browser.BrowserRTCMediaStream(
-                        new SpawnDev.BlazorJS.JSObjects.MediaStream());
+                        new SpawnDev.SpawnJS.JSObjects.MediaStream());
                 }
                 else
                 {

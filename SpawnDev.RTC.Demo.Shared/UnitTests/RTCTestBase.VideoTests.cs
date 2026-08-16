@@ -1,7 +1,7 @@
 using SpawnDev.RTC;
 using SpawnDev.UnitTesting;
-using SpawnDev.BlazorJS;
-using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.SpawnJS;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Demo.Shared.UnitTests
 {
@@ -497,7 +497,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
 
                 // Add ALL tracks (audio + video) to pc1
                 var bpc1 = (SpawnDev.RTC.Browser.BrowserRTCPeerConnection)pc1;
-                foreach (var track in browserStream.GetTracks())
+                foreach (var track in browserStream.GetTracks().ToArray())
                 {
                     bpc1.NativeConnection.AddTrack(track, browserStream);
                 }

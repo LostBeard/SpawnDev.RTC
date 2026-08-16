@@ -11,10 +11,10 @@ namespace SpawnDev.RTC.Browser
     public static class BrowserMediaDevices
     {
         /// <summary>
-        /// Converts our cross-platform MediaStreamConstraints to the BlazorJS type
+        /// Converts our cross-platform MediaStreamConstraints to the SpawnJS type
         /// that maps to the W3C spec (Union&lt;bool, MediaTrackConstraints&gt;).
         /// </summary>
-        private static SpawnDev.SpawnJS.JSObjects.MediaStreamConstraints ToBlazorJS(MediaStreamConstraints constraints)
+        private static SpawnDev.SpawnJS.JSObjects.MediaStreamConstraints ToSpawnJS(MediaStreamConstraints constraints)
         {
             var result = new SpawnDev.SpawnJS.JSObjects.MediaStreamConstraints();
             if (constraints.Audio != null)
@@ -22,19 +22,19 @@ namespace SpawnDev.RTC.Browser
                 if (constraints.Audio.IsBool)
                     result.Audio = constraints.Audio.BoolValue!.Value;
                 else if (constraints.Audio.Constraints != null)
-                    result.Audio = ToBlazorJSTrackConstraints(constraints.Audio.Constraints);
+                    result.Audio = ToSpawnJSTrackConstraints(constraints.Audio.Constraints);
             }
             if (constraints.Video != null)
             {
                 if (constraints.Video.IsBool)
                     result.Video = constraints.Video.BoolValue!.Value;
                 else if (constraints.Video.Constraints != null)
-                    result.Video = ToBlazorJSTrackConstraints(constraints.Video.Constraints);
+                    result.Video = ToSpawnJSTrackConstraints(constraints.Video.Constraints);
             }
             return result;
         }
 
-        private static SpawnDev.SpawnJS.JSObjects.MediaTrackConstraints ToBlazorJSTrackConstraints(MediaTrackConstraints c)
+        private static SpawnDev.SpawnJS.JSObjects.MediaTrackConstraints ToSpawnJSTrackConstraints(MediaTrackConstraints c)
         {
             var result = new SpawnDev.SpawnJS.JSObjects.MediaTrackConstraints();
             if (c.DeviceId != null) result.DeviceId = c.DeviceId;
@@ -55,7 +55,7 @@ namespace SpawnDev.RTC.Browser
             var JS = SpawnJSRuntime.Instance;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
-            var blazorConstraints = ToBlazorJS(constraints);
+            var blazorConstraints = ToSpawnJS(constraints);
             var stream = await mediaDevices.GetUserMedia(blazorConstraints);
             if (stream == null) throw new InvalidOperationException("GetUserMedia returned null");
             return new BrowserRTCMediaStream(stream);
@@ -69,7 +69,7 @@ namespace SpawnDev.RTC.Browser
             MediaStream? stream;
             if (constraints != null)
             {
-                var blazorConstraints = ToBlazorJS(constraints);
+                var blazorConstraints = ToSpawnJS(constraints);
                 stream = await mediaDevices.GetDisplayMedia(blazorConstraints);
             }
             else

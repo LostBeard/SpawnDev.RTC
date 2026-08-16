@@ -1,4 +1,4 @@
-﻿using SpawnDev.BlazorJS.Cryptography;
+﻿using SpawnDev.SpawnJS.Cryptography;
 using SpawnDev.RTC.Demo.Shared.UnitTests;
 
 namespace SpawnDev.RTC.DemoConsole.UnitTests

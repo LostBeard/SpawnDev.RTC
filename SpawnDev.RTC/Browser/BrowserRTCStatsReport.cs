@@ -61,7 +61,7 @@ namespace SpawnDev.RTC.Browser
                 Timestamp = stat.Timestamp,
             };
             // Pull every enumerable property off the JS stat object into Values.
-            // SpawnJS has no static JSON helper (BlazorJS did), so reach the global
+            // SpawnJS has no static JSON helper (SpawnJS did), so reach the global
             // JSON object and call stringify - the right thing for arbitrary RTCStats
             // subtypes (candidate-pair, inbound-rtp, outbound-rtp, transport, codec,
             // etc.) without us hard-coding each.

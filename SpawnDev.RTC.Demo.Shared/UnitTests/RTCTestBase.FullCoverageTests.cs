@@ -31,7 +31,7 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
 
                 // Add audio + video tracks
                 var bpc1 = (SpawnDev.RTC.Browser.BrowserRTCPeerConnection)pc1;
-                foreach (var track in browserStream.GetTracks())
+                foreach (var track in browserStream.GetTracks().ToArray())
                     bpc1.NativeConnection.AddTrack(track, browserStream);
 
                 // Add data channel

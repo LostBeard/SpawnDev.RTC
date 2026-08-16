@@ -1,5 +1,5 @@
-using SpawnDev.BlazorJS;
-using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.SpawnJS;
+using SpawnDev.SpawnJS.JSObjects;
 using SpawnDev.RTC.Demo.Shared.UnitTests;
 using SpawnDev.UnitTesting;
 using System.Text.Json;
@@ -100,7 +100,7 @@ namespace SpawnDev.RTC.Demo.UnitTests
         [TestMethod(Timeout = 120_000)]
         public async Task ChatDemo_TextChat_RoundTrips_BetweenTwoIframes()
         {
-            var JS = BlazorJSRuntime.JS;
+            var JS = SpawnJSRuntime.Instance;
 
             var room = "testroom-" + Guid.NewGuid().ToString("N")[..8];
             // Use the test server's embedded tracker (mounted via UseRtcSignaling) instead of
@@ -142,8 +142,8 @@ namespace SpawnDev.RTC.Demo.UnitTests
             // Use window.open popups instead of iframes. Top-level browsing contexts load
             // Blazor WASM the same way the parent /tests page does - in testing iframes
             // hit mysterious resource 404s on SIPSorcery type metadata that popups don't.
-            using var winA = JS.Call<Window>("window.open", urlA, "_blank", "width=320,height=240");
-            using var winB = JS.Call<Window>("window.open", urlB, "_blank", "width=320,height=240");
+            using var winA = JS.Call<string, string, string, Window>("window.open", urlA, "_blank", "width=320,height=240");
+            using var winB = JS.Call<string, string, string, Window>("window.open", urlB, "_blank", "width=320,height=240");
             if (winA == null || winB == null)
                 throw new Exception("window.open returned null - popup blocked?");
 
@@ -197,7 +197,7 @@ namespace SpawnDev.RTC.Demo.UnitTests
 
         private record ChatState(bool Joined, int PeerCount, int OpenChannels, string? LastIncoming, int IncomingCount);
 
-        private static ChatState? GetState(BlazorJSRuntime js, string id)
+        private static ChatState? GetState(SpawnJSRuntime js, string id)
         {
             try
             {
