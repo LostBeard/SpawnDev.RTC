@@ -1,10 +1,11 @@
-using SpawnDev.BlazorJS.JSObjects.WebRTC;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCRtpTransceiver.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCRtpTransceiver : IRTCRtpTransceiver
     {
         public RTCRtpTransceiver NativeTransceiver { get; }

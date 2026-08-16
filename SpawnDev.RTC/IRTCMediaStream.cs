@@ -2,7 +2,7 @@ namespace SpawnDev.RTC
 {
     /// <summary>
     /// Cross-platform media stream - a collection of audio and/or video tracks.
-    /// Browser: wraps native MediaStream via SpawnDev.BlazorJS.
+    /// Browser: wraps native MediaStream via SpawnDev.SpawnJS.
     /// Desktop: wraps SipSorcery media stream.
     /// </summary>
     public interface IRTCMediaStream : IDisposable

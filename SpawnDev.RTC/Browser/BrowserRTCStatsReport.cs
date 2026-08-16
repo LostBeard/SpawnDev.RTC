@@ -1,17 +1,17 @@
 using System.Text.Json;
-using SpawnDev.BlazorJS.JSObjects;
-using SpawnDev.BlazorJS.JSObjects.WebRTC;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of <see cref="IRTCStatsReport"/>. Wraps the native
-    /// browser <see cref="RTCStatsReport"/> JSObject. Each entry's
+    /// browser <see cref="RTCStatsReport"/> JS object. Each entry's
     /// <see cref="RTCStatsEntry.Values"/> dictionary is populated by JSON-serializing
     /// the underlying JS stats object via <see cref="JSON.Stringify(object)"/>, so
     /// consumers get the full surface (<c>bytesReceived</c>, <c>packetsLost</c>,
     /// <c>jitter</c>, <c>roundTripTime</c>, etc.) - not just id/type/timestamp.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCStatsReport : IRTCStatsReport
     {
         private readonly RTCStatsReport _report;
@@ -61,12 +61,14 @@ namespace SpawnDev.RTC.Browser
                 Timestamp = stat.Timestamp,
             };
             // Pull every enumerable property off the JS stat object into Values.
-            // JSON.Stringify is the typed BlazorJS helper that does the right thing
-            // for arbitrary RTCStats subtypes (candidate-pair, inbound-rtp,
-            // outbound-rtp, transport, codec, etc.) without us hard-coding each.
+            // SpawnJS has no static JSON helper (BlazorJS did), so reach the global
+            // JSON object and call stringify - the right thing for arbitrary RTCStats
+            // subtypes (candidate-pair, inbound-rtp, outbound-rtp, transport, codec,
+            // etc.) without us hard-coding each.
             try
             {
-                var json = JSON.Stringify(stat);
+                using var jsonNs = SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Get<SpawnDev.SpawnJS.SpawnJSObject>("JSON");
+                var json = jsonNs!.JSRef!.Call<RTCStats, string>("stringify", stat);
                 if (!string.IsNullOrEmpty(json) && json != "null")
                 {
                     var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);

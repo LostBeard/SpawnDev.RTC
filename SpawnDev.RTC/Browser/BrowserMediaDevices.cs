@@ -1,21 +1,22 @@
-using SpawnDev.BlazorJS;
-using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.SpawnJS;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of media device access.
-    /// Wraps navigator.mediaDevices via SpawnDev.BlazorJS.
+    /// Wraps navigator.mediaDevices via SpawnDev.SpawnJS.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public static class BrowserMediaDevices
     {
         /// <summary>
         /// Converts our cross-platform MediaStreamConstraints to the BlazorJS type
         /// that maps to the W3C spec (Union&lt;bool, MediaTrackConstraints&gt;).
         /// </summary>
-        private static SpawnDev.BlazorJS.JSObjects.MediaStreamConstraints ToBlazorJS(MediaStreamConstraints constraints)
+        private static SpawnDev.SpawnJS.JSObjects.MediaStreamConstraints ToBlazorJS(MediaStreamConstraints constraints)
         {
-            var result = new SpawnDev.BlazorJS.JSObjects.MediaStreamConstraints();
+            var result = new SpawnDev.SpawnJS.JSObjects.MediaStreamConstraints();
             if (constraints.Audio != null)
             {
                 if (constraints.Audio.IsBool)
@@ -33,9 +34,9 @@ namespace SpawnDev.RTC.Browser
             return result;
         }
 
-        private static SpawnDev.BlazorJS.JSObjects.MediaTrackConstraints ToBlazorJSTrackConstraints(MediaTrackConstraints c)
+        private static SpawnDev.SpawnJS.JSObjects.MediaTrackConstraints ToBlazorJSTrackConstraints(MediaTrackConstraints c)
         {
-            var result = new SpawnDev.BlazorJS.JSObjects.MediaTrackConstraints();
+            var result = new SpawnDev.SpawnJS.JSObjects.MediaTrackConstraints();
             if (c.DeviceId != null) result.DeviceId = c.DeviceId;
             if (c.Width != null) result.Width = (ulong)c.Width.Value;
             if (c.Height != null) result.Height = (ulong)c.Height.Value;
@@ -51,7 +52,7 @@ namespace SpawnDev.RTC.Browser
 
         public static async Task<IRTCMediaStream> GetUserMedia(MediaStreamConstraints constraints)
         {
-            var JS = BlazorJSRuntime.JS;
+            var JS = SpawnJSRuntime.Instance;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
             var blazorConstraints = ToBlazorJS(constraints);
@@ -62,7 +63,7 @@ namespace SpawnDev.RTC.Browser
 
         public static async Task<IRTCMediaStream> GetDisplayMedia(MediaStreamConstraints? constraints)
         {
-            var JS = BlazorJSRuntime.JS;
+            var JS = SpawnJSRuntime.Instance;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
             MediaStream? stream;
@@ -81,7 +82,7 @@ namespace SpawnDev.RTC.Browser
 
         public static async Task<RTCMediaDeviceInfo[]> EnumerateDevices()
         {
-            var JS = BlazorJSRuntime.JS;
+            var JS = SpawnJSRuntime.Instance;
             using var navigator = JS.Get<Navigator>("navigator");
             using var mediaDevices = navigator.MediaDevices;
             var devices = await mediaDevices.EnumerateDevices();

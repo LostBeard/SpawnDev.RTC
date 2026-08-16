@@ -1,10 +1,11 @@
-using SpawnDev.BlazorJS.JSObjects.WebRTC;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCRtpSender.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRtpSender : IRTCRtpSender
     {
         public RTCRtpSender NativeSender { get; }
@@ -70,7 +71,7 @@ namespace SpawnDev.RTC.Browser
         // cross-platform DTO only exposes the mutable fields (TransactionId +
         // Encodings + readable Codecs) so we need the native object to provide the
         // other fields on set.
-        private SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpSendParameters? _lastNativeParameters;
+        private SpawnDev.SpawnJS.JSObjects.RTCRtpSendParameters? _lastNativeParameters;
 
         public RTCRtpSendParameters GetParameters()
         {
@@ -103,7 +104,7 @@ namespace SpawnDev.RTC.Browser
                     + "getParameters first.");
 
             native.TransactionId = parameters.TransactionId;
-            native.Encodings = parameters.Encodings?.Select(e => new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpEncodingParameters
+            native.Encodings = parameters.Encodings?.Select(e => new SpawnDev.SpawnJS.JSObjects.RTCRtpEncodingParameters
             {
                 Rid = e.Rid,
                 Active = e.Active,
@@ -119,7 +120,7 @@ namespace SpawnDev.RTC.Browser
             return NativeSender.SetParameters(native);
         }
 
-        private static RTCRtpEncoding ToRtcEncoding(SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpEncodingParameters e) =>
+        private static RTCRtpEncoding ToRtcEncoding(SpawnDev.SpawnJS.JSObjects.RTCRtpEncodingParameters e) =>
             new RTCRtpEncoding
             {
                 Rid = e.Rid,
@@ -136,6 +137,7 @@ namespace SpawnDev.RTC.Browser
     /// <summary>
     /// Browser implementation of IRTCRtpReceiver.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRtpReceiver : IRTCRtpReceiver
     {
         public RTCRtpReceiver NativeReceiver { get; }

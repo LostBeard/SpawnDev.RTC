@@ -1,0 +1,12 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  SIPSorceryMedia.Abstractions -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\Src\sipsorcery\src\SIPSorceryMedia.Abstractions\bin\Debug\net10.0\SIPSorceryMedia.Abstractions.dll
+  SpawnDev.MultiMedia -> D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\bin\Debug\net10.0\SpawnDev.MultiMedia.dll
+  SIPSorcery -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\Src\sipsorcery\src\SIPSorcery\bin\Debug\net10.0\SIPSorcery.dll
+  SpawnDev.RTC -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\bin\Debug\net10.0\SpawnDev.RTC.dll
+  SpawnDev.RTC.Server -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.Server\bin\Debug\net10.0\SpawnDev.RTC.Server.dll
+  PlaywrightMultiTest -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\bin\Debug\net10.0\PlaywrightMultiTest.dll
+Test run for D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\bin\Debug\net10.0\PlaywrightMultiTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 6 s - PlaywrightMultiTest.dll (net10.0)

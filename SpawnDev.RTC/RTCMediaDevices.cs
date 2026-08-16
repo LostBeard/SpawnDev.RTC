@@ -4,7 +4,7 @@ namespace SpawnDev.RTC
 {
     /// <summary>
     /// Cross-platform media device access.
-    /// Browser: wraps navigator.mediaDevices via SpawnDev.BlazorJS.
+    /// Browser: wraps navigator.mediaDevices via SpawnDev.SpawnJS.
     /// Desktop: wraps SipSorcery media sources.
     /// </summary>
     public static class RTCMediaDevices

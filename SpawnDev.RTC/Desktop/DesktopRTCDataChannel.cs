@@ -1,6 +1,11 @@
 using System.Text;
 using SIPSorcery.Net;
-using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.SpawnJS.JSObjects;
+// SpawnJS 2.0 flattens WebRTC wrappers into SpawnDev.SpawnJS.JSObjects, which now also
+// declares an RTCDataChannel. This desktop impl wraps SipSorcery's channel exclusively,
+// so bind the bare name to SipSorcery's to resolve the collision (the SpawnJS JS types
+// like ArrayBuffer/TypedArray are still needed for the IRTCDataChannel Send overloads).
+using RTCDataChannel = SIPSorcery.Net.RTCDataChannel;
 
 namespace SpawnDev.RTC.Desktop
 {

@@ -1,15 +1,16 @@
-using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCMediaStream.
-    /// Wraps the native browser MediaStream via SpawnDev.BlazorJS.
+    /// Wraps the native browser MediaStream via SpawnDev.SpawnJS.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCMediaStream : IRTCMediaStream
     {
         /// <summary>
-        /// Direct access to the underlying BlazorJS MediaStream JSObject.
+        /// Direct access to the underlying MediaStream JS object.
         /// </summary>
         public MediaStream NativeStream { get; }
 
@@ -28,20 +29,21 @@ namespace SpawnDev.RTC.Browser
 
         public IRTCMediaStreamTrack[] GetTracks()
         {
+            // SpawnJS getTracks() returns a JS Array<MediaStreamTrack>; ToArray<T>() marshals it to a .NET array.
             using var tracks = NativeStream.GetTracks();
-            return tracks.Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
+            return tracks.ToArray<MediaStreamTrack>().Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
         }
 
         public IRTCMediaStreamTrack[] GetAudioTracks()
         {
             using var tracks = NativeStream.GetAudioTracks();
-            return tracks.Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
+            return tracks.ToArray<MediaStreamTrack>().Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
         }
 
         public IRTCMediaStreamTrack[] GetVideoTracks()
         {
             using var tracks = NativeStream.GetVideoTracks();
-            return tracks.Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
+            return tracks.ToArray<MediaStreamTrack>().Select(t => (IRTCMediaStreamTrack)new BrowserRTCMediaStreamTrack(t)).ToArray();
         }
 
         public IRTCMediaStreamTrack? GetTrackById(string trackId)
@@ -82,7 +84,8 @@ namespace SpawnDev.RTC.Browser
             if (_disposed) return;
             _disposed = true;
             // Stop all tracks before disposing the stream
-            foreach (var track in NativeStream.GetTracks())
+            using var tracks = NativeStream.GetTracks();
+            foreach (var track in tracks.ToArray<MediaStreamTrack>())
             {
                 track.Stop();
                 track.Dispose();

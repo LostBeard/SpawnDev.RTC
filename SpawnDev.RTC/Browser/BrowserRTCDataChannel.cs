@@ -1,18 +1,18 @@
-using SpawnDev.BlazorJS;
-using SpawnDev.BlazorJS.JSObjects;
-using SpawnDev.BlazorJS.JSObjects.WebRTC;
+using SpawnDev.SpawnJS;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCDataChannel.
-    /// Wraps the native browser RTCDataChannel via SpawnDev.BlazorJS.
+    /// Wraps the native browser RTCDataChannel via SpawnDev.SpawnJS.
     /// Supports zero-copy JS types (ArrayBuffer, TypedArray, Blob).
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCDataChannel : IRTCDataChannel
     {
         /// <summary>
-        /// Direct access to the underlying BlazorJS RTCDataChannel JSObject.
+        /// Direct access to the underlying RTCDataChannel JS object.
         /// Use this for advanced JS interop without going through the abstraction.
         /// </summary>
         public RTCDataChannel NativeChannel { get; }

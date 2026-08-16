@@ -1,0 +1,118 @@
+  Determining projects to restore...
+  Restored D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.Server\SpawnDev.RTC.Server.csproj (in 220 ms).
+  Restored D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj (in 222 ms).
+  4 of 6 projects are up-to-date for restore.
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(411,36): warning CS8618: Non-nullable field 'Components' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(418,24): warning CS8618: Non-nullable field 'QuantTables' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(426,22): warning CS8618: Non-nullable field 'DctCoefficients' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(429,22): warning CS8618: Non-nullable field 'BlockComponentIndex' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(431,22): warning CS8618: Non-nullable field 'BlockHIndex' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(433,22): warning CS8618: Non-nullable field 'BlockVIndex' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\MjpgDecoder.cs(435,22): warning CS8618: Non-nullable field 'BlockQuantTableId' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsDisplayTrack.cs(85,67): warning CS9191: The 'ref' modifier for argument 2 corresponding to 'in' parameter is equivalent to 'in'. Consider using 'in' instead. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsDisplayTrack.cs(117,76): warning CS9191: The 'ref' modifier for argument 2 corresponding to 'in' parameter is equivalent to 'in'. Consider using 'in' instead. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsDisplayTrack.cs(225,78): warning CS9191: The 'ref' modifier for argument 2 corresponding to 'in' parameter is equivalent to 'in'. Consider using 'in' instead. [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsDisplayTrack.cs(50,30): warning CS0067: The event 'WindowsDisplayTrack.OnUnmute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsAudioTrack.cs(49,30): warning CS0067: The event 'WindowsAudioTrack.OnUnmute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsAudioTrack.cs(48,30): warning CS0067: The event 'WindowsAudioTrack.OnMute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsVideoTrack.cs(57,30): warning CS0067: The event 'WindowsVideoTrack.OnUnmute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsMediaStreamTrack.cs(35,30): warning CS0067: The event 'WindowsMediaStreamTrack.OnMute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsMediaStreamTrack.cs(36,30): warning CS0067: The event 'WindowsMediaStreamTrack.OnUnmute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsVideoTrack.cs(56,30): warning CS0067: The event 'WindowsVideoTrack.OnMute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\Windows\WindowsDisplayTrack.cs(49,30): warning CS0067: The event 'WindowsDisplayTrack.OnMute' is never used [D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia.csproj]
+  SpawnDev.MultiMedia -> D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\bin\Debug\net10.0\SpawnDev.MultiMedia.dll
+  SIPSorceryMedia.Abstractions -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\Src\sipsorcery\src\SIPSorceryMedia.Abstractions\bin\Debug\net10.0\SIPSorceryMedia.Abstractions.dll
+  Successfully created package 'D:\users\tj\Projects\SpawnDev.MultiMedia\SpawnDev.MultiMedia\SpawnDev.MultiMedia\bin\Debug\SpawnDev.MultiMedia.0.2.0.nupkg'.
+  SIPSorcery -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\Src\sipsorcery\src\SIPSorcery\bin\Debug\net10.0\SIPSorcery.dll
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Browser\BrowserRTCDataChannel.cs(118,33): warning CS8600: Converting null literal or possible null value to non-nullable type. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Browser\BrowserRTCDataChannel.cs(119,44): warning CS8604: Possible null reference argument for parameter 'obj' in 'void Action<byte[]>.Invoke(byte[] obj)'. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCMediaStreamTrack.cs(31,30): warning CS0067: The event 'DesktopRTCMediaStreamTrack.OnMute' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCPeerConnection.cs(73,52): warning CS0067: The event 'DesktopRTCPeerConnection.OnIceCandidateError' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCMediaStreamTrack.cs(32,30): warning CS0067: The event 'DesktopRTCMediaStreamTrack.OnUnmute' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\MultiMediaVideoSource.cs(48,46): warning CS0067: The event 'MultiMediaVideoSource.OnVideoSourceRawSample' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCDataChannel.cs(64,43): warning CS0067: The event 'DesktopRTCDataChannel.OnArrayBufferMessage' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCTransport.cs(8,38): warning CS0067: The event 'DesktopRTCDtlsTransport.OnStateChange' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Browser\BrowserRTCMediaStreamTrack.cs(27,30): warning CS0067: The event 'BrowserRTCMediaStreamTrack.OnUnmute' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\MultiMediaAudioSource.cs(37,49): warning CS0067: The event 'MultiMediaAudioSource.OnAudioSourceEncodedFrameReady' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCTransport.cs(9,38): warning CS0067: The event 'DesktopRTCDtlsTransport.OnError' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\MultiMediaAudioSource.cs(38,46): warning CS0067: The event 'MultiMediaAudioSource.OnAudioSourceRawSample' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCDataChannel.cs(60,30): warning CS0067: The event 'DesktopRTCDataChannel.OnClosing' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\MultiMediaVideoSource.cs(49,52): warning CS0067: The event 'MultiMediaVideoSource.OnVideoSourceRawSampleFaster' is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCPeerConnection.cs(337,24): warning CS1574: XML comment has cref attribute 'AudioEncoder' that could not be resolved [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCPeerConnection.cs(14,70): warning CA1416: This call site is reachable on all platforms. 'MultiMediaVideoSource' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCPeerConnection.cs(531,23): warning CA1416: This call site is reachable on all platforms. 'MultiMediaVideoSource.Dispose()' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\Desktop\DesktopRTCPeerConnection.cs(533,13): warning CA1416: This call site is reachable on all platforms. 'MultiMediaVideoSource' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.csproj]
+  SpawnDev.RTC -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\bin\Debug\net10.0\SpawnDev.RTC.dll
+  Successfully created package 'D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC\bin\Debug\SpawnDev.RTC.1.1.10-local.1.nupkg'.
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.Server\TrackerSignalingServer.cs(105,67): warning CS0419: Ambiguous reference in cref attribute: 'Extensions.SignalingAppBuilderExtensions.UseRtcSignaling'. Assuming 'SpawnDev.RTC.Server.Extensions.SignalingAppBuilderExtensions.UseRtcSignaling(Microsoft.AspNetCore.Builder.IApplicationBuilder, string, SpawnDev.RTC.Server.TrackerServerOptions?)', but could have also matched other overloads including 'SpawnDev.RTC.Server.Extensions.SignalingAppBuilderExtensions.UseRtcSignaling(Microsoft.AspNetCore.Builder.IApplicationBuilder, string, SpawnDev.RTC.Server.TrackerSignalingServer)'. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.Server\SpawnDev.RTC.Server.csproj]
+  SpawnDev.RTC.Server -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.Server\bin\Debug\net10.0\SpawnDev.RTC.Server.dll
+  Successfully created package 'D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.Server\bin\Debug\SpawnDev.RTC.Server.1.0.7.nupkg'.
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableConsole.cs(3,19): warning CS8618: Non-nullable property 'ExePath' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableBlazorWasm.cs(6,29): warning CS8618: Non-nullable property 'Server' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableBlazorWasm.cs(7,24): warning CS8618: Non-nullable property 'Playwright' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableBlazorWasm.cs(8,21): warning CS8618: Non-nullable property 'Browser' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableBlazorWasm.cs(9,28): warning CS8618: Non-nullable property 'BrowserContext' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableBlazorWasm.cs(10,18): warning CS8618: Non-nullable property 'Page' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectTest.cs(17,12): warning CS8618: Non-nullable property 'TestFunc' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestableProject.cs(5,27): warning CS8618: Non-nullable property 'ProjectDetails' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectDiscovery.cs(256,19): warning CS8618: Non-nullable property 'Include' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectDiscovery.cs(260,19): warning CS8618: Non-nullable property 'Version' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectDiscovery.cs(249,17): warning CS0219: The variable 'art' is assigned but its value is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectDiscovery.cs(251,13): warning CS0219: The variable 'nmt' is assigned but its value is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\TestResultsWriter.cs(73,17): warning CS0219: The variable 'pending' is assigned but its value is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectTest.cs(82,38): warning CS8604: Possible null reference argument for parameter 'url' in 'Task<IResponse?> IPage.GotoAsync(string url, PageGotoOptions? options = null)'. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectRunner.cs(218,51): warning CS8601: Possible null reference assignment. [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectRunner.cs(404,33): warning CS0219: The variable 'nmtt' is assigned but its value is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectRunner.cs(408,25): warning CS0219: The variable 'nmt11' is assigned but its value is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\ProjectRunner.cs(413,17): warning CS0219: The variable 'nmt' is assigned but its value is never used [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\PlaywrightMultiTest.csproj]
+  PlaywrightMultiTest -> D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\bin\Debug\net10.0\PlaywrightMultiTest.dll
+Test run for D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\PlaywrightMultiTest\bin\Debug\net10.0\PlaywrightMultiTest.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[WasmRTCTests.TrackerSignalingClient_Properties] Console: 0 error(s), 1 warning(s)
+  WARN: WebSocket connection to 'wss://tracker.openwebtorrent.com/' failed: WebSocket is closed before the connection is established.
+[PlaywrightMultiTest] [Signaling Embedded] URL: wss://localhost:5570/announce, Room: bfc6bee0...
+[PlaywrightMultiTest] [Signaling Embedded] A connected
+[PlaywrightMultiTest] [Signaling Embedded] B connected
+[PlaywrightMultiTest] [Signaling Embedded] B peer: bda75273
+[PlaywrightMultiTest] [Signaling Embedded] A peer: 77a8c979
+[PlaywrightMultiTest] [Signaling Embedded] B peer: bda75273
+[PlaywrightMultiTest] [Signaling Embedded] A peer: 77a8c979
+[PlaywrightMultiTest] [Signaling Embedded] A got dc 'data' state=connecting
+[PlaywrightMultiTest] [Signaling Embedded] B got dc 'data' state=connecting
+[PlaywrightMultiTest] [Signaling Embedded] B got dc 'data' state=open
+[PlaywrightMultiTest] [Signaling Embedded] A got dc 'data' state=open
+[PlaywrightMultiTest] [Signaling Embedded] B dc open
+[PlaywrightMultiTest] [Signaling Embedded] A dc open
+[PlaywrightMultiTest] [Signaling Embedded] B sent
+[PlaywrightMultiTest] [Signaling Embedded] A sent
+[PlaywrightMultiTest] [Signaling Embedded] A got: from B
+[PlaywrightMultiTest] [Signaling Embedded] B got: from A
+[PlaywrightMultiTest] [Signaling Embedded] SUCCESS - A got: from B, B got: from A
+[PlaywrightMultiTest] [Signaling Live] Tracker: wss://tracker.openwebtorrent.com, Room: 38601d67...
+[PlaywrightMultiTest] [Signaling Embedded] A sent
+[PlaywrightMultiTest] [Signaling Embedded] B sent
+[PlaywrightMultiTest] [Signaling Live] B connected
+[PlaywrightMultiTest] [Signaling Live] A connected
+[PlaywrightMultiTest] [Signaling Live] A peer: 8b874cde
+[PlaywrightMultiTest] [Signaling Live] B peer: a5c745f8
+[PlaywrightMultiTest] [Signaling Live] B dc open
+[PlaywrightMultiTest] [Signaling Live] B sent
+[PlaywrightMultiTest] [Signaling Live] A got: live B
+[PlaywrightMultiTest] [Signaling Live] A sent
+[PlaywrightMultiTest] [Signaling Live] B got: live A
+[PlaywrightMultiTest] [Signaling Live] SUCCESS - A got: live B, B got: live A
+[PlaywrightMultiTest] [Signaling XPlat] URL: wss://localhost:5570/announce, Room: 7c45a783...
+[PlaywrightMultiTest] [Signaling XPlat] Desktop connected
+[PlaywrightMultiTest] [Signaling XPlat] Desktop peer: 2d425230
+[PlaywrightMultiTest] [Signaling XPlat] Desktop got: from browser
+[PlaywrightMultiTest] [Signaling XPlat] Desktop sent
+[PlaywrightMultiTest] [Signaling XPlat] Browser result: OK:from desktop
+[PlaywrightMultiTest] [Signaling XPlat] Desktop result: OK:from browser
+[PlaywrightMultiTest] [Signaling XPlat] SUCCESS - Browser and desktop exchanged messages via new signaling client!
+[PlaywrightMultiTest] [Signaling Isolation] Rooms A=20 bytes, B=20 bytes, peers A=-RT0100-, B=-RT0100-
+[PlaywrightMultiTest] [Signaling Isolation] Both WS connected
+[PlaywrightMultiTest] [Signaling Isolation] A response: {"action":"announce","info_hash":"/ðC@\u009dL\u008cÍ]]\u009d\u0005\r\u000B\u0098³;\u009dÝ","interval":120,"complete":0,"incomplete":1}
+[PlaywrightMultiTest] [Signaling Isolation] B response: {"action":"announce","info_hash":"o|j\u0084{\u0099±1Å\u0094¢¼4%ÍÝ¦\u0090\u007F","interval":120,"complete":0,"incomplete":1}
+[PlaywrightMultiTest] [Signaling Isolation] SUCCESS - rooms are isolated
+
+Passed!  - Failed:     0, Passed:    11, Skipped:     0, Total:    11, Duration: 18 s - PlaywrightMultiTest.dll (net10.0)

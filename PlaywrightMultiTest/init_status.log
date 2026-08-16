@@ -1,70 +1,84 @@
-[22:19:26.415] [T4] Init() started
-[22:19:26.419] [T4] Discovering projects...
-[22:19:26.537] [T4] Found 3 projects
-[22:19:26.538] [T4] Publishing SpawnDev.RTC.Demo...
-[22:19:26.539] [T4] RunDotnetAsync: dotnet publish (timeout=300s)
-[22:19:26.544] [T4] RunDotnetAsync: started PID=37080
-[22:19:42.107] [T13,pool] RunDotnetAsync: done PID=37080 exit=0
-[22:19:42.108] [T13,pool] Publish SpawnDev.RTC.Demo: exit=0
-[22:19:42.109] [T13,pool] Installing Playwright browsers...
-[22:19:43.175] [T13,pool] Creating Playwright instance...
-[22:19:43.603] [T18,pool] Launching Chromium (persistent profile: C:\Users\TJ\AppData\Local\Temp\SpawnDev.RTC.PlaywrightProfile)...
-[22:19:44.270] [T15,pool] Navigating to https://localhost:5570/tests...
-[22:19:44.722] [T19,pool] Page loaded, waiting for test table...
-[22:19:45.319] [T10,pool] Test table ready
-[22:19:45.670] [T21,pool] Browser tests enumerated: 100 tests
-[22:19:45.671] [T21,pool] Publishing SpawnDev.RTC.DemoConsole...
-[22:19:45.671] [T21,pool] RunDotnetAsync: dotnet publish (timeout=300s)
-[22:19:45.675] [T21,pool] RunDotnetAsync: started PID=8920
-[22:19:47.811] [T18,pool] RunDotnetAsync: done PID=8920 exit=0
-[22:19:47.812] [T18,pool] Publish SpawnDev.RTC.DemoConsole: exit=0
-[22:19:47.813] [T18,pool] Enumerating tests from SpawnDev.RTC.DemoConsole.exe...
-[22:19:47.931] [T22,pool] Enumeration done: exit=0, lines=99
-[22:19:47.967] [T22,pool] Init() complete. Total projects=2, total tests=200
-[22:21:45.960] [T25] [CrossPlatform] Signal room: wss://localhost:5570/signal/crossplatform-test-db5456
-[22:21:48.608] [T19,pool] [CrossPlatform] Browser result: {browserResult}
-[22:21:48.613] [T30] [CrossPlatform] Desktop result: {desktopResultStr}
-[22:21:48.614] [T30] [CrossPlatform] SUCCESS - Desktop and browser exchanged data channel messages!
-[22:21:48.653] [T25] [Tracker Embedded] URL: wss://localhost:5570/announce, Room: embedded-test-cc0560
-[22:21:50.708] [T27,pool] [Tracker Embedded] A connected
-[22:21:54.005] [T28,pool] [Tracker Embedded] B connected
-[22:21:54.313] [T13,pool] [Tracker Embedded] B peer: -SR0100-
-[22:21:54.317] [T28,pool] [Tracker Embedded] A peer: -SR0100-
-[22:21:54.317] [T30,pool] [Tracker Embedded] B peer: -SR0100-
-[22:21:54.317] [T28,pool] [Tracker Embedded] A peer: -SR0100-
-[22:21:54.318] [T30,pool] [Tracker Embedded] B got dc 'data' state=connecting
-[22:21:54.318] [T28,pool] [Tracker Embedded] A got dc 'data' state=connecting
-[22:21:54.526] [T35] [Tracker Embedded] A got dc 'data' state=open
-[22:21:54.542] [T34] [Tracker Embedded] B dc open
-[22:21:54.621] [T37] [Tracker Embedded] B got dc 'data' state=open
-[22:21:54.653] [T36] [Tracker Embedded] A dc open
-[22:21:54.826] [T28,pool] [Tracker Embedded] A sent
-[22:21:54.826] [T13,pool] [Tracker Embedded] B sent
-[22:21:54.843] [T35] [Tracker Embedded] A got: from B
-[22:21:54.843] [T37] [Tracker Embedded] B got: from A
-[22:21:54.843] [T37] [Tracker Embedded] A got: from B, B got: from A
-[22:21:54.887] [T25] [Tracker Live] Room: live-test-3d5f0fc9
-[22:21:55.033] [T30,pool] [Tracker Embedded] A sent
-[22:21:55.127] [T30,pool] [Tracker Embedded] B sent
-[22:21:55.161] [T30,pool] [Tracker Live] A connected to openwebtorrent
-[22:21:57.663] [T30,pool] [Tracker Live] B connected to openwebtorrent
-[22:21:58.056] [T13,pool] [Tracker Live] A peer: -SR0100-
-[22:21:58.164] [T27,pool] [Tracker Live] B peer: -SR0100-
-[22:21:58.165] [T27,pool] [Tracker Live] B got dc 'data' state=connecting
-[22:21:58.430] [T39] [Tracker Live] A got dc 'data' state=open
-[22:21:58.461] [T41] [Tracker Live] B dc open
-[22:21:58.667] [T28,pool] [Tracker Live] B sent
-[22:21:58.683] [T39] [Tracker Live] A got: live B
-[22:21:58.936] [T28,pool] [Tracker Live] A sent
-[22:21:58.969] [T41] [Tracker Live] B got: live A
-[22:21:58.969] [T41] [Tracker Live] SUCCESS - A got: live B, B got: live A
-[22:21:59.010] [T25] [Tracker XPlat] URL: wss://localhost:5570/announce, Room: xplat-tracker-4ad795
-[22:22:01.049] [T13,pool] [Tracker XPlat] Desktop connected
-[22:22:02.334] [T28,pool] [Tracker XPlat] Desktop peer: -BR0100-
-[22:22:02.334] [T28,pool] [Tracker XPlat] Desktop peer: -BR0100-
-[22:22:02.427] [T36] [Tracker XPlat] Desktop got: from browser
-[22:22:02.836] [T30,pool] [Tracker XPlat] Desktop sent
-[22:22:02.931] [T30,pool] [Tracker XPlat] Desktop sent
-[22:22:02.932] [T28,pool] [Tracker XPlat] Browser result: OK:from desktop
-[22:22:02.933] [T28,pool] [Tracker XPlat] Desktop result: OK:from browser
-[22:22:02.933] [T28,pool] [Tracker XPlat] SUCCESS - Browser and desktop exchanged messages via WebTorrent tracker!
+[15:06:35.334] [T4] Init() started
+[15:06:35.337] [T4] Filter: (none — run all)
+[15:06:35.337] [T4] Discovering projects...
+[15:06:35.708] [T4] Found 2 projects
+[15:06:35.709] [T4] Publishing SpawnDev.RTC.Demo...
+[15:06:35.711] [T4] RunDotnetAsync: dotnet publish (timeout=300s)
+[15:06:35.715] [T4] RunDotnetAsync: started PID=25336
+[15:06:58.442] [T13,pool] RunDotnetAsync: done PID=25336 exit=0
+[15:06:58.443] [T13,pool] Publish SpawnDev.RTC.Demo: exit=0
+[15:06:58.444] [T13,pool] Installing Playwright browsers...
+[15:06:59.527] [T13,pool] Creating Playwright instance...
+[15:06:59.881] [T13,pool] Launching Chromium (persistent profile: C:\Users\TJ\AppData\Local\Temp\SpawnDev.RTC.PlaywrightProfile)...
+[15:07:00.524] [T13,pool] Navigating to https://localhost:5570/tests...
+[15:07:00.953] [T9,pool] Page loaded, waiting for test table...
+[15:07:01.589] [T16,pool] Test table ready
+[15:07:01.604] [T20,pool] Browser tests enumerated: 148 tests
+[15:07:01.605] [T20,pool] Publishing SpawnDev.RTC.DemoConsole...
+[15:07:01.605] [T20,pool] RunDotnetAsync: dotnet publish (timeout=300s)
+[15:07:01.609] [T20,pool] RunDotnetAsync: started PID=26472
+[15:07:05.409] [T10,pool] RunDotnetAsync: done PID=26472 exit=0
+[15:07:05.410] [T10,pool] Publish SpawnDev.RTC.DemoConsole: exit=0
+[15:07:05.410] [T10,pool] Enumerating tests from SpawnDev.RTC.DemoConsole.exe...
+[15:07:05.549] [T17,pool] Enumeration done: exit=0, lines=174
+[15:07:05.551] [T17,pool] Init() complete. Total projects=2, total tests=323
+[15:08:50.198] [T32] [Signaling Embedded] URL: wss://localhost:5570/announce, Room: 14d1253c...
+[15:08:52.275] [T13,pool] [Signaling Embedded] A connected
+[15:08:52.275] [T9,pool] [Signaling Embedded] B connected
+[15:08:53.254] [T38,pool] [Signaling Embedded] B peer: 84dfcfb2
+[15:08:53.255] [T13,pool] [Signaling Embedded] A peer: 1b77288c
+[15:08:53.259] [T38,pool] [Signaling Embedded] B peer: 84dfcfb2
+[15:08:53.259] [T10,pool] [Signaling Embedded] A peer: 1b77288c
+[15:08:53.259] [T38,pool] [Signaling Embedded] B got dc 'data' state=connecting
+[15:08:53.260] [T10,pool] [Signaling Embedded] A got dc 'data' state=connecting
+[15:08:53.605] [T44] [Signaling Embedded] B got dc 'data' state=open
+[15:08:53.605] [T43] [Signaling Embedded] A got dc 'data' state=open
+[15:08:53.635] [T42] [Signaling Embedded] B dc open
+[15:08:53.635] [T41] [Signaling Embedded] A dc open
+[15:08:53.774] [T9,pool] [Signaling Embedded] A sent
+[15:08:53.774] [T40,pool] [Signaling Embedded] B sent
+[15:08:53.790] [T44] [Signaling Embedded] B got: from A
+[15:08:53.790] [T43] [Signaling Embedded] A got: from B
+[15:08:53.798] [T43] [Signaling Embedded] SUCCESS - A got: from B, B got: from A
+[15:08:53.838] [T32] [Signaling Live] Tracker: wss://tracker.openwebtorrent.com, Room: e3db27e1...
+[15:08:54.118] [T22,pool] [Signaling Embedded] B sent
+[15:08:54.118] [T21,pool] [Signaling Embedded] A sent
+[15:08:54.121] [T9,pool] [Signaling Live] A connected
+[15:08:54.127] [T21,pool] [Signaling Live] B connected
+[15:08:56.428] [T22,pool] [Signaling Live] A peer: e2aee40f
+[15:08:56.545] [T13,pool] [Signaling Live] B peer: 682a0810
+[15:08:56.830] [T42] [Signaling Live] B dc open
+[15:08:57.049] [T13,pool] [Signaling Live] B sent
+[15:08:57.080] [T41] [Signaling Live] A got: live B
+[15:08:57.300] [T21,pool] [Signaling Live] A sent
+[15:08:57.332] [T42] [Signaling Live] B got: live A
+[15:08:57.334] [T42] [Signaling Live] SUCCESS - A got: live B, B got: live A
+[15:08:57.373] [T32] [Signaling XPlat] URL: wss://localhost:5570/announce, Room: db59210e...
+[15:08:59.422] [T38,pool] [Signaling XPlat] Desktop connected
+[15:09:00.015] [T9,pool] [Signaling XPlat] Desktop peer: 2d425230
+[15:09:00.140] [T23] [Signaling XPlat] Desktop got: from browser
+[15:09:00.641] [T9,pool] [Signaling XPlat] Desktop sent
+[15:09:00.643] [T40,pool] [Signaling XPlat] Browser result: OK:from desktop
+[15:09:00.643] [T40,pool] [Signaling XPlat] Desktop result: OK:from browser
+[15:09:00.644] [T40,pool] [Signaling XPlat] SUCCESS - Browser and desktop exchanged messages via new signaling client!
+[15:09:00.681] [T32] [Signaling Isolation] Rooms A=20 bytes, B=20 bytes, peers A=-RT0100-, B=-RT0100-
+[15:09:04.778] [T21,pool] [Signaling Isolation] Both WS connected
+[15:09:04.781] [T21,pool] [Signaling Isolation] A response: {"action":"announce","info_hash":"Ô\u0011ØÉæ]=ÅË`î\u001Ef¿P~J/Í","interval":30,"complete":0,"incomplete":1}
+[15:09:04.782] [T21,pool] [Signaling Isolation] B response: {"action":"announce","info_hash":"{ÜAÙÏ¬}6©«\u0014´ø`xÑù","interval":30,"complete":0,"incomplete":1}
+[15:09:04.782] [T21,pool] [Signaling Isolation] SUCCESS - rooms are isolated
+[15:09:05.180] [T20,pool] [ServerApp] Using launch settings from D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\Properties\launchSettings.json...
+[15:09:07.383] [T20,pool] [ServerApp] D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\Program.cs(49,5): warning ASPDEPR005: 'ForwardedHeadersOptions.KnownNetworks' is obsolete: 'Please use KnownIPNetworks instead. For more information, visit https://aka.ms/aspnet/deprecate/005.' (https://aka.ms/aspnet/deprecate/005) [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\SpawnDev.RTC.ServerApp.csproj]
+[15:09:08.032] [T20,pool] [ServerApp] SpawnDev.RTC.ServerApp 1.0.8 - WebTorrent-compatible signaling server
+[15:09:08.032] [T20,pool] [ServerApp]   Announce: /announce (WebSocket)
+[15:09:08.032] [T20,pool] [ServerApp]   Health:   /health
+[15:09:08.033] [T20,pool] [ServerApp]   Stats:    /stats
+[15:09:08.033] [T20,pool] [ServerApp]   Source:   https://github.com/LostBeard/SpawnDev.RTC
+[15:09:08.052] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[14]
+[15:09:08.053] [T20,pool] [ServerApp]       Now listening on: http://localhost:5590
+[15:09:08.053] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
+[15:09:08.054] [T20,pool] [ServerApp]       Application started. Press Ctrl+C to shut down.
+[15:09:08.054] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
+[15:09:08.054] [T20,pool] [ServerApp]       Hosting environment: Development
+[15:09:08.055] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
+[15:09:08.055] [T20,pool] [ServerApp]       Content root path: D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp
+[15:09:08.995] [T22,pool] [ServerApp.SmokeTest] SUCCESS - /health, /, /stats, /announce all behaved

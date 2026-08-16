@@ -3,7 +3,7 @@ namespace SpawnDev.RTC
     /// <summary>
     /// Cross-platform peer connection interface.
     /// Mirrors the W3C RTCPeerConnection specification.
-    /// Browser: wraps native RTCPeerConnection via SpawnDev.BlazorJS.
+    /// Browser: wraps native RTCPeerConnection via SpawnDev.SpawnJS.
     /// Desktop: wraps SipSorcery RTCPeerConnection.
     /// </summary>
     public interface IRTCPeerConnection : IDisposable

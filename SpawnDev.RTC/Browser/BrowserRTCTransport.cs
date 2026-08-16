@@ -1,8 +1,9 @@
-using SpawnDev.BlazorJS;
-using SpawnDev.BlazorJS.JSObjects.WebRTC;
+using SpawnDev.SpawnJS;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCDtlsTransport : IRTCDtlsTransport
     {
         public RTCDtlsTransport NativeTransport { get; }
@@ -19,6 +20,7 @@ namespace SpawnDev.RTC.Browser
         }
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCIceTransport : IRTCIceTransport
     {
         public RTCIceTransport NativeTransport { get; }
@@ -33,6 +35,7 @@ namespace SpawnDev.RTC.Browser
         }
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCSctpTransport : IRTCSctpTransport
     {
         public RTCSctpTransport NativeTransport { get; }

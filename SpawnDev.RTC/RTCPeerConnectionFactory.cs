@@ -3,7 +3,7 @@ namespace SpawnDev.RTC
     /// <summary>
     /// Factory for creating cross-platform RTCPeerConnection instances.
     /// Automatically selects the correct implementation based on the current platform:
-    /// - Browser (Blazor WASM): uses native browser WebRTC via SpawnDev.BlazorJS
+    /// - Browser (Blazor WASM): uses native browser WebRTC via SpawnDev.SpawnJS
     /// - Desktop (.NET): uses SipSorcery WebRTC stack
     /// </summary>
     public static class RTCPeerConnectionFactory

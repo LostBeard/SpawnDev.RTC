@@ -1,15 +1,16 @@
-using SpawnDev.BlazorJS.JSObjects;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCMediaStreamTrack.
-    /// Wraps the native browser MediaStreamTrack via SpawnDev.BlazorJS.
+    /// Wraps the native browser MediaStreamTrack via SpawnDev.SpawnJS.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCMediaStreamTrack : IRTCMediaStreamTrack
     {
         /// <summary>
-        /// Direct access to the underlying BlazorJS MediaStreamTrack JSObject.
+        /// Direct access to the underlying MediaStreamTrack JS object.
         /// </summary>
         public MediaStreamTrack NativeTrack { get; }
 
@@ -63,7 +64,7 @@ namespace SpawnDev.RTC.Browser
 
         public Task ApplyConstraints(MediaTrackConstraints constraints)
         {
-            return NativeTrack.ApplyConstraints(new SpawnDev.BlazorJS.JSObjects.MediaTrackConstraints());
+            return NativeTrack.ApplyConstraints(new SpawnDev.SpawnJS.JSObjects.MediaTrackConstraints());
         }
 
         public void Stop() => NativeTrack.Stop();

@@ -1,18 +1,18 @@
-using SpawnDev.BlazorJS;
-using SpawnDev.BlazorJS.JSObjects;
-using SpawnDev.BlazorJS.JSObjects.WebRTC;
+using SpawnDev.SpawnJS;
+using SpawnDev.SpawnJS.JSObjects;
 
 namespace SpawnDev.RTC.Browser
 {
     /// <summary>
     /// Browser implementation of IRTCPeerConnection.
-    /// Wraps the native browser RTCPeerConnection via SpawnDev.BlazorJS.
-    /// Uses BlazorJSRuntime.JS static accessor - no DI required.
+    /// Wraps the native browser RTCPeerConnection via SpawnDev.SpawnJS.
+    /// Uses SpawnJSRuntime.Instance static accessor - no DI required.
     /// </summary>
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
     public class BrowserRTCPeerConnection : IRTCPeerConnection
     {
         /// <summary>
-        /// Direct access to the underlying BlazorJS RTCPeerConnection JSObject.
+        /// Direct access to the underlying RTCPeerConnection JS object.
         /// Use this for advanced JS interop (media streams, tracks, stats, etc.)
         /// without going through the abstraction.
         /// </summary>
@@ -54,7 +54,7 @@ namespace SpawnDev.RTC.Browser
                 {
                     IceServers = config.IceServers?.Select(s => new RTCIceServer
                     {
-                        Urls = s.Urls.Length == 1 ? (SpawnDev.BlazorJS.Union<string, string[]>)s.Urls[0] : (SpawnDev.BlazorJS.Union<string, string[]>)s.Urls,
+                        Urls = s.Urls.Length == 1 ? (SpawnDev.SpawnJS.Union<string, string[]>)s.Urls[0] : (SpawnDev.SpawnJS.Union<string, string[]>)s.Urls,
                         Username = s.Username,
                         Credential = s.Credential,
                     }).ToArray(),
@@ -140,8 +140,8 @@ namespace SpawnDev.RTC.Browser
             var diagId = System.Threading.Interlocked.Increment(ref _diagIdCounter);
             if (DiagnosticsEnabled)
             {
-                try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set("__brrtc_poller_started", true); } catch { }
-                try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set("__brrtc_pc_count", diagId); } catch { }
+                try { SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Set("__brrtc_poller_started", true); } catch { }
+                try { SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Set("__brrtc_pc_count", diagId); } catch { }
             }
             _ = Task.Run(async () =>
             {
@@ -153,9 +153,9 @@ namespace SpawnDev.RTC.Browser
                         var iceCurrent = NativeConnection.IceConnectionState;
                         if (DiagnosticsEnabled && ++diagTick % 4 == 0)
                         {
-                            try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set($"__brrtc_pc_{diagId}",
+                            try { SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Set($"__brrtc_pc_{diagId}",
                                 $"tick={diagTick} conn={current} ice={iceCurrent}"); } catch { }
-                            try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set("__brrtc_last_tick",
+                            try { SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Set("__brrtc_last_tick",
                                 $"id={diagId} tick={diagTick} conn={current} ice={iceCurrent}"); } catch { }
                         }
 
@@ -206,7 +206,7 @@ namespace SpawnDev.RTC.Browser
                                 _lastObservedConnectionState = "failed";
                                 if (DiagnosticsEnabled)
                                 {
-                                    try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set($"__brrtc_synth_{diagId}",
+                                    try { SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Set($"__brrtc_synth_{diagId}",
                                         $"src=iceFailed tick={diagTick} subs={OnConnectionStateChange?.GetInvocationList().Length ?? 0}"); } catch { }
                                 }
                                 try { OnConnectionStateChange?.Invoke("failed"); }
@@ -223,7 +223,7 @@ namespace SpawnDev.RTC.Browser
                                     _lastObservedConnectionState = "failed";
                                     if (DiagnosticsEnabled)
                                     {
-                                        try { SpawnDev.BlazorJS.BlazorJSRuntime.JS.Set($"__brrtc_synth_{diagId}",
+                                        try { SpawnDev.SpawnJS.SpawnJSRuntime.Instance.Set($"__brrtc_synth_{diagId}",
                                             $"src=debounce tick={diagTick} subs={OnConnectionStateChange?.GetInvocationList().Length ?? 0}"); } catch { }
                                     }
                                     try { OnConnectionStateChange?.Invoke("failed"); }
@@ -283,7 +283,7 @@ namespace SpawnDev.RTC.Browser
 
         public async Task<RTCSessionDescriptionInit> CreateOffer(RTCOfferOptions options)
         {
-            var jsOptions = new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCOfferOptions { IceRestart = options.IceRestart };
+            var jsOptions = new SpawnDev.SpawnJS.JSObjects.RTCOfferOptions { IceRestart = options.IceRestart };
             var desc = await NativeConnection.CreateOffer(jsOptions);
             return new RTCSessionDescriptionInit { Type = desc.Type, Sdp = desc.Sdp };
         }
@@ -363,12 +363,12 @@ namespace SpawnDev.RTC.Browser
             return new BrowserRTCRtpTransceiver(NativeConnection.AddTransceiver(browserTrack.NativeTrack, opts));
         }
 
-        private static SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpTransceiverOptions ToNativeOptions(RTCRtpTransceiverInit init)
+        private static SpawnDev.SpawnJS.JSObjects.RTCRtpTransceiverOptions ToNativeOptions(RTCRtpTransceiverInit init)
         {
-            return new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCRtpTransceiverOptions
+            return new SpawnDev.SpawnJS.JSObjects.RTCRtpTransceiverOptions
             {
                 Direction = init.Direction,
-                SendEncodings = init.SendEncodings?.Select(e => new SpawnDev.BlazorJS.JSObjects.WebRTC.RTCMediaEncoding
+                SendEncodings = init.SendEncodings?.Select(e => new SpawnDev.SpawnJS.JSObjects.RTCMediaEncoding
                 {
                     Rid = e.Rid,
                     Active = e.Active,
