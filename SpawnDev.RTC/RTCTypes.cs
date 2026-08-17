@@ -45,6 +45,17 @@ namespace SpawnDev.RTC
         [JsonPropertyName("rtcpMuxPolicy")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? RtcpMuxPolicy { get; set; }
+
+        /// <summary>
+        /// Desktop (SipSorcery) only: present an RSA-2048 DTLS certificate instead of the default ECDSA,
+        /// which switches the offered cipher suites to <c>TLS_ECDHE_RSA_*</c>. Required to complete the
+        /// DTLS handshake with a peer whose DTLS stack is an RSA server (e.g. the Reachy Mini's GStreamer
+        /// webrtcsink, which answers <c>handshake_failure(40)</c> to an ECDSA-only offer). The browser
+        /// ignores this - the native WebRTC stack negotiates RSA suites without help. Not serialized
+        /// (never crosses to JS).
+        /// </summary>
+        [JsonIgnore]
+        public bool X_UseRsaForDtlsCertificate { get; set; }
     }
 
     /// <summary>

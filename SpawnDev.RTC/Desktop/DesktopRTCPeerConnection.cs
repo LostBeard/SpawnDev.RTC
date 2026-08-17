@@ -109,6 +109,8 @@ namespace SpawnDev.RTC.Desktop
                     sipConfig.bundlePolicy = RTCBundlePolicy.max_bundle;
                 else if (config.BundlePolicy == "max-compat")
                     sipConfig.bundlePolicy = RTCBundlePolicy.max_compat;
+                // RSA DTLS certificate (for RSA-server peers like the Reachy Mini's GStreamer webrtcsink).
+                sipConfig.X_UseRsaForDtlsCertificate = config.X_UseRsaForDtlsCertificate;
             }
             NativeConnection = new RTCPeerConnection(sipConfig);
             NativeConnection.onicecandidate += HandleIceCandidate;
@@ -241,14 +243,20 @@ namespace SpawnDev.RTC.Desktop
         }
 
         public IRTCRtpTransceiver AddTransceiver(string kind)
+            => AddTransceiver(kind, MediaStreamStatusEnum.SendRecv);
+
+        private IRTCRtpTransceiver AddTransceiver(string kind, MediaStreamStatusEnum direction)
         {
             // Create a SipSorcery track for the specified media kind
             var mediaType = kind == "audio" ? SDPMediaTypesEnum.audio : SDPMediaTypesEnum.video;
             List<SDPAudioVideoMediaFormat> formats;
             if (mediaType == SDPMediaTypesEnum.audio)
             {
+                // Opus first (browser-WebRTC default, e.g. the Reachy Mini's webrtcsink), then narrowband
+                // fallbacks for legacy SIP endpoints.
                 formats = new List<SDPAudioVideoMediaFormat>
                 {
+                    new SDPAudioVideoMediaFormat(SIPSorceryMedia.Abstractions.AudioCommonlyUsedFormats.OpusWebRTC),
                     new SDPAudioVideoMediaFormat(SDPWellKnownMediaFormatsEnum.PCMU),
                     new SDPAudioVideoMediaFormat(SDPWellKnownMediaFormatsEnum.PCMA),
                 };
@@ -261,12 +269,20 @@ namespace SpawnDev.RTC.Desktop
                     new SDPAudioVideoMediaFormat(new VideoFormat(VideoCodecsEnum.H264, 100)),
                 };
             }
-            var track = new MediaStreamTrack(mediaType, false, formats, MediaStreamStatusEnum.SendRecv);
+            var track = new MediaStreamTrack(mediaType, false, formats, direction);
             NativeConnection.addTrack(track);
             var transceiver = new DesktopRTCRtpTransceiver(NativeConnection, track);
             _transceivers.Add(transceiver);
             return transceiver;
         }
+
+        private static MediaStreamStatusEnum DirectionFromString(string? direction) => direction switch
+        {
+            "sendonly" => MediaStreamStatusEnum.SendOnly,
+            "recvonly" => MediaStreamStatusEnum.RecvOnly,
+            "inactive" => MediaStreamStatusEnum.Inactive,
+            _ => MediaStreamStatusEnum.SendRecv,
+        };
 
         public IRTCRtpTransceiver AddTransceiver(IRTCMediaStreamTrack track)
         {
@@ -291,10 +307,9 @@ namespace SpawnDev.RTC.Desktop
         /// </summary>
         public IRTCRtpTransceiver AddTransceiver(string kind, RTCRtpTransceiverInit init)
         {
-            var transceiver = AddTransceiver(kind);
-            // init.Direction / init.SendEncodings both ignored on desktop - SipSorcery
-            // handles direction via MediaStreamTrack.StreamStatus and has no simulcast path.
-            return transceiver;
+            // init.Direction IS applied (via the created track's StreamStatus, set at construction).
+            // init.SendEncodings (simulcast) is accepted but ignored - SipSorcery has no simulcast path.
+            return AddTransceiver(kind, DirectionFromString(init?.Direction));
         }
 
         /// <summary>See <see cref="AddTransceiver(string, RTCRtpTransceiverInit)"/>.</summary>

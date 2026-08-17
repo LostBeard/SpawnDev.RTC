@@ -1,84 +1,77 @@
-[15:06:35.334] [T4] Init() started
-[15:06:35.337] [T4] Filter: (none — run all)
-[15:06:35.337] [T4] Discovering projects...
-[15:06:35.708] [T4] Found 2 projects
-[15:06:35.709] [T4] Publishing SpawnDev.RTC.Demo...
-[15:06:35.711] [T4] RunDotnetAsync: dotnet publish (timeout=300s)
-[15:06:35.715] [T4] RunDotnetAsync: started PID=25336
-[15:06:58.442] [T13,pool] RunDotnetAsync: done PID=25336 exit=0
-[15:06:58.443] [T13,pool] Publish SpawnDev.RTC.Demo: exit=0
-[15:06:58.444] [T13,pool] Installing Playwright browsers...
-[15:06:59.527] [T13,pool] Creating Playwright instance...
-[15:06:59.881] [T13,pool] Launching Chromium (persistent profile: C:\Users\TJ\AppData\Local\Temp\SpawnDev.RTC.PlaywrightProfile)...
-[15:07:00.524] [T13,pool] Navigating to https://localhost:5570/tests...
-[15:07:00.953] [T9,pool] Page loaded, waiting for test table...
-[15:07:01.589] [T16,pool] Test table ready
-[15:07:01.604] [T20,pool] Browser tests enumerated: 148 tests
-[15:07:01.605] [T20,pool] Publishing SpawnDev.RTC.DemoConsole...
-[15:07:01.605] [T20,pool] RunDotnetAsync: dotnet publish (timeout=300s)
-[15:07:01.609] [T20,pool] RunDotnetAsync: started PID=26472
-[15:07:05.409] [T10,pool] RunDotnetAsync: done PID=26472 exit=0
-[15:07:05.410] [T10,pool] Publish SpawnDev.RTC.DemoConsole: exit=0
-[15:07:05.410] [T10,pool] Enumerating tests from SpawnDev.RTC.DemoConsole.exe...
-[15:07:05.549] [T17,pool] Enumeration done: exit=0, lines=174
-[15:07:05.551] [T17,pool] Init() complete. Total projects=2, total tests=323
-[15:08:50.198] [T32] [Signaling Embedded] URL: wss://localhost:5570/announce, Room: 14d1253c...
-[15:08:52.275] [T13,pool] [Signaling Embedded] A connected
-[15:08:52.275] [T9,pool] [Signaling Embedded] B connected
-[15:08:53.254] [T38,pool] [Signaling Embedded] B peer: 84dfcfb2
-[15:08:53.255] [T13,pool] [Signaling Embedded] A peer: 1b77288c
-[15:08:53.259] [T38,pool] [Signaling Embedded] B peer: 84dfcfb2
-[15:08:53.259] [T10,pool] [Signaling Embedded] A peer: 1b77288c
-[15:08:53.259] [T38,pool] [Signaling Embedded] B got dc 'data' state=connecting
-[15:08:53.260] [T10,pool] [Signaling Embedded] A got dc 'data' state=connecting
-[15:08:53.605] [T44] [Signaling Embedded] B got dc 'data' state=open
-[15:08:53.605] [T43] [Signaling Embedded] A got dc 'data' state=open
-[15:08:53.635] [T42] [Signaling Embedded] B dc open
-[15:08:53.635] [T41] [Signaling Embedded] A dc open
-[15:08:53.774] [T9,pool] [Signaling Embedded] A sent
-[15:08:53.774] [T40,pool] [Signaling Embedded] B sent
-[15:08:53.790] [T44] [Signaling Embedded] B got: from A
-[15:08:53.790] [T43] [Signaling Embedded] A got: from B
-[15:08:53.798] [T43] [Signaling Embedded] SUCCESS - A got: from B, B got: from A
-[15:08:53.838] [T32] [Signaling Live] Tracker: wss://tracker.openwebtorrent.com, Room: e3db27e1...
-[15:08:54.118] [T22,pool] [Signaling Embedded] B sent
-[15:08:54.118] [T21,pool] [Signaling Embedded] A sent
-[15:08:54.121] [T9,pool] [Signaling Live] A connected
-[15:08:54.127] [T21,pool] [Signaling Live] B connected
-[15:08:56.428] [T22,pool] [Signaling Live] A peer: e2aee40f
-[15:08:56.545] [T13,pool] [Signaling Live] B peer: 682a0810
-[15:08:56.830] [T42] [Signaling Live] B dc open
-[15:08:57.049] [T13,pool] [Signaling Live] B sent
-[15:08:57.080] [T41] [Signaling Live] A got: live B
-[15:08:57.300] [T21,pool] [Signaling Live] A sent
-[15:08:57.332] [T42] [Signaling Live] B got: live A
-[15:08:57.334] [T42] [Signaling Live] SUCCESS - A got: live B, B got: live A
-[15:08:57.373] [T32] [Signaling XPlat] URL: wss://localhost:5570/announce, Room: db59210e...
-[15:08:59.422] [T38,pool] [Signaling XPlat] Desktop connected
-[15:09:00.015] [T9,pool] [Signaling XPlat] Desktop peer: 2d425230
-[15:09:00.140] [T23] [Signaling XPlat] Desktop got: from browser
-[15:09:00.641] [T9,pool] [Signaling XPlat] Desktop sent
-[15:09:00.643] [T40,pool] [Signaling XPlat] Browser result: OK:from desktop
-[15:09:00.643] [T40,pool] [Signaling XPlat] Desktop result: OK:from browser
-[15:09:00.644] [T40,pool] [Signaling XPlat] SUCCESS - Browser and desktop exchanged messages via new signaling client!
-[15:09:00.681] [T32] [Signaling Isolation] Rooms A=20 bytes, B=20 bytes, peers A=-RT0100-, B=-RT0100-
-[15:09:04.778] [T21,pool] [Signaling Isolation] Both WS connected
-[15:09:04.781] [T21,pool] [Signaling Isolation] A response: {"action":"announce","info_hash":"Ô\u0011ØÉæ]=ÅË`î\u001Ef¿P~J/Í","interval":30,"complete":0,"incomplete":1}
-[15:09:04.782] [T21,pool] [Signaling Isolation] B response: {"action":"announce","info_hash":"{ÜAÙÏ¬}6©«\u0014´ø`xÑù","interval":30,"complete":0,"incomplete":1}
-[15:09:04.782] [T21,pool] [Signaling Isolation] SUCCESS - rooms are isolated
-[15:09:05.180] [T20,pool] [ServerApp] Using launch settings from D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\Properties\launchSettings.json...
-[15:09:07.383] [T20,pool] [ServerApp] D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\Program.cs(49,5): warning ASPDEPR005: 'ForwardedHeadersOptions.KnownNetworks' is obsolete: 'Please use KnownIPNetworks instead. For more information, visit https://aka.ms/aspnet/deprecate/005.' (https://aka.ms/aspnet/deprecate/005) [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\SpawnDev.RTC.ServerApp.csproj]
-[15:09:08.032] [T20,pool] [ServerApp] SpawnDev.RTC.ServerApp 1.0.8 - WebTorrent-compatible signaling server
-[15:09:08.032] [T20,pool] [ServerApp]   Announce: /announce (WebSocket)
-[15:09:08.032] [T20,pool] [ServerApp]   Health:   /health
-[15:09:08.033] [T20,pool] [ServerApp]   Stats:    /stats
-[15:09:08.033] [T20,pool] [ServerApp]   Source:   https://github.com/LostBeard/SpawnDev.RTC
-[15:09:08.052] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[14]
-[15:09:08.053] [T20,pool] [ServerApp]       Now listening on: http://localhost:5590
-[15:09:08.053] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
-[15:09:08.054] [T20,pool] [ServerApp]       Application started. Press Ctrl+C to shut down.
-[15:09:08.054] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
-[15:09:08.054] [T20,pool] [ServerApp]       Hosting environment: Development
-[15:09:08.055] [T20,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
-[15:09:08.055] [T20,pool] [ServerApp]       Content root path: D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp
-[15:09:08.995] [T22,pool] [ServerApp.SmokeTest] SUCCESS - /health, /, /stats, /announce all behaved
+[16:23:22.289] [T4] Init() started
+[16:23:22.293] [T4] Filter: (none — run all)
+[16:23:22.294] [T4] Discovering projects...
+[16:23:22.871] [T4] Found 2 projects
+[16:23:22.873] [T4] Publishing SpawnDev.RTC.Demo...
+[16:23:22.874] [T4] RunDotnetAsync: dotnet publish (timeout=300s)
+[16:23:22.880] [T4] RunDotnetAsync: started PID=52032
+[16:23:43.331] [T7,pool] RunDotnetAsync: done PID=52032 exit=0
+[16:23:43.332] [T7,pool] Publish SpawnDev.RTC.Demo: exit=0
+[16:23:43.333] [T7,pool] Installing Playwright browsers...
+[16:23:44.423] [T7,pool] Creating Playwright instance...
+[16:23:44.823] [T13,pool] Launching Chromium (persistent profile: C:\Users\TJ\AppData\Local\Temp\SpawnDev.RTC.PlaywrightProfile)...
+[16:23:45.596] [T16,pool] Navigating to https://localhost:5570/tests...
+[16:23:46.031] [T7,pool] Page loaded, waiting for test table...
+[16:23:46.752] [T15,pool] Test table ready
+[16:23:46.769] [T13,pool] Browser tests enumerated: 151 tests
+[16:23:46.770] [T13,pool] Publishing SpawnDev.RTC.DemoConsole...
+[16:23:46.771] [T13,pool] RunDotnetAsync: dotnet publish (timeout=300s)
+[16:23:46.774] [T13,pool] RunDotnetAsync: started PID=57848
+[16:23:49.590] [T7,pool] RunDotnetAsync: done PID=57848 exit=0
+[16:23:49.591] [T7,pool] Publish SpawnDev.RTC.DemoConsole: exit=0
+[16:23:49.592] [T7,pool] Enumerating tests from SpawnDev.RTC.DemoConsole.exe...
+[16:23:49.746] [T13,pool] Enumeration done: exit=0, lines=177
+[16:23:49.748] [T13,pool] Init() complete. Total projects=2, total tests=329
+[16:27:25.400] [T32] [Signaling Embedded] URL: wss://localhost:5570/announce, Room: 1a31ab79...
+[16:27:27.465] [T3,pool] [Signaling Embedded] B connected
+[16:27:28.457] [T13,pool] [Signaling Embedded] A peer: 5fe5b885
+[16:27:28.461] [T10,pool] [Signaling Embedded] B peer: 1c0b80a2
+[16:27:59.074] [T38,pool] [Signaling Embedded] B peer: 1c0b80a2
+[16:27:59.075] [T10,pool] [Signaling Embedded] A peer: 5fe5b885
+[16:27:59.076] [T10,pool] [Signaling Embedded] A got dc 'data' state=connecting
+[16:27:59.089] [T10,pool] [Signaling Embedded] A peer: 5fe5b885
+[16:27:59.426] [T43] [Signaling Embedded] B got dc 'data' state=open
+[16:27:59.455] [T42] [Signaling Embedded] A dc open
+[16:27:59.579] [T3,pool] [Signaling Embedded] A sent
+[16:27:59.595] [T43] [Signaling Embedded] B got: from A
+[16:27:59.805] [T32] [Signaling Live] Tracker: wss://tracker.openwebtorrent.com, Room: b956326a...
+[16:27:59.939] [T3,pool] [Signaling Embedded] B sent
+[16:28:00.076] [T3,pool] [Signaling Live] B connected
+[16:28:00.076] [T19,pool] [Signaling Live] A connected
+[16:28:02.395] [T38,pool] [Signaling Live] A peer: b7e6e6cf
+[16:28:02.515] [T38,pool] [Signaling Live] B peer: 2b85557e
+[16:28:02.807] [T48] [Signaling Live] B dc open
+[16:28:03.027] [T41,pool] [Signaling Live] B sent
+[16:28:03.058] [T49] [Signaling Live] A got: live B
+[16:28:03.279] [T10,pool] [Signaling Live] A sent
+[16:28:03.311] [T48] [Signaling Live] B got: live A
+[16:28:03.312] [T48] [Signaling Live] SUCCESS - A got: live B, B got: live A
+[16:28:03.356] [T32] [Signaling XPlat] URL: wss://localhost:5570/announce, Room: 29e20242...
+[16:28:05.404] [T41,pool] [Signaling XPlat] Desktop connected
+[16:28:06.317] [T35,pool] [Signaling XPlat] Desktop peer: 2d425230
+[16:28:06.416] [T50] [Signaling XPlat] Desktop got: from browser
+[16:28:06.924] [T41,pool] [Signaling XPlat] Desktop sent
+[16:28:06.927] [T35,pool] [Signaling XPlat] Browser result: OK:from desktop
+[16:28:06.927] [T35,pool] [Signaling XPlat] Desktop result: OK:from browser
+[16:28:06.928] [T35,pool] [Signaling XPlat] SUCCESS - Browser and desktop exchanged messages via new signaling client!
+[16:28:06.970] [T32] [Signaling Isolation] Rooms A=20 bytes, B=20 bytes, peers A=-RT0100-, B=-RT0100-
+[16:28:11.059] [T3,pool] [Signaling Isolation] Both WS connected
+[16:28:11.063] [T3,pool] [Signaling Isolation] A response: {"action":"announce","info_hash":"ËÔËlÍRh|HÎ\u0002q«IqùË","interval":30,"complete":0,"incomplete":1}
+[16:28:11.063] [T3,pool] [Signaling Isolation] B response: {"action":"announce","info_hash":"\u0004-,!ÔÞ³JæãÖ\nYÜé`\n¶","interval":30,"complete":0,"incomplete":1}
+[16:28:11.064] [T3,pool] [Signaling Isolation] SUCCESS - rooms are isolated
+[16:28:11.593] [T3,pool] [ServerApp] Using launch settings from D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\Properties\launchSettings.json...
+[16:28:14.273] [T3,pool] [ServerApp] D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\Program.cs(49,5): warning ASPDEPR005: 'ForwardedHeadersOptions.KnownNetworks' is obsolete: 'Please use KnownIPNetworks instead. For more information, visit https://aka.ms/aspnet/deprecate/005.' (https://aka.ms/aspnet/deprecate/005) [D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp\SpawnDev.RTC.ServerApp.csproj]
+[16:28:15.374] [T3,pool] [ServerApp] SpawnDev.RTC.ServerApp 2.0.3 - WebTorrent-compatible signaling server
+[16:28:15.375] [T3,pool] [ServerApp]   Announce: /announce (WebSocket)
+[16:28:15.376] [T3,pool] [ServerApp]   Health:   /health
+[16:28:15.376] [T3,pool] [ServerApp]   Stats:    /stats
+[16:28:15.377] [T3,pool] [ServerApp]   Source:   https://github.com/LostBeard/SpawnDev.RTC
+[16:28:15.397] [T3,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[14]
+[16:28:15.398] [T3,pool] [ServerApp]       Now listening on: http://localhost:5590
+[16:28:15.398] [T3,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
+[16:28:15.399] [T3,pool] [ServerApp]       Application started. Press Ctrl+C to shut down.
+[16:28:15.399] [T3,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
+[16:28:15.400] [T3,pool] [ServerApp]       Hosting environment: Development
+[16:28:15.400] [T3,pool] [ServerApp] info: Microsoft.Hosting.Lifetime[0]
+[16:28:15.401] [T3,pool] [ServerApp]       Content root path: D:\users\tj\Projects\SpawnDev.RTC\SpawnDev.RTC\SpawnDev.RTC.ServerApp
+[16:28:16.850] [T41,pool] [ServerApp.SmokeTest] SUCCESS - /health, /, /stats, /announce all behaved

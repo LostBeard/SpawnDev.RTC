@@ -4,8 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.0.3</Version>
-		<PackageReleaseNotes>v2.0.3 - Dependency update</PackageReleaseNotes>
+		<Version>2.1.0</Version>
+		<PackageReleaseNotes>v2.1.0 - Dependency update</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -31,9 +31,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
-		<PackageReference Include="SpawnDev.SpawnJS" Version="2.0.10" />
+		<PackageReference Include="SpawnDev.SpawnJS" Version="2.1.0" />
 		<PackageReference Include="SpawnDev.SpawnJS.Cryptography" Version="2.0.1" />
-		<PackageReference Include="SpawnDev.MultiMedia" Version="2.0.2" />
+		<PackageReference Include="SpawnDev.MultiMedia" Version="2.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>
