@@ -164,6 +164,8 @@ TestResults/
 WGSLDumps/
 _testresults/
 _ilgpudump/
+_rtcdump/
 
 # Init logs
 init_status.log
+
