@@ -29,8 +29,21 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
     // offer-id (20 raw bytes, hex-keyed) → (pc, local dc)
     private readonly ConcurrentDictionary<string, (IRTCPeerConnection pc, IRTCDataChannel? dc)> _pendingOffers = new();
 
-    // remote peer id (hex) → pc
-    private readonly ConcurrentDictionary<string, IRTCPeerConnection> _peers = new();
+    // remote peer id (hex) → the connection currently serving that peer
+    private readonly ConcurrentDictionary<string, PeerEntry> _peers = new();
+
+    // Serializes the glare tie-break. The offer/answer SDP work stays outside it.
+    private readonly object _peersLock = new();
+
+    /// <summary>
+    /// One established connection to a remote peer, tagged with the offer id that produced it.
+    /// The offer id is the glare tie-break key - see <see cref="TryInstallPeer"/>.
+    /// </summary>
+    private sealed class PeerEntry
+    {
+        public required IRTCPeerConnection Pc { get; init; }
+        public required string OfferIdHex { get; init; }
+    }
 
     private int _defaultOfferCount = 5;
     private bool _disposed;
@@ -108,7 +121,11 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var remoteHex = Convert.ToHexString(remotePeerId).ToLowerInvariant();
-        if (_peers.ContainsKey(remoteHex)) return null; // already paired
+        var offerIdHex = Convert.ToHexString(offerId).ToLowerInvariant();
+
+        // Cheap pre-check so we don't build an answer we are only going to throw away.
+        // TryInstallPeer re-decides authoritatively under the lock.
+        if (_peers.TryGetValue(remoteHex, out var seen) && !Wins(offerIdHex, seen.OfferIdHex)) return null;
 
         var pc = RTCPeerConnectionFactory.Create(_config);
         WirePeer(pc, remoteHex);
@@ -124,7 +141,13 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
         // so the answer SDP must have candidates embedded before we return it.
         var fullSdp = await WaitForIceGatheringCompleteAsync(pc, answer.Sdp ?? "", ct).ConfigureAwait(false);
 
-        _peers[remoteHex] = pc;
+        if (!TryInstallPeer(remoteHex, new PeerEntry { Pc = pc, OfferIdHex = offerIdHex }))
+        {
+            try { pc.Close(); } catch { }
+            pc.Dispose();
+            return null;
+        }
+
         OnPeerConnection?.Invoke(pc, remoteHex);
         return fullSdp;
     }
@@ -168,11 +191,8 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
         var localDc = entry.dc;
         var remoteHex = Convert.ToHexString(remotePeerId).ToLowerInvariant();
 
-        // One connection per [room+peerid], symmetric with HandleOfferAsync's guard. If we're
-        // already paired with this peer (e.g. we answered their offer while they also answered one
-        // of ours - possible once the remote peer both offers AND answers), keep the existing
-        // connection and discard this freshly-answered duplicate rather than overwriting + orphaning it.
-        if (_peers.ContainsKey(remoteHex))
+        // Cheap pre-check; TryInstallPeer re-decides authoritatively under the lock.
+        if (_peers.TryGetValue(remoteHex, out var seen) && !Wins(offerIdHex, seen.OfferIdHex))
         {
             try { pc.Close(); } catch { }
             pc.Dispose();
@@ -182,10 +202,52 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
         WirePeer(pc, remoteHex);
         await pc.SetRemoteDescription(new RTCSessionDescriptionInit { Type = "answer", Sdp = answerSdp }).ConfigureAwait(false);
 
-        _peers[remoteHex] = pc;
+        if (!TryInstallPeer(remoteHex, new PeerEntry { Pc = pc, OfferIdHex = offerIdHex }))
+        {
+            try { pc.Close(); } catch { }
+            pc.Dispose();
+            return;
+        }
+
         OnPeerConnection?.Invoke(pc, remoteHex);
 
         if (localDc != null) OnDataChannel?.Invoke(localDc, remoteHex);
+    }
+
+    /// <summary>
+    /// Glare tie-break. Two peers that announce at the same moment each receive the other's
+    /// offer and each answers it, so both end up holding the half of a connection whose
+    /// counterpart the other peer discarded - and nothing ever connects. Both peers see the
+    /// same pair of offer ids, so both can pick the same winner with no extra signaling:
+    /// the lowest offer id wins. Ids are 20 random bytes, so ties do not occur.
+    /// </summary>
+    private static bool Wins(string candidateOfferIdHex, string incumbentOfferIdHex)
+        => string.CompareOrdinal(candidateOfferIdHex, incumbentOfferIdHex) < 0;
+
+    /// <summary>
+    /// Installs <paramref name="entry"/> as the connection for <paramref name="remoteHex"/>,
+    /// applying <see cref="Wins"/> against any incumbent. Returns false if the incumbent wins,
+    /// in which case the caller must close and dispose its connection. A displaced incumbent is
+    /// closed here, after the swap, so <see cref="WirePeer"/>'s identity guard sees the winner.
+    /// </summary>
+    private bool TryInstallPeer(string remoteHex, PeerEntry entry)
+    {
+        IRTCPeerConnection? displaced = null;
+        lock (_peersLock)
+        {
+            if (_peers.TryGetValue(remoteHex, out var incumbent))
+            {
+                if (!Wins(entry.OfferIdHex, incumbent.OfferIdHex)) return false;
+                displaced = incumbent.Pc;
+            }
+            _peers[remoteHex] = entry;
+        }
+        if (displaced != null)
+        {
+            try { displaced.Close(); } catch { }
+            displaced.Dispose();
+        }
+        return true;
     }
 
     // ========================
@@ -199,8 +261,17 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
         {
             if (state == "disconnected" || state == "failed" || state == "closed")
             {
-                if (_peers.TryRemove(remoteHex, out _))
-                    OnPeerDisconnected?.Invoke(remoteHex);
+                bool removed;
+                lock (_peersLock)
+                {
+                    // Only tear down the room entry if THIS connection is still the one serving
+                    // the peer. A connection displaced by the glare tie-break is closed on
+                    // purpose and must not evict the winner that replaced it.
+                    removed = _peers.TryGetValue(remoteHex, out var current)
+                              && ReferenceEquals(current.Pc, pc)
+                              && _peers.TryRemove(remoteHex, out _);
+                }
+                if (removed) OnPeerDisconnected?.Invoke(remoteHex);
             }
         };
     }
@@ -219,8 +290,8 @@ public class RtcPeerConnectionRoomHandler : ISignalingRoomHandler, IDisposable
 
         foreach (var kvp in _peers)
         {
-            try { kvp.Value.Close(); } catch { }
-            kvp.Value.Dispose();
+            try { kvp.Value.Pc.Close(); } catch { }
+            kvp.Value.Pc.Dispose();
         }
         _peers.Clear();
     }

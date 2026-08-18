@@ -45,6 +45,14 @@ namespace PlaywrightMultiTest
                 sw.Stop();
                 TestResultsWriter.RecordResult(test.Name, "Pass", null, sw.Elapsed.TotalMilliseconds);
             }
+            catch (Exception ex) when (ex is IgnoreException or SuccessException or InconclusiveException)
+            {
+                // Assert.Ignore/Pass/Inconclusive report an outcome by throwing. The row for this
+                // test was already written immediately before the assert, so letting it fall into
+                // the failure handler below recorded every skipped test a second time as "Fail" -
+                // which is why a run with 3 skips reported 7 failures instead of 4.
+                throw;
+            }
             catch (Exception ex)
             {
                 sw.Stop();

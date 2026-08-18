@@ -2,7 +2,6 @@ using SpawnDev.SpawnJS;
 using SpawnDev.SpawnJS.JSObjects;
 using SpawnDev.RTC.Demo.Shared.UnitTests;
 using SpawnDev.UnitTesting;
-using System.Text.Json;
 
 namespace SpawnDev.RTC.Demo.UnitTests
 {
@@ -197,21 +196,20 @@ namespace SpawnDev.RTC.Demo.UnitTests
 
         private record ChatState(bool Joined, int PeerCount, int OpenChannels, string? LastIncoming, int IncomingCount);
 
+        // SpawnJS marshals nothing through JSON and has no JsonElement marshaller, so the state
+        // object published by ChatRoom.razor is read field by field through the typed marshallers.
+        // Reading it as a JsonElement silently yielded null for every poll, which made this test
+        // fail on its own instrument no matter what the chat wiring was actually doing.
         private static ChatState? GetState(SpawnJSRuntime js, string id)
         {
-            try
-            {
-                var je = js.Get<JsonElement?>($"chatRoomState_{id}");
-                if (je is null || je.Value.ValueKind != JsonValueKind.Object) return null;
-                var el = je.Value;
-                return new ChatState(
-                    Joined: el.TryGetProperty("joined", out var j) && j.GetBoolean(),
-                    PeerCount: el.TryGetProperty("peerCount", out var pc) ? pc.GetInt32() : 0,
-                    OpenChannels: el.TryGetProperty("openChannels", out var oc) ? oc.GetInt32() : 0,
-                    LastIncoming: el.TryGetProperty("lastIncoming", out var li) && li.ValueKind == JsonValueKind.String ? li.GetString() : null,
-                    IncomingCount: el.TryGetProperty("incomingCount", out var ic) ? ic.GetInt32() : 0);
-            }
-            catch { return null; }
+            using var state = js.Get<SpawnJSObject?>($"chatRoomState_{id}");
+            if (state?.JSRef is not { } r) return null;
+            return new ChatState(
+                Joined: r.Get<bool?>("joined") ?? false,
+                PeerCount: r.Get<int?>("peerCount") ?? 0,
+                OpenChannels: r.Get<int?>("openChannels") ?? 0,
+                LastIncoming: r.Get<string?>("lastIncoming"),
+                IncomingCount: r.Get<int?>("incomingCount") ?? 0);
         }
 
         private static async Task WaitFor(Func<bool> predicate, int timeoutSeconds, string label, Func<string>? diagDump = null)

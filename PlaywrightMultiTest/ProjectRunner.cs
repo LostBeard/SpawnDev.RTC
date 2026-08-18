@@ -1,4 +1,4 @@
-﻿using Microsoft.Playwright;
+using Microsoft.Playwright;
 using SpawnDev.UnitTesting;
 using System.Diagnostics;
 using System.Text.Json;
@@ -713,9 +713,15 @@ namespace PlaywrightMultiTest
 
             var peerIdA = NewRandomPeerId();
             var peerIdB = NewRandomPeerId();
+            LogStatus($"[Signaling Embedded] peerIdA={Convert.ToHexString(peerIdA).ToLowerInvariant()[..8]} peerIdB={Convert.ToHexString(peerIdB).ToLowerInvariant()[..8]}");
 
             var msgFromB = new TaskCompletionSource<string>();
             var handlerA = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handlerA.OnPeerConnectionCreated = (pc, id) =>
+            {
+                LogStatus($"[Signaling Embedded] A created pc path={(id.Length == 0 ? "OUTBOUND-OFFER" : "INBOUND-OFFER:" + id[..8])}");
+                return Task.CompletedTask;
+            };
             handlerA.OnDataChannel += (ch, id) =>
             {
                 LogStatus($"[Signaling Embedded] A got dc '{ch.Label}' state={ch.ReadyState}");
@@ -727,6 +733,11 @@ namespace PlaywrightMultiTest
 
             var msgFromA = new TaskCompletionSource<string>();
             var handlerB = new SpawnDev.RTC.Signaling.RtcPeerConnectionRoomHandler(config);
+            handlerB.OnPeerConnectionCreated = (pc, id) =>
+            {
+                LogStatus($"[Signaling Embedded] B created pc path={(id.Length == 0 ? "OUTBOUND-OFFER" : "INBOUND-OFFER:" + id[..8])}");
+                return Task.CompletedTask;
+            };
             handlerB.OnDataChannel += (ch, id) =>
             {
                 LogStatus($"[Signaling Embedded] B got dc '{ch.Label}' state={ch.ReadyState}");

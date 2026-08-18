@@ -1,5 +1,55 @@
 # Changelog
 
+## SpawnDev.RTC 2.2.1 (2026-08-18)
+
+Fixes a signaling glare deadlock in `RtcPeerConnectionRoomHandler` and carries the
+`SpawnDev.SpawnJS` `RTCStatsReport` iterator fix. Full RTC PMT **330/0/3 GREEN** (was 326/4/3).
+
+### Simultaneous announce left both peers holding orphaned halves
+
+Two peers that announced at the same moment each received the other's offer and each answered it,
+so both ran `HandleOfferAsync` and neither ever consumed the answer to its own offer. The dedup
+guard then made it permanent: each side saw it was "already paired" and discarded its own
+offer-side connection - which was precisely the connection the *other* peer had just answered.
+Both peers ended up holding the half whose counterpart the other had thrown away, `OnPeerConnection`
+fired on both, and no data channel ever opened. The guard was symmetric in shape but not in
+outcome: both peers made the same local decision, and that decision was the wrong one for one of
+them.
+
+The two peers do have enough shared information to agree without extra signaling - they both see
+the same pair of offer ids - so the tie is now broken on the offer id, lowest wins, evaluated
+identically on both sides at both entry points (`HandleOfferAsync` and `HandleAnswerAsync`). Offer
+ids are 20 random bytes, so ties do not occur. A connection displaced by the tie-break is closed
+after the swap, and `WirePeer`'s disconnect handler now checks connection identity before evicting
+the room entry so a deliberately-closed loser cannot evict the winner that replaced it. `_peers`
+carries the establishing offer id per peer, and installs are serialized so the decision cannot race
+the SDP work that precedes it.
+
+This only ever bit peers that announced within the same instant, which is why it reproduced 100% of
+the time against a local embedded tracker (`Signaling.Embedded_TwoPeers` - and the two-popup
+`ChatDemo` browser test) while the same code passed against `tracker.openwebtorrent.com`, where
+real network skew made the relay one-directional.
+
+### getStats() returned no entries on the browser backend
+
+`BrowserRTCStatsReport.Entries()` came back empty for every connection, so `PeerConnection_GetStats`
+found no `peer-connection` entry and `GetStats_CandidatePair_Browser` found no stats at all. Root
+cause was in `SpawnDev.SpawnJS`: `RTCStatsReport.Entries`/`Keys()`/`Values()` marshalled a JS Map
+Iterator as if it were an Array, and the array marshaller sizes its result from `length`, which an
+iterator does not have. Fixed in `SpawnDev.SpawnJS` (see its 2.1.6 entry); no change was needed in
+`SpawnDev.RTC` itself.
+
+### Test-harness fixes
+
+- `WasmRTCTests.GetState` read the chat page's published state as a `JsonElement`. SpawnJS marshals
+  nothing through JSON and registers no `JsonElement` marshaller, so the read failed into the
+  helper's `catch { return null; }` on every poll - the `ChatDemo` test was failing on its own
+  instrument, and would have kept failing after the glare fix. It now reads the state object field
+  by field through the typed marshallers.
+- `PlaywrightMultiTest` counted every skipped test twice. `Assert.Ignore` reports by throwing, and
+  the general `catch` recorded a second "Fail" row for a test that had already been recorded as
+  "Skip" - so a run with 3 skips reported 7 failures instead of 4.
+
 ## SpawnDev.RTC 1.1.11 (2026-06-24)
 
 Carries the `SpawnDev.SIPSorcery 10.0.7` answerer DTLS-role fix. Full RTC PMT GREEN; new fork unit + integration regression tests pass; 37/37 WebRTC+SDP negotiation unit tests green.

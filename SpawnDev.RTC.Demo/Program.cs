@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using SpawnDev.SpawnJS;
-using SpawnDev.SpawnJS.Cryptography;
+using SpawnDev;
 using SpawnDev.RTC.Demo;
 using SpawnDev.RTC.Demo.UnitTests;
-using SpawnDev;
+using SpawnDev.SpawnJS;
 
 // Print build timestamp
 var buildTimestamp = typeof(Program).Assembly

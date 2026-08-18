@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
   <Folder Name="/Src/" />
   <Folder Name="/Src/sipsorcery/" />
   <Folder Name="/Src/sipsorcery/src/">
