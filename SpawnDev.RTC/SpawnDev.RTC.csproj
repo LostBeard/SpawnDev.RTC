@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.2.3-local.3</Version>
+		<Version>2.2.3</Version>
 		<PackageReleaseNotes>v2.2.3 - DTLS client cipher-suite fix (via SpawnDev.SIPSorcery 10.0.8). The desktop DTLS client used to offer only the cipher suites matching ITS OWN certificate's signature algorithm, so it could not complete a handshake with any peer presenting the other certificate type - handshake_failure(40) AFTER ICE connected. It now offers both ECDSA and RSA authenticated suites. MEASURED against a live Reachy Mini robot: ECDSA peer 0 packets before, 990 after.</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
