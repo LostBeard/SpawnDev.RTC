@@ -1,5 +1,38 @@
 # Changelog
 
+## SpawnDev.RTC 2.2.3 (2026-09-08)
+
+Carries **SpawnDev.SIPSorcery 10.0.8** - a DTLS client cipher-suite fix that unblocks desktop
+WebRTC against any peer whose certificate type differs from ours.
+
+### A desktop peer could not connect to half the swarm
+
+`DtlsClient.GetSupportedCipherSuites()` branched on **our own** certificate's signature algorithm and
+offered only that auth family - an RSA certificate offered only `TLS_ECDHE_RSA_*`, an ECDSA certificate
+only `TLS_ECDHE_ECDSA_*`. A TLS client's cipher-suite list describes the certificate it is willing to
+**accept from the peer**; the auth component of a suite names the *server's* certificate type, not the
+client's. Offering one family therefore rejected every peer presenting the other type, and the handshake
+died with `handshake_failure(40)` **after ICE had already connected** - which reads as a network problem
+and is not one.
+
+Browsers advertise both families, so this was invisible until it was not: whether a given peer connected
+depended on which certificate type it happened to generate. It surfaced as SpawnDev.WebTorrent's desktop
+lane intermittently finding zero peers on the public Sintel swarm while the browser lane passed every
+time. It is also the real cause behind the two `handshake_failure(40)` cases previously worked around by
+forcing our certificate to RSA (SpawnWear/libpeer 2026-06-23, Reachy Mini/GStreamer 2026-07-20); those
+workarounds are no longer needed.
+
+The client now offers the union - 5 ECDSA-authenticated + 5 RSA-authenticated suites - and a
+`handshake_failure(40)` alert logs our certificate type and the suites we offered instead of a bare code.
+`DtlsServer` still branches on our own certificate, which is correct there and is documented in the source.
+
+Measured against the live Reachy Mini robot, one variable at a time: RSA certificate 992 RTP packets
+(already worked), ECDSA certificate 0 packets before the fix, 990 after.
+
+## SpawnDev.RTC 2.2.2
+
+Dependency update only.
+
 ## SpawnDev.RTC 2.2.1 (2026-08-18)
 
 Fixes a signaling glare deadlock in `RtcPeerConnectionRoomHandler` and carries the
