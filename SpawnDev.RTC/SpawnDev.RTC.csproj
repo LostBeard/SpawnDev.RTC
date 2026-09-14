@@ -4,8 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.2.3</Version>
-		<PackageReleaseNotes>v2.2.3 - DTLS client cipher-suite fix (via SpawnDev.SIPSorcery 10.0.8). The desktop DTLS client used to offer only the cipher suites matching ITS OWN certificate's signature algorithm, so it could not complete a handshake with any peer presenting the other certificate type - handshake_failure(40) AFTER ICE connected. It now offers both ECDSA and RSA authenticated suites. MEASURED against a live Reachy Mini robot: ECDSA peer 0 packets before, 990 after.</PackageReleaseNotes>
+		<Version>2.2.4</Version>
+		<PackageReleaseNotes>v2.2.4 - Dependency update.</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>
@@ -31,9 +31,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
-		<PackageReference Include="SpawnDev.SpawnJS" Version="2.1.7" />
-		<PackageReference Include="SpawnDev.SpawnJS.Cryptography" Version="2.0.1" />
-		<PackageReference Include="SpawnDev.MultiMedia" Version="2.2.1" />
+		<PackageReference Include="SpawnDev.SpawnJS" Version="2.1.17" />
+		<PackageReference Include="SpawnDev.SpawnJS.Cryptography" Version="2.0.2" />
+		<PackageReference Include="SpawnDev.MultiMedia" Version="2.2.2" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -51,18 +51,13 @@
 		<ProjectReference Include="..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\Src\sipsorcery\src\SIPSorcery\SIPSorcery.csproj')">
-		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.8" />
+		<PackageReference Include="SpawnDev.SIPSorcery" Version="10.0.9" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="Assets\icon-128.png" Pack="true" PackagePath="\" />
 		<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
 		<None Include="..\README.md" Pack="true" PackagePath="\" />
-		<None Include="wwwroot\icon-128.png" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Remove="wwwroot\icon-128.png" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -75,6 +70,7 @@
 	<ItemGroup>
 	  <Folder Include="Browser\" />
 	  <Folder Include="Desktop\" />
+	  <Folder Include="wwwroot\" />
 	</ItemGroup>
 
 </Project>
