@@ -1,5 +1,18 @@
 # Changelog
 
+## SpawnDev.RTC 2.2.5 (2026-09-23)
+
+Dependency update, no RTC code change.
+
+- **SpawnDev.MultiMedia 2.3.0.** `MediaDevices.GetUserMedia` failures now throw `MediaDeviceException`
+  (`Name` = `NotFoundError` / `NotReadableError` / the browser's error name, `Kind`, `InnerException`) on
+  desktop and in the browser. Desktop used to return a stub "No Camera Found" / "No Audio Input Found"
+  track, so a desktop caller that fed a MultiMedia capture into `DesktopRTCPeerConnection.AddTrack` could
+  get a track that never produced frames instead of an error. `DeviceId` is now exact on both platforms.
+  RTC's own `RTCMediaDevices.GetUserMedia` does not go through MultiMedia and is unchanged.
+- **SpawnDev.SpawnJS 2.1.18.** A rejected async JS call throws `JSException` with the JS error `Name`
+  (`NotAllowedError`, `OverconstrainedError`, ...) instead of a plain `Exception` carrying only the message.
+
 ## SpawnDev.RTC 2.2.3 (2026-09-08)
 
 Carries **SpawnDev.SIPSorcery 10.0.8** - a DTLS client cipher-suite fix that unblocks desktop
