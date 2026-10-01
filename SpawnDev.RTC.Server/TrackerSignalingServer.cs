@@ -102,7 +102,7 @@ public sealed class TrackerSignalingServer
 
     /// <summary>
     /// Handle one WebSocket connection. Call from an ASP.NET Core endpoint that
-    /// has already accepted the upgrade (e.g. through <see cref="Extensions.SignalingAppBuilderExtensions.UseRtcSignaling"/>).
+    /// has already accepted the upgrade (e.g. through <see cref="Extensions.SignalingAppBuilderExtensions.UseRtcSignaling(Microsoft.AspNetCore.Builder.IApplicationBuilder, string, TrackerSignalingServer)"/>).
     /// </summary>
     public async Task HandleWebSocketAsync(HttpContext context)
     {
