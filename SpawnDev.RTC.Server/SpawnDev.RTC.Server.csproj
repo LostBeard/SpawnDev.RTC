@@ -4,8 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.2.4</Version>
-		<PackageReleaseNotes>v2.2.4 - Dependency update.</PackageReleaseNotes>
+		<Version>2.3.0</Version>
+		<PackageReleaseNotes>v2.3.0 - SpawnDev.RTC 2.3.0 (SpawnDev.SpawnJS 3.0.0).</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EmbedAllSources>true</EmbedAllSources>

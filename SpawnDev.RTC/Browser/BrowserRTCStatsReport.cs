@@ -7,7 +7,7 @@ namespace SpawnDev.RTC.Browser
     /// Browser implementation of <see cref="IRTCStatsReport"/>. Wraps the native
     /// browser <see cref="RTCStatsReport"/> JS object. Each entry's
     /// <see cref="RTCStatsEntry.Values"/> dictionary is populated by JSON-serializing
-    /// the underlying JS stats object via <see cref="JSON.Stringify(object)"/>, so
+    /// the underlying JS stats object with the global <c>JSON.stringify</c>, so
     /// consumers get the full surface (<c>bytesReceived</c>, <c>packetsLost</c>,
     /// <c>jitter</c>, <c>roundTripTime</c>, etc.) - not just id/type/timestamp.
     /// </summary>

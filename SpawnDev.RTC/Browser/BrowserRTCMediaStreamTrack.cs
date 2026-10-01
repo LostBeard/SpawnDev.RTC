@@ -32,6 +32,7 @@ namespace SpawnDev.RTC.Browser
             NativeTrack = track;
             NativeTrack.OnEnded += HandleEnded;
             NativeTrack.OnMute += HandleMute;
+            NativeTrack.OnUnMute += HandleUnmute;
         }
 
         public string ContentHint
@@ -76,6 +77,7 @@ namespace SpawnDev.RTC.Browser
 
         private void HandleEnded(Event e) => OnEnded?.Invoke();
         private void HandleMute(Event e) => OnMute?.Invoke();
+        private void HandleUnmute(Event e) => OnUnmute?.Invoke();
 
         public void Dispose()
         {
@@ -83,6 +85,7 @@ namespace SpawnDev.RTC.Browser
             _disposed = true;
             NativeTrack.OnEnded -= HandleEnded;
             NativeTrack.OnMute -= HandleMute;
+            NativeTrack.OnUnMute -= HandleUnmute;
             NativeTrack.Dispose();
         }
     }

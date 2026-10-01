@@ -115,7 +115,7 @@ namespace SpawnDev.RTC.Browser
                 // Fire byte[] event if subscribed (copies data to .NET)
                 if (OnBinaryMessage != null)
                 {
-                    var bytes = (byte[])arrayBuffer;
+                    var bytes = arrayBuffer.ReadBytes();
                     OnBinaryMessage.Invoke(bytes);
                 }
 

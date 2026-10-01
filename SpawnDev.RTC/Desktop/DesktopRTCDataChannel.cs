@@ -62,11 +62,11 @@ namespace SpawnDev.RTC.Desktop
 
         public event Action? OnOpen;
         public event Action? OnClose;
-        public event Action? OnClosing;  // SipSorcery doesn't have this - never fires
+        public event Action? OnClosing { add { } remove { } }  // SipSorcery has no closing state - never fires
         public event Action? OnBufferedAmountLow;  // Fired by the emulated poller in StartBufferedAmountLowPoller.
         public event Action<string>? OnStringMessage;
         public event Action<byte[]>? OnBinaryMessage;
-        public event Action<ArrayBuffer>? OnArrayBufferMessage;  // Never fires on desktop
+        public event Action<ArrayBuffer>? OnArrayBufferMessage { add { } remove { } }  // ArrayBuffer is browser-only - never fires on desktop
         public event Action<string>? OnError;
 
         public DesktopRTCDataChannel(RTCDataChannel channel)

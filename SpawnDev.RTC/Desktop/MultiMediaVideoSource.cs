@@ -45,8 +45,8 @@ namespace SpawnDev.RTC.Desktop
         private int _bitrateBps = 1_500_000;
 
         public event EncodedSampleDelegate? OnVideoSourceEncodedSample;
-        public event RawVideoSampleDelegate? OnVideoSourceRawSample;
-        public event RawVideoSampleFasterDelegate? OnVideoSourceRawSampleFaster;
+        public event RawVideoSampleDelegate? OnVideoSourceRawSample { add { } remove { } }  // this source emits encoded samples only
+        public event RawVideoSampleFasterDelegate? OnVideoSourceRawSampleFaster { add { } remove { } }  // this source emits encoded samples only
         public event SourceErrorDelegate? OnVideoSourceError;
 
         /// <summary>Target encoder bitrate in bits per second. Default 1.5 Mbps (reasonable for 640x480 @ 30 fps).</summary>

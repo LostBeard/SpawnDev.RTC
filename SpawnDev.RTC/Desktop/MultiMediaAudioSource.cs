@@ -34,8 +34,8 @@ namespace SpawnDev.RTC.Desktop
         private int _samplesPerChannelPerFrame;
 
         public event EncodedSampleDelegate? OnAudioSourceEncodedSample;
-        public event Action<EncodedAudioFrame>? OnAudioSourceEncodedFrameReady;
-        public event RawAudioSampleDelegate? OnAudioSourceRawSample;
+        public event Action<EncodedAudioFrame>? OnAudioSourceEncodedFrameReady { add { } remove { } }  // this source emits OnAudioSourceEncodedSample only
+        public event RawAudioSampleDelegate? OnAudioSourceRawSample { add { } remove { } }  // this source emits OnAudioSourceEncodedSample only
         public event SourceErrorDelegate? OnAudioSourceError;
 
         public MultiMediaAudioSource(IAudioTrack track, AudioEncoder? encoder = null)

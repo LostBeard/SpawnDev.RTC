@@ -1,5 +1,32 @@
 # Changelog
 
+## SpawnDev.RTC 2.3.0 + SpawnDev.RTC.Server 2.3.0 (2026-10-01)
+
+Dependency update to the SpawnJS 3 line, plus two event fixes found clearing the library's warnings.
+
+### Fixed
+- **Browser `IRTCMediaStreamTrack.OnUnmute` never fired.** `BrowserRTCMediaStreamTrack` wired `ended` and `mute` but
+  not `unmute`. A received track starts muted and unmutes when RTP arrives, so a caller waiting for media never heard it.
+- **Desktop `IRTCPeerConnection.OnIceCandidateError` never fired.** SipSorcery raises `onicecandidateerror` for a remote
+  candidate it rejects (empty, wildcard address, bad port, unsupported protocol/component, mDNS); it was never forwarded.
+  `ErrorText` is SipSorcery's reason, `Address`/`Port` the candidate's, `ErrorCode` 0 (no STUN code exists for these).
+- Library builds with 0 warnings: browser data-channel `byte[]` path uses `ReadBytes()` (nullable cast), events the
+  desktop backend has no source for are explicit no-op events, two broken `cref`s.
+
+### Tests
+- `Event_RemoteTrack_OnUnmuteFires_Browser` (loopback, fake mic) and `Event_RejectedRemoteCandidate_OnIceCandidateError_Desktop`
+  (wildcard host candidate). Red-checked: both fail on 2.2.5's code. PlaywrightMultiTest 335 pass / 0 fail / 3 skip
+  (the same 3 platform/env skips as 2.2.5).
+
+### Dependencies
+
+- **SpawnDev.SpawnJS 2.1.18 -> 3.0.0.** One-crossing marshaller: a .NET -> JS call costs one crossing however
+  many arguments or POCO members it carries (bind-group style descriptors 104 -> 1). Minor bump because a
+  consumer pinning SpawnJS 2.x now gets NU1605.
+- **SpawnDev.SpawnJS.Cryptography 2.1.0** (SpawnJS 3; restored browser + DotNetCrypto cross-platform tests).
+- **SpawnDev.MultiMedia 2.4.0** (SpawnJS 3 + SpawnDev.ILGPU 5.3.0; its browser tests left SpawnDev.BlazorJS).
+- SpawnDev.SIPSorcery stays 10.0.9 (no SpawnJS dependency).
+
 ## SpawnDev.RTC 2.2.5 (2026-09-23)
 
 Dependency update, no RTC code change.

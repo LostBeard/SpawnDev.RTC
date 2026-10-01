@@ -114,6 +114,7 @@ namespace SpawnDev.RTC.Desktop
             }
             NativeConnection = new RTCPeerConnection(sipConfig);
             NativeConnection.onicecandidate += HandleIceCandidate;
+            NativeConnection.onicecandidateerror += HandleIceCandidateError;
             NativeConnection.ondatachannel += HandleDataChannel;
             NativeConnection.onconnectionstatechange += HandleConnectionStateChange;
             NativeConnection.onnegotiationneeded += HandleNegotiationNeeded;
@@ -349,7 +350,7 @@ namespace SpawnDev.RTC.Desktop
         /// <summary>
         /// Overload that accepts a preconstructed <see cref="MultiMediaAudioSource"/>, giving the
         /// caller explicit control over the set of advertised codecs (via the SipSorcery
-        /// <see cref="AudioEncoder"/> passed into the source ctor). Use this when a specific
+        /// <see cref="SIPSorcery.Media.AudioEncoder"/> passed into the source ctor). Use this when a specific
         /// codec restriction is required - for example in tests that want to lock negotiation
         /// onto Opus so peer-side codec preference quirks cannot pick a different format.
         /// </summary>
@@ -474,6 +475,19 @@ namespace SpawnDev.RTC.Desktop
             });
         }
 
+        // SipSorcery reports a remote candidate it rejected (empty, wildcard address, bad port, unsupported
+        // protocol or component, unresolvable mDNS name). It has no STUN error code, so ErrorCode is 0.
+        private void HandleIceCandidateError(RTCIceCandidate candidate, string error)
+        {
+            OnIceCandidateError?.Invoke(new RTCIceCandidateError
+            {
+                Address = candidate?.address,
+                Port = candidate?.port,
+                ErrorCode = 0,
+                ErrorText = error,
+            });
+        }
+
         private void HandleDataChannel(RTCDataChannel channel)
         {
             OnDataChannel?.Invoke(new DesktopRTCDataChannel(channel));
@@ -547,6 +561,7 @@ namespace SpawnDev.RTC.Desktop
             }
             _videoSources.Clear();
             NativeConnection.onicecandidate -= HandleIceCandidate;
+            NativeConnection.onicecandidateerror -= HandleIceCandidateError;
             NativeConnection.ondatachannel -= HandleDataChannel;
             NativeConnection.onconnectionstatechange -= HandleConnectionStateChange;
             NativeConnection.onsignalingstatechange -= HandleSignalingStateChange;

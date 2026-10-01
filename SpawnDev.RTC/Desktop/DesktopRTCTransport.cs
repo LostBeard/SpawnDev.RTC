@@ -5,8 +5,8 @@ namespace SpawnDev.RTC.Desktop
         private readonly SIPSorcery.Net.RTCPeerConnection _pc;
         public string State => _pc.connectionState == SIPSorcery.Net.RTCPeerConnectionState.connected ? "connected" : "new";
         public IRTCIceTransport IceTransport => new DesktopRTCIceTransport(_pc);
-        public event Action<string>? OnStateChange;
-        public event Action<string>? OnError;
+        public event Action<string>? OnStateChange { add { } remove { } }  // SipSorcery exposes no DTLS transport state events - never fires
+        public event Action<string>? OnError { add { } remove { } }  // SipSorcery exposes no DTLS transport error events - never fires
 
         public DesktopRTCDtlsTransport(SIPSorcery.Net.RTCPeerConnection pc)
         {

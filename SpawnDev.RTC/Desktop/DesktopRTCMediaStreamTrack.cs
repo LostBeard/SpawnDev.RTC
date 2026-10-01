@@ -28,8 +28,8 @@ namespace SpawnDev.RTC.Desktop
         public string ReadyState => _stopped ? "ended" : "live";
 
         public event Action? OnEnded;
-        public event Action? OnMute;
-        public event Action? OnUnmute;
+        public event Action? OnMute { add { } remove { } }  // SipSorcery tracks have no mute state - never fires
+        public event Action? OnUnmute { add { } remove { } }  // SipSorcery tracks have no mute state - never fires
 
         public DesktopRTCMediaStreamTrack(MediaStreamTrack track)
         {
