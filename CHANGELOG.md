@@ -1,5 +1,22 @@
 # Changelog
 
+## SpawnDev.RTC 2.3.1 (2026-10-06)
+
+Desktop data channels survive packet loss with partial-reliability peers.
+
+### Fixed
+- **Desktop: an association stalled when the peer abandoned unreliable chunks.** A peer sending on a partially reliable
+  channel (`maxRetransmits: 0`, e.g. a video channel) skips lost chunks with SCTP FORWARD TSN (RFC 3758); the desktop
+  stack ignored it, waited forever for the skipped TSNs, and the session died. SpawnDev.SIPSorcery 10.0.10 handles
+  FORWARD TSN on the receive side, advertises Forward-TSN-Supported in INIT, and parses short INITs correctly. Found
+  with MiniRover (an ESP32 car streaming camera frames over an unreliable channel): sessions now hold at 5% and 15%
+  injected loss.
+
+### Tests
+- SIPSorcery unit tests 594 pass / 0 fail (net8.0 and net10.0), incl. 7 new FORWARD TSN tests.
+  PlaywrightMultiTest 335 pass / 0 fail / 3 skip (the same 3 as 2.3.0).
+
+
 ## SpawnDev.RTC 2.3.0 + SpawnDev.RTC.Server 2.3.0 (2026-10-01)
 
 Dependency update to the SpawnJS 3 line, plus two event fixes found clearing the library's warnings.
