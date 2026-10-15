@@ -111,6 +111,8 @@ namespace SpawnDev.RTC.Desktop
                     sipConfig.bundlePolicy = RTCBundlePolicy.max_compat;
                 // RSA DTLS certificate (for RSA-server peers like the Reachy Mini's GStreamer webrtcsink).
                 sipConfig.X_UseRsaForDtlsCertificate = config.X_UseRsaForDtlsCertificate;
+                sipConfig.X_SctpMaxBurst = config.X_SctpMaxBurst;
+                sipConfig.X_SctpBurstPeriodMilliseconds = config.X_SctpBurstPeriodMilliseconds;
             }
             NativeConnection = new RTCPeerConnection(sipConfig);
             NativeConnection.onicecandidate += HandleIceCandidate;

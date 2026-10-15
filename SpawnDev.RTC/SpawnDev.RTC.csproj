@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>2.4.0-local.2</Version>
+		<Version>2.4.0-local.3</Version>
 		<PackageReleaseNotes>v2.3.1 - SpawnDev.SIPSorcery 10.0.10: desktop data channels handle SCTP FORWARD TSN (RFC 3758), so a peer abandoning unreliable chunks no longer stalls the association.</PackageReleaseNotes>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

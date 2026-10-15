@@ -56,6 +56,18 @@ namespace SpawnDev.RTC
         /// </summary>
         [JsonIgnore]
         public bool X_UseRsaForDtlsCertificate { get; set; }
+
+        /// <summary>
+        /// Desktop only: chunks the SCTP sender may send per burst (0 = the RFC default, 4). Data channel throughput is capped at about <c>MaxBurst * 1300 B / RTT</c>, so the default moves
+        /// only ~170 KB/s on a LAN with a 30 ms round trip (measured uploading audio to a Reachy Mini). 32 to 64 suits a peer on the same LAN; leave it for the public internet.
+        /// The browser ignores it (its native stack tunes itself). Not serialized.
+        /// </summary>
+        [JsonIgnore]
+        public int X_SctpMaxBurst { get; set; }
+
+        /// <summary>Desktop only: milliseconds the SCTP sender waits between bursts when no acknowledgement wakes it (0 = the default, 50). See <see cref="X_SctpMaxBurst"/>.</summary>
+        [JsonIgnore]
+        public int X_SctpBurstPeriodMilliseconds { get; set; }
     }
 
     /// <summary>
