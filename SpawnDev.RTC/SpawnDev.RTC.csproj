@@ -33,7 +33,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
 		<PackageReference Include="SpawnDev.SpawnJS" Version="3.0.0" />
 		<PackageReference Include="SpawnDev.SpawnJS.Cryptography" Version="2.1.0" />
-		<PackageReference Include="SpawnDev.MultiMedia" Version="2.4.0" />
+		<PackageReference Include="SpawnDev.MultiMedia" Version="2.5.0-local.1" />
 	</ItemGroup>
 
 	<ItemGroup>

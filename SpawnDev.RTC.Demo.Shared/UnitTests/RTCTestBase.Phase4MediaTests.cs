@@ -1,3 +1,4 @@
+using SpawnDev.RTC.Video;
 using SpawnDev.RTC;
 using SpawnDev.RTC.Desktop;
 using SpawnDev.MultiMedia;
@@ -425,6 +426,103 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
             if (senderBridge.EncodedByteCount < 1000)
                 throw new Exception(
                     $"Sender-side encoder produced only {senderBridge.EncodedByteCount} bytes. Encoder is emitting suspiciously small output.");
+        }
+
+        /// <summary>
+        /// Phase 4c - the receiving side of the H.264 bridge. A picture with structure (a luma ramp, a bright square) goes through the encoder, RTP, DTLS/SRTP over loopback, the
+        /// depacketizer and the H.264 decoder, and arrives from <see cref="Video.RTCVideoExtensions.ReceiveVideoFrames"/> as BGRA: the right size, the bright square bright and
+        /// the ramp rising left to right, and no more frames than <c>MaxFramesPerSecond</c> allows. Windows only.
+        /// </summary>
+        [TestMethod]
+        public async Task Phase4c_Desktop_VideoReceiver_DeliversPicturesThatMatchWhatWasSent()
+        {
+            if (OperatingSystem.IsBrowser()) return;
+            if (!OperatingSystem.IsWindows()) return;
+
+            const int Width = 320, Height = 240, Fps = 30;
+            var config = new RTCPeerConnectionConfig { IceServers = new[] { new RTCIceServerConfig { Urls = new[] { "stun:stun.l.google.com:19302" } } } };
+            using var pc1 = RTCPeerConnectionFactory.Create(config);
+            using var pc2 = RTCPeerConnectionFactory.Create(config);
+            pc1.OnIceCandidate += c => _ = pc2.AddIceCandidate(c);
+            pc2.OnIceCandidate += c => _ = pc1.AddIceCandidate(c);
+            var desktopPc1 = (DesktopRTCPeerConnection)pc1;
+            var desktopPc2 = (DesktopRTCPeerConnection)pc2;
+
+            using var source = new StubVideoTrack(Width, Height, Fps);
+            desktopPc1.AddTrack(source);
+            using var sinkSource = new StubVideoTrack(Width, Height, Fps);
+            desktopPc2.AddTrack(sinkSource);
+            pc1.CreateDataChannel("signal");
+            pc2.OnDataChannel += _ => { };
+
+            using var receiver = pc2.ReceiveVideoFrames();
+            receiver.MaxFramesPerSecond = 5;
+            var frames = new System.Collections.Concurrent.ConcurrentQueue<Video.RTCVideoFrame>();
+            var errors = new System.Collections.Concurrent.ConcurrentQueue<string>();
+            receiver.OnFrame += f => frames.Enqueue(f);
+            receiver.OnError += e => errors.Enqueue(e);
+            receiver.Start();
+
+            var offer = await pc1.CreateOffer();
+            await pc1.SetLocalDescription(offer);
+            await pc2.SetRemoteDescription(offer);
+            var answer = await pc2.CreateAnswer();
+            await pc2.SetLocalDescription(answer);
+            await pc1.SetRemoteDescription(answer);
+
+            var senderBridge = desktopPc1.VideoSources.First();
+            var picture = BuildStructuredPatternNV12(Width, Height);
+            using var pumpCts = new CancellationTokenSource();
+            var pump = Task.Run(async () =>
+            {
+                while (!pumpCts.IsCancellationRequested)
+                {
+                    try { senderBridge.ExternalVideoSourceRawSample(33, Width, Height, picture, VideoPixelFormatsEnum.NV12); } catch { }
+                    await Task.Delay(33).ContinueWith(_ => { });
+                }
+            });
+
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            while (frames.Count < 4 && clock.Elapsed < TimeSpan.FromSeconds(25)) await Task.Delay(100);
+            var gotFirstAt = clock.Elapsed;
+            // Keep the stream running for 3 more seconds to measure the rate the throttle allows.
+            var before = frames.Count;
+            await Task.Delay(3000);
+            var during = frames.Count - before;
+            pumpCts.Cancel();
+            try { await pump; } catch { }
+
+            if (frames.Count < 4)
+                throw new Exception($"only {frames.Count} frame(s) arrived in {clock.Elapsed.TotalSeconds:0.0} s. Errors: {string.Join(" | ", errors)}");
+            var f = frames.Last();
+            if (f.Width != Width || f.Height != Height) throw new Exception($"picture is {f.Width}x{f.Height}, sent {Width}x{Height}");
+
+            int Luma(int x, int y) { var i = (y * f.Width + x) * 4; return (f.Bgra[i] + f.Bgra[i + 1] * 6 + f.Bgra[i + 2] * 3) / 10; }   // roughly the brightness of B,G,R
+            var squareX = (int)(Width * 0.62); var squareY = (int)(Height * 0.37);
+            var square = Luma(squareX, squareY);
+            var rampLeft = Luma(Width / 10, Height * 3 / 4);
+            var rampRight = Luma(Width * 9 / 10, Height * 3 / 4);
+            if (square < 200) throw new Exception($"the bright square arrived at brightness {square} (sent 235)");
+            if (!(rampRight - rampLeft > 80)) throw new Exception($"the ramp did not survive: left {rampLeft}, right {rampRight}");
+            // 5 fps for 3 s is 15; the throttle must hold it well under what 30 fps would give (90).
+            if (during > 22) throw new Exception($"{during} frames in 3 s with MaxFramesPerSecond = 5");
+            if (during < 5) throw new Exception($"only {during} frames in 3 s with MaxFramesPerSecond = 5");
+            Console.WriteLine($"[VideoReceiver] first frames after {gotFirstAt.TotalSeconds:0.0} s, {during} frames in 3 s at MaxFramesPerSecond 5, square {square}, ramp {rampLeft}->{rampRight}");
+        }
+
+        /// <summary>A luma ramp, a bright square in the upper right, flat chroma: easy to recognise after a lossy round trip, the same on every frame.</summary>
+        private static byte[] BuildStructuredPatternNV12(int width, int height)
+        {
+            var data = new byte[width * height * 3 / 2];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int luma = x * 200 / width + 20;
+                    if (x > width / 2 && x < width * 3 / 4 && y > height / 4 && y < height / 2) luma = 235;
+                    data[y * width + x] = (byte)Math.Clamp(luma, 16, 235);
+                }
+            for (int i = width * height; i < data.Length; i++) data[i] = 128;
+            return data;
         }
 
         private static byte[] BuildMovingPatternNV12(int width, int height, int frameIndex)
