@@ -38,6 +38,8 @@ internal sealed class AnnounceResponse
     [JsonPropertyName("interval")] public int Interval { get; set; }
     [JsonPropertyName("complete")] public int Complete { get; set; }
     [JsonPropertyName("incomplete")] public int Incomplete { get; set; }
+    /// <summary>BEP 21: active downloaders, excluding incomplete upload-only partial seeds.</summary>
+    [JsonPropertyName("downloaders")] public int Downloaders { get; set; }
 
     [JsonPropertyName("peers")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

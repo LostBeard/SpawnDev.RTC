@@ -225,3 +225,33 @@ Both consumers produce room entries on the same tracker; neither knows or cares 
 - **You get signaling that Google/Amazon/Microsoft don't proxy** for your users. Self-hosted infra for self-hosted apps.
 - **WebTorrent compatibility is a bonus.** Every instance you run helps every WebTorrent client on the public network find peers. You strengthen a decentralized commons by pursuing your own product's needs. The two goals aren't opposed; they're the same action.
 - **Zero operational cost beyond a small VPS.** 1 GB RAM is 10x what you need.
+
+## BEP 21 partial seeds
+
+This WebSocket tracker supports [BEP 21: Partial Seeds](https://www.bittorrent.org/beps/bep_0021.html).
+An announce with `"event":"paused"` registers an incomplete, upload-only partial seed,
+**without removing it from the swarm or blocking WebRTC offer/answer relaying**.
+The tracker returns three counts in its announce responses:
+
+| Response field | Meaning |
+| --- | --- |
+| `complete` | Peers holding the full torrent |
+| `incomplete` | All incomplete peers, including partial seeds |
+| `downloaders` | Incomplete peers *actively downloading*, excluding `paused` partial seeds |
+
+The tracker recomputes classification on each announce. A partial seed that resumes normal
+announcing with `left > 0` becomes an active downloader; an incomplete peer that announces
+`left=0` becomes a full seed. Status is tracked per room even when one connection
+announces to multiple torrents. `stopped`, socket closure and stale-peer eviction
+remove the relevant accounting.
+
+The signaling tracker does not implement the traditional HTTP/UDP BitTorrent scrape protocol.
+The new `downloaders` attribute is available in WebSocket announce responses and internal
+room statistics; it is compatible with clients that ignore unknown JSON fields. For the
+traditional BEP 21 scrape extension, an HTTP/UDP tracker would be required.
+
+
+The RTC signaling client's own automatic WebSocket reannounce timer now preserves
+`event=paused`, rather than dropping it after the initial announce. This is
+required for client-side BEP 21 compliance and complements the server's
+`downloaders` response field.
