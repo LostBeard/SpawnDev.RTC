@@ -21,7 +21,11 @@ namespace SpawnDev.RTC.Demo.Shared.UnitTests
         {
             if (OperatingSystem.IsBrowser()) return; // Browser has no UDP
 
-            const int listenPort = 63478;
+            // A free UDP port chosen by the OS. A fixed port (63478) failed with SocketException 10013 when Windows had reserved the
+            // range it falls in (netsh: "excludedportrange", here 63430-63529 on 2026-11-03); those reservations change per boot.
+            int listenPort;
+            using (var probe = new System.Net.Sockets.UdpClient(new IPEndPoint(IPAddress.Loopback, 0)))
+                listenPort = ((IPEndPoint)probe.Client.LocalEndPoint!).Port;
 
             // Configure exactly as StunTurnServerHostedService would for loopback defaults.
             var config = new SIPSorcery.Net.TurnServerConfig

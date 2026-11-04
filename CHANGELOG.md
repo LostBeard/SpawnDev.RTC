@@ -1,5 +1,25 @@
 # Changelog
 
+## SpawnDev.RTC 2.4.0 + SpawnDev.RTC.Server 2.4.0 (2026-11-03)
+
+### Added
+- **`IRTCVideoReceiver`**: decoded pictures from a received video track (desktop: H.264 decoded by the Media Foundation H.264 decoder
+  through SpawnDev.MultiMedia 2.5.0), with a loopback test.
+- **`RTCPeerConnectionConfig.X_SctpMaxBurst` / `X_SctpBurstPeriodMilliseconds`** (desktop). SCTP sends at most MaxBurst (4) chunks per
+  burst, so a data channel moved ~170 KB/s to a Reachy Mini on a LAN where TCP moved 6.6 MB/s; MaxBurst 32 + 10 ms moved 400 KB in
+  350 ms instead of 2.3 s. Defaults unchanged; the test checks both roles of the association and that an unconfigured connection keeps
+  the RFC defaults.
+
+### Fixed
+- **Desktop: audio sent before negotiation used the local payload type.** A source that starts sending at once (continuous silence)
+  pinned Opus 111 before the remote description arrived, and a peer that negotiated its own type (a Reachy Mini offers Opus as 100)
+  dropped every packet. Real two-peer test (offer rewritten to PT 100, answerer streaming from before the SDP exchange): red without
+  the SIPSorcery fix, green with it.
+
+### Dependencies
+- SpawnDev.SIPSorcery 10.0.10 -> 10.0.11, SpawnDev.MultiMedia 2.4.0 -> 2.5.0, SpawnDev.SpawnJS 3.0.0 -> 3.0.7,
+  SpawnDev.SpawnJS.Cryptography 2.1.0 -> 2.1.2. SpawnDev.RTC.Server: no code change, released on RTC 2.4.0.
+
 ## SpawnDev.RTC 2.3.1 (2026-10-06)
 
 Desktop data channels survive packet loss with partial-reliability peers.
