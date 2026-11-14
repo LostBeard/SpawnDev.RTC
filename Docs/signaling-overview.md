@@ -91,3 +91,17 @@ The tradeoff: the wire format dictates a 20-byte room identifier. If your app ha
 - `SpawnDev.RTC.Demo/Pages/ChatRoom.razor` - working Blazor WASM consumer
 - `SpawnDev.RTC.DemoConsole/ChatMode.cs` - desktop console consumer
 - `SpawnDev.RTC.WpfDemo/MainWindow.xaml.cs` - desktop WPF consumer with media
+
+### Partial-seed tracker status (BEP 21)
+
+The server accepts WebTorrent `event=paused` for incomplete upload-only partial seeds,
+continues normal WebRTC signaling, and includes `downloaders` alongside `complete` and
+`incomplete` in announce responses. See [BEP 21](https://www.bittorrent.org/beps/bep_0021.html)
+and [running a tracker](run-a-tracker.md) for the precise count definitions.
+
+### BEP 21 reannounce interoperability
+
+For BEP 21 partial seeds, `TrackerSignalingClient` retains `event=paused` on
+**every periodic WebSocket announce**. One-shot events (`started`, `completed`,
+`stopped`) are cleared. `SignalingSwarmStats.Downloaders` exposes the optional
+count reported by compatible trackers, while remaining null with legacy trackers.

@@ -201,6 +201,10 @@ namespace PlaywrightMultiTest
                             new BrowserTypeLaunchPersistentContextOptions
                             {
                                 Headless = false,
+                                // The local Playwright web server uses a self-signed test
+                                // certificate. This exception applies only to the test
+                                // Chromium context, never to production RTC WebSockets.
+                                IgnoreHTTPSErrors = true,
                                 Args = new[]
                                 {
                                     "--enable-unsafe-webgpu",

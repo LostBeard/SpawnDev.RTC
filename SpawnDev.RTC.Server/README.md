@@ -143,3 +143,28 @@ For the standalone-executable + Docker route, see the [SpawnDev.RTC.ServerApp](h
 ## License
 
 MIT — see [LICENSE.txt](https://github.com/LostBeard/SpawnDev.RTC/blob/master/SpawnDev.RTC/LICENSE.txt) in the parent repository.
+
+## BEP 21 partial seeds
+
+This WebSocket tracker supports [BEP 21: Partial Seeds](https://www.bittorrent.org/beps/bep_0021.html).
+An announce with `"event":"paused"` registers an incomplete, upload-only partial seed,
+**without removing it from the swarm or blocking WebRTC offer/answer relaying**.
+The tracker returns three counts in its announce responses:
+
+| Response field | Meaning |
+| --- | --- |
+| `complete` | Peers holding the full torrent |
+| `incomplete` | All incomplete peers, including partial seeds |
+| `downloaders` | Incomplete peers *actively downloading*, excluding `paused` partial seeds |
+
+The tracker recomputes classification on each announce. A partial seed that resumes normal
+announcing with `left > 0` becomes an active downloader; an incomplete peer that announces
+`left=0` becomes a full seed. Status is tracked per room even when one connection
+announces to multiple torrents. `stopped`, socket closure and stale-peer eviction
+remove the relevant accounting.
+
+The signaling tracker does not implement the traditional HTTP/UDP BitTorrent scrape protocol.
+The new `downloaders` attribute is available in WebSocket announce responses and internal
+room statistics; it is compatible with clients that ignore unknown JSON fields. For the
+traditional BEP 21 scrape extension, an HTTP/UDP tracker would be required.
+

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
 namespace SpawnDev.RTC.Server;
@@ -36,6 +37,10 @@ public sealed class SignalingPeer
     /// <c>event=completed</c>. Counted as a seeder in swarm stats.
     /// </summary>
     public bool IsSeeder { get; internal set; }
+
+    /// <summary>Per-room announce state. A single WebSocket may announce to several
+    /// torrents with different completion statuses; never share one seeder flag between rooms.</summary>
+    internal ConcurrentDictionary<string, TrackerPeerState> RoomStates { get; } = new();
 
     /// <summary>
     /// UTC timestamp of this peer's most recent announce (updated every announce). Drives offer-relay

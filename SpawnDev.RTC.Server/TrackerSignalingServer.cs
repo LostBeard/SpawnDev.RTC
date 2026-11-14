@@ -342,12 +342,18 @@ public sealed class TrackerSignalingServer
         if (msg.Event == "stopped")
         {
             room.Peers.TryRemove(peer.PeerId, out _);
+            peer.RoomStates.TryRemove(room.RoomKey, out _);
         }
         else
         {
+            // BEP 21 state belongs to a peer in a specific torrent room, not
+            // to its shared WebSocket. Every announce replaces previous state:
+            // a former seed may start downloading and a partial seed may resume.
+            peer.RoomStates.TryGetValue(room.RoomKey, out var previous);
+            var state = TrackerPeerState.FromAnnounce(msg.Event, msg.Left, previous);
+            peer.RoomStates[room.RoomKey] = state;
+            peer.IsSeeder = state.IsSeeder; // existing per-peer diagnostic compatibility
             room.Peers[peer.PeerId] = peer;
-            if (msg.Event == "completed" || msg.Left == 0)
-                peer.IsSeeder = true;
         }
 
         // Janitor: drop peers that have gone silent (stale LastAnnounce, or a socket no longer Open)
@@ -368,6 +374,7 @@ public sealed class TrackerSignalingServer
             Interval = _options.AnnounceIntervalSeconds,
             Complete = room.SeederCount,
             Incomplete = room.LeechCount,
+            Downloaders = room.DownloaderCount,
             Peers = null,
         });
         Diag($"[{peer.ConnId}] announce response built ({response.Length} chars), sending...");
@@ -463,6 +470,7 @@ public sealed class TrackerSignalingServer
             if (p.LastAnnounce >= cutoff && p.WebSocket.State == WebSocketState.Open) continue;
             if (room.Peers.TryRemove(kvp.Key, out _))
             {
+                p.RoomStates.TryRemove(room.RoomKey, out _);
                 try { p.WebSocket.Abort(); } catch { /* already gone */ }
                 Diag($"evicted stale peer {p.PeerId} lastAnnounce={p.LastAnnounce:HH:mm:ss} state={p.WebSocket.State}");
             }

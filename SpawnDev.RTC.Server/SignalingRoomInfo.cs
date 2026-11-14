@@ -20,11 +20,21 @@ public sealed class SignalingRoomInfo
     /// </summary>
     public ConcurrentDictionary<string, SignalingPeer> Peers { get; } = new();
 
-    /// <summary>Current seeder count (peers with <see cref="SignalingPeer.IsSeeder"/>).</summary>
-    public int SeederCount => Peers.Values.Count(p => p.IsSeeder);
+    /// <summary>Complete seeds; computed from this room's most recent peer announces.</summary>
+    public int SeederCount => Peers.Values.Count(p =>
+        p.RoomStates.TryGetValue(RoomKey, out var state) && state.IsSeeder);
 
-    /// <summary>Current leech count (peers that have not reported completed).</summary>
-    public int LeechCount => Peers.Values.Count(p => !p.IsSeeder);
+    /// <summary>BEP 21 'incomplete' includes partial seeds AND active downloaders.</summary>
+    public int LeechCount => Peers.Values.Count(p =>
+        p.RoomStates.TryGetValue(RoomKey, out var state) && !state.IsSeeder);
+
+    /// <summary>BEP 21 'downloaders' excludes peers announcing event=paused.</summary>
+    public int DownloaderCount => Peers.Values.Count(p =>
+        p.RoomStates.TryGetValue(RoomKey, out var state) && !state.IsSeeder && !state.IsPartialSeed);
+
+    /// <summary>Incomplete peers that have finished all wanted pieces and continue uploading.</summary>
+    public int PartialSeedCount => Peers.Values.Count(p =>
+        p.RoomStates.TryGetValue(RoomKey, out var state) && state.IsPartialSeed);
 
     internal SignalingRoomInfo(string roomKey)
     {

@@ -425,7 +425,9 @@ public sealed class TrackerSignalingClient : ISignalingClient
         {
             var stats = new SignalingSwarmStats(
                 data.TryGetProperty("complete", out var cp) ? cp.GetInt32() : 0,
-                data.TryGetProperty("incomplete", out var ip) ? ip.GetInt32() : 0);
+                data.TryGetProperty("incomplete", out var ip) ? ip.GetInt32() : 0,
+                data.TryGetProperty("downloaders", out var dp) && dp.ValueKind == JsonValueKind.Number
+                    ? dp.GetInt32() : null);
             if (_roomKeys.TryGetValue(responseInfoHash, out var rk))
                 OnSwarmStats?.Invoke(rk, stats);
         }
@@ -560,14 +562,15 @@ public sealed class TrackerSignalingClient : ISignalingClient
         // Fire at the tracker-given interval (from the announce response's "interval"/"min interval").
         // The JS reference re-announces every interval to keep pairing newly-arrived peers; we previously
         // left this body empty (announce-once), so a thin initial swarm never grew. ReAnnounceAll re-sends
-        // a periodic announce (fresh offers, no event) for every active room.
+        // a periodic announce (fresh offers, with BEP 21 paused state preserved) for every active room.
         _announceTimer = new Timer(_ => ReAnnounceAll(), null, ms, ms);
     }
 
     /// <summary>Periodic re-announce of every active room at the tracker-given interval. Re-generates fresh
     /// WebRTC offers per room (via the room handler's CreateOffersAsync); the Layer 1-3 dedup collapses offers
     /// to already-connected remotes while pairing newly-arrived peers. Mirrors the JS WebTorrent /
-    /// bittorrent-tracker re-announce loop. Event=null marks it periodic (not started/completed/stopped).</summary>
+    /// bittorrent-tracker re-announce loop. Ordinary one-shot events are cleared, but BEP 21
+    /// requires repeating event=paused on every partial-seed announce.</summary>
     private void ReAnnounceAll()
     {
         if (Destroyed || Reconnecting || !_connected) return;
@@ -576,7 +579,7 @@ public sealed class TrackerSignalingClient : ISignalingClient
             if (!_lastAnnounceOptions.TryGetValue(kv.Key, out var last)) continue;
             var periodic = new AnnounceOptions
             {
-                Event = null,
+                Event = last.Event == "paused" ? "paused" : null,
                 NumWant = last.NumWant,
                 Uploaded = last.Uploaded,
                 Downloaded = last.Downloaded,
